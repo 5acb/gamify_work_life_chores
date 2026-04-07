@@ -14,11 +14,18 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---- Helpers ----
-function getAllTasks(includeArchived) {
-  const where = includeArchived ? '' : 'WHERE t.archived = 0';
-  const tasks = db.prepare(`SELECT t.* FROM tasks t ${where} ORDER BY t.sort_order`).all();
-  const subtasks = db.prepare('SELECT * FROM subtasks ORDER BY task_id, sort_order').all();
-  const blockers = db.prepare('SELECT * FROM blockers').all();
+function getUser(slug) {
+  return db.prepare('SELECT * FROM users WHERE slug = ?').get(slug);
+}
+
+function getTasksForUser(userId, archived) {
+  const where = archived ? 'WHERE t.user_id = ? AND t.archived = 1' : 'WHERE t.user_id = ? AND t.archived = 0';
+  const tasks = db.prepare(`SELECT t.* FROM tasks t ${where} ORDER BY t.sort_order`).all(userId);
+  const ids = tasks.map(t => t.id);
+  if (!ids.length) return tasks;
+  const ph = ids.map(() => '?').join(',');
+  const subtasks = db.prepare(`SELECT * FROM subtasks WHERE task_id IN (${ph}) ORDER BY task_id, sort_order`).all(...ids);
+  const blockers = db.prepare(`SELECT * FROM blockers WHERE task_id IN (${ph})`).all(...ids);
   const taskMap = {};
   for (const t of tasks) { t.subs = []; t.needs = []; taskMap[t.id] = t; }
   for (const s of subtasks) { if (taskMap[s.task_id]) taskMap[s.task_id].subs.push(s); }
@@ -26,18 +33,27 @@ function getAllTasks(includeArchived) {
   return tasks;
 }
 
-// ---- API: Tasks ----
-app.get('/api/tasks', (req, res) => {
-  const includeArchived = req.query.archived === '1';
-  res.json({ tasks: getAllTasks(includeArchived) });
+// ---- API: Users ----
+app.get('/api/users', (req, res) => {
+  res.json({ users: db.prepare('SELECT * FROM users ORDER BY id').all() });
 });
 
-app.post('/api/tasks', (req, res) => {
+// ---- API: Tasks (user-scoped) ----
+app.get('/api/users/:slug/tasks', (req, res) => {
+  const user = getUser(req.params.slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+  const archived = req.query.view === 'archived';
+  res.json({ tasks: getTasksForUser(user.id, archived), user });
+});
+
+app.post('/api/users/:slug/tasks', (req, res) => {
+  const user = getUser(req.params.slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
   const { domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, needs, subs } = req.body;
-  const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order),0) as m FROM tasks').get();
+  const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order),0) as m FROM tasks WHERE user_id = ?').get(user.id);
   const result = db.prepare(
-    'INSERT INTO tasks (domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order) VALUES (?,?,?,?,?,?,?,?,?)'
-  ).run(domain, name, plan_date || null, due_date || null, plan_label || '', due_label || '', speed || 0, stakes || 0, maxOrder.m + 1);
+    'INSERT INTO tasks (user_id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order) VALUES (?,?,?,?,?,?,?,?,?,?)'
+  ).run(user.id, domain, name, plan_date || null, due_date || null, plan_label || '', due_label || '', speed || 0, stakes || 0, maxOrder.m + 1);
   const taskId = result.lastInsertRowid;
   if (needs && needs.length) {
     const ins = db.prepare('INSERT INTO blockers (task_id, blocked_by) VALUES (?, ?)');
@@ -50,6 +66,7 @@ app.post('/api/tasks', (req, res) => {
   res.json({ ok: true, id: taskId });
 });
 
+// ---- API: Tasks (by id, not user-scoped) ----
 app.patch('/api/tasks/:id', (req, res) => {
   const fields = ['domain','name','plan_date','due_date','plan_label','due_label','speed','stakes','sort_order','done'];
   const sets = []; const vals = [];
@@ -127,38 +144,28 @@ app.delete('/api/blockers', (req, res) => {
   res.json({ ok: true });
 });
 
-// ---- API: Search ----
-app.get('/api/search', (req, res) => {
-  const q = req.query.q || '';
-  const tasks = db.prepare(`
-    SELECT t.* FROM tasks t
-    WHERE (t.name LIKE ? OR t.domain LIKE ? OR t.id IN (
-      SELECT s.task_id FROM subtasks s WHERE s.label LIKE ?
-    ))
-    ORDER BY t.sort_order
-  `).all(`%${q}%`, `%${q}%`, `%${q}%`);
-  const ids = tasks.map(t => t.id);
-  const subtasks = ids.length ? db.prepare(`SELECT * FROM subtasks WHERE task_id IN (${ids.join(',')}) ORDER BY task_id, sort_order`).all() : [];
-  const blockers = ids.length ? db.prepare(`SELECT * FROM blockers WHERE task_id IN (${ids.join(',')}) OR blocked_by IN (${ids.join(',')})`).all() : [];
-  const taskMap = {};
-  for (const t of tasks) { t.subs = []; t.needs = []; taskMap[t.id] = t; }
-  for (const s of subtasks) { if (taskMap[s.task_id]) taskMap[s.task_id].subs.push(s); }
-  for (const b of blockers) { if (taskMap[b.task_id]) taskMap[b.task_id].needs.push(b.blocked_by); }
-  res.json({ tasks });
-});
-
-// ---- API: UI State ----
-app.put('/api/ui-state', (req, res) => {
+// ---- API: UI State (per user) ----
+app.put('/api/users/:slug/ui-state', (req, res) => {
+  const user = getUser(req.params.slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
   const ins = db.prepare('INSERT OR REPLACE INTO ui_state (key, value) VALUES (?, ?)');
-  for (const [k, v] of Object.entries(req.body)) ins.run(k, JSON.stringify(v));
+  for (const [k, v] of Object.entries(req.body)) ins.run(user.slug + ':' + k, JSON.stringify(v));
   res.json({ ok: true });
 });
 
-app.get('/api/ui-state', (req, res) => {
-  const rows = db.prepare('SELECT * FROM ui_state').all();
+app.get('/api/users/:slug/ui-state', (req, res) => {
+  const user = getUser(req.params.slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+  const rows = db.prepare('SELECT * FROM ui_state WHERE key LIKE ?').all(user.slug + ':%');
   const state = {};
-  for (const r of rows) state[r.key] = JSON.parse(r.value);
+  for (const r of rows) state[r.key.replace(user.slug + ':', '')] = JSON.parse(r.value);
   res.json(state);
+});
+
+// ---- SPA: serve index.html for board routes ----
+app.get('/:slug', (req, res) => {
+  if (req.params.slug.startsWith('api')) return res.status(404).end();
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => console.log(`Organizer running on :${PORT}`));

@@ -9,56 +9,58 @@
 <style>
 :root{--bg:#111113;--bg2:#1c1c1f;--bg3:#26262a;--bg4:#303036;--tx1:#e4e4e7;--tx2:#a1a1aa;--tx3:#71717a;--brd:rgba(255,255,255,0.08);--accent:#0d9488}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;background:var(--bg);color:var(--tx1);padding:0 12px 100px;max-width:640px;margin:0 auto;-webkit-font-smoothing:antialiased}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-serif;background:var(--bg);color:var(--tx1);padding:0;max-width:640px;margin:0 auto;-webkit-font-smoothing:antialiased}
+
+/* Board picker */
+.picker{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;padding:20px}
+.picker h1{font-size:24px;font-weight:700;margin-bottom:8px}
+.picker-card{width:100%;max-width:300px;padding:20px;border-radius:12px;background:var(--bg2);border:1px solid var(--brd);cursor:pointer;text-align:center;transition:border-color 0.2s}
+.picker-card:hover{border-color:var(--accent)}
+.picker-card h2{font-size:18px;font-weight:600;margin-bottom:4px}
+.picker-card p{font-size:12px;color:var(--tx3)}
 
 /* Header */
-.hdr{position:sticky;top:0;background:var(--bg);z-index:10;padding:16px 0 12px}
-.hdr h1{font-size:20px;font-weight:700;margin-bottom:2px}
-.hdr-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.hdr p{font-size:11px;color:var(--tx3);flex:1}
-.hdr-btn{font-size:10px;font-weight:600;padding:4px 10px;border-radius:6px;border:1px solid var(--brd);background:var(--bg2);color:var(--tx2);cursor:pointer;white-space:nowrap}
-.hdr-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.hdr{position:sticky;top:0;background:var(--bg);z-index:10;padding:16px 12px 12px}
+.hdr-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.hdr h1{font-size:20px;font-weight:700;flex:1}
+.hdr .back{font-size:13px;color:var(--tx3);text-decoration:none;padding:4px 0}
+.hdr p{font-size:11px;color:var(--tx3);margin-bottom:8px}
 
-/* Search */
-.search{width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--brd);background:var(--bg2);color:var(--tx1);font-size:13px;outline:none;margin-bottom:12px}
-.search::placeholder{color:var(--tx3)}
-.search:focus{border-color:var(--accent)}
+/* Toggle */
+.toggle-wrap{display:flex;background:var(--bg3);border-radius:8px;padding:2px;margin-bottom:10px}
+.toggle-btn{flex:1;padding:6px 0;text-align:center;font-size:11px;font-weight:600;color:var(--tx3);border-radius:6px;cursor:pointer;transition:all 0.2s;border:none;background:transparent}
+.toggle-btn.active{background:var(--bg2);color:var(--tx1)}
 
-.leg{font-size:10px;color:var(--tx3);margin-bottom:14px;line-height:1.7}.leg b{color:var(--tx2)}
+.search{width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--brd);background:var(--bg2);color:var(--tx1);font-size:13px;outline:none;margin:0 12px 12px;width:calc(100% - 24px)}
+.search::placeholder{color:var(--tx3)}.search:focus{border-color:var(--accent)}
+.leg{font-size:10px;color:var(--tx3);margin:0 12px 14px;line-height:1.7}.leg b{color:var(--tx2)}
 
 /* Cards */
+.cards{padding:0 12px 100px}
 .card{position:relative;padding:12px 14px 12px 22px;margin-bottom:10px;border-radius:10px;background:var(--bg2);border:1px solid var(--brd);transition:opacity 0.2s}
 .card.alldone{opacity:0.25}.card.alldone .title{text-decoration:line-through}
-.card.archived-card{opacity:0.15;border-style:dashed}
+.card.archived-card{opacity:0.35;border-style:dashed}
 .stripe{position:absolute;left:0;top:0;bottom:0;width:5px;border-radius:10px 0 0 10px}
-
 .r1{display:flex;align-items:center;gap:8px;margin-bottom:8px;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .idx{font-size:11px;color:var(--tx3);font-weight:700;min-width:16px;text-align:right;font-variant-numeric:tabular-nums}
 .dtag{font-size:8px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;padding:2px 7px;border-radius:4px;border:1.5px solid;background:transparent}
 .title{font-size:14px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
 .lock-badge{font-size:8px;font-weight:700;padding:2px 6px;border-radius:4px;background:var(--bg3);color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px}
 .chevron{font-size:10px;color:var(--tx3);transition:transform 0.2s;flex-shrink:0}.chevron.open{transform:rotate(90deg)}
-
 .r2{display:flex;align-items:center;gap:5px;flex-wrap:wrap;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .pill{font-size:8px;font-weight:700;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:0.4px}
 .p-turn{background:var(--bg3);color:var(--tx2)}
 .dates{font-size:10px;color:var(--tx2);white-space:nowrap}.arrow{color:var(--tx3);margin:0 2px}
 .buf{display:flex;align-items:center;gap:3px;margin-left:auto;flex-shrink:0}
-.tp{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;color:#fff}
-.bd{width:4px;height:4px;border-radius:50%;display:inline-block}
-
+.tp{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;color:#fff}.bd{width:4px;height:4px;border-radius:50%;display:inline-block}
 .pbar-wrap{height:3px;background:var(--bg3);border-radius:2px;margin-top:8px;overflow:hidden}
 .pbar{height:100%;border-radius:2px;transition:width 0.3s}
 .dep-note{font-size:9px;color:var(--tx3);margin-top:6px;font-style:italic}
-
-/* Actions row */
 .actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .act-btn{font-size:9px;font-weight:600;padding:3px 8px;border-radius:5px;border:1px solid var(--brd);background:transparent;color:var(--tx3);cursor:pointer}
 .act-btn:hover{background:var(--bg3);color:var(--tx2)}
 .act-btn.archive{color:#ef4444;border-color:rgba(239,68,68,0.3)}
 .act-btn.unarchive{color:var(--accent);border-color:rgba(13,148,136,0.3)}
-
-/* Subtasks */
 .subs{margin-top:10px;padding-top:10px;border-top:1px solid var(--brd)}
 .sub{display:flex;align-items:flex-start;gap:10px;padding:6px 0;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .sub.subdone .slabel{text-decoration:line-through;color:var(--tx3)}
@@ -66,13 +68,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-ser
 .scheck.on{background:var(--accent);border-color:var(--accent)}
 .scheck.on::after{content:'';width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);margin-top:-2px}
 .slabel{font-size:12px;color:var(--tx1);line-height:1.5;flex:1}
-.sub-del{font-size:10px;color:var(--tx3);cursor:pointer;padding:2px 4px;opacity:0.5}
-.sub-del:hover{opacity:1;color:#ef4444}
+.sub-del{font-size:10px;color:var(--tx3);cursor:pointer;padding:2px 4px;opacity:0.5}.sub-del:hover{opacity:1;color:#ef4444}
 .add-sub{display:flex;gap:6px;margin-top:6px}
 .add-sub input{flex:1;padding:5px 8px;border-radius:5px;border:1px solid var(--brd);background:var(--bg3);color:var(--tx1);font-size:11px;outline:none}
 .add-sub button{padding:5px 10px;border-radius:5px;border:none;background:var(--accent);color:#fff;font-size:11px;font-weight:600;cursor:pointer}
-
-/* Edit modal */
 .modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:100;display:none;align-items:flex-end;justify-content:center}
 .modal-bg.show{display:flex}
 .modal{background:var(--bg2);border-radius:16px 16px 0 0;padding:20px 16px 32px;width:100%;max-width:640px;max-height:80vh;overflow-y:auto}
@@ -80,99 +79,132 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',sans-ser
 .field{margin-bottom:12px}
 .field label{display:block;font-size:10px;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px}
 .field input,.field select{width:100%;padding:8px 10px;border-radius:6px;border:1px solid var(--brd);background:var(--bg3);color:var(--tx1);font-size:13px;outline:none}
-.field select{appearance:none}
 .modal-actions{display:flex;gap:8px;margin-top:16px}
 .modal-actions button{flex:1;padding:10px;border-radius:8px;border:none;font-size:13px;font-weight:600;cursor:pointer}
-.btn-save{background:var(--accent);color:#fff}
-.btn-cancel{background:var(--bg3);color:var(--tx2)}
-
-/* FAB */
+.btn-save{background:var(--accent);color:#fff}.btn-cancel{background:var(--bg3);color:var(--tx2)}
 .fab{position:fixed;bottom:24px;right:24px;width:48px;height:48px;border-radius:50%;background:var(--accent);color:#fff;font-size:24px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.4);z-index:50}
+.empty{color:var(--tx3);font-size:13px;padding:20px 0}
 </style>
 </head>
 <body>
-
-<div class="hdr">
-  <h1>organizer</h1>
-  <div class="hdr-row">
-    <p id="datestr"></p>
-    <button class="hdr-btn" id="archiveToggle">show archived</button>
-  </div>
-  <input class="search" id="searchInput" placeholder="Search tasks, subtasks, domains..." autocomplete="off">
-</div>
-<div class="leg"><b>Speed</b> snap · sesh · grind &nbsp; <b>Stakes</b> low · high · crit</div>
-<div id="app"></div>
-<button class="fab" id="fabAdd">+</button>
-
-<div class="modal-bg" id="modalBg">
-<div class="modal" id="modal"></div>
-</div>
-
+<div id="root"></div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
 <script>
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
-document.getElementById('datestr').textContent=TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-
 var DM={CTI:{c:"#60a5fa"},ECM:{c:"#c084fc"},CSD:{c:"#5eead4"},GRA:{c:"#7dd3fc"},Personal:{c:"#a5b4fc"}};
-var TL=["snap","sesh","grind"];
-var SL=["low","high","crit"];
+var TL=["snap","sesh","grind"],SL=["low","high","crit"];
 var SC=[{bg:"var(--bg3)",fg:"var(--tx3)"},{bg:"#C9652A",fg:"#fff"},{bg:"#D92B2B",fg:"#fff"}];
 var DOMAINS=["CTI","ECM","CSD","GRA","Personal"];
 
-var tasks=[],taskById={},expanded=new Set(),showArchived=false,searchQuery='';
+var state={slug:null,user:null,tasks:[],taskById:{},expanded:new Set(),view:'current',searchQuery:''};
 
 function api(m,u,b){var o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);return fetch(u,o).then(function(r){return r.json()})}
 
-function load(){
-  var url='/api/tasks'+(showArchived?'?archived=1':'');
-  Promise.all([api('GET',url),api('GET','/api/ui-state')]).then(function(res){
-    tasks=res[0].tasks;taskById={};
-    tasks.forEach(function(t){taskById[t.id]=t});
-    if(res[1].expanded) res[1].expanded.forEach(function(i){expanded.add(i)});
-    autoExpand();render();
+// ---- Routing ----
+function getSlug(){var p=location.pathname.replace(/^\//,'').replace(/\/$/,'');return p||null}
+
+function navigate(slug){
+  history.pushState(null,'','/'+slug);
+  state.slug=slug;
+  loadBoard();
+}
+
+window.addEventListener('popstate',function(){route()});
+
+function route(){
+  state.slug=getSlug();
+  if(!state.slug){showPicker()}else{loadBoard()}
+}
+
+// ---- Board picker ----
+function showPicker(){
+  api('GET','/api/users').then(function(d){
+    var root=document.getElementById('root');
+    root.innerHTML='<div class="picker"><h1>organizer</h1></div>';
+    var picker=root.querySelector('.picker');
+    d.users.forEach(function(u){
+      var card=document.createElement('div');
+      card.className='picker-card';
+      card.innerHTML='<h2>'+u.name+'</h2><p>@'+u.slug+'</p>';
+      card.onclick=function(){navigate(u.slug)};
+      picker.appendChild(card);
+    });
   });
 }
 
-function saveExpanded(){api('PUT','/api/ui-state',{expanded:Array.from(expanded)})}
+// ---- Board ----
+function loadBoard(){
+  var viewParam=state.view==='archived'?'?view=archived':'';
+  Promise.all([
+    api('GET','/api/users/'+state.slug+'/tasks'+viewParam),
+    api('GET','/api/users/'+state.slug+'/ui-state')
+  ]).then(function(res){
+    state.tasks=res[0].tasks;state.user=res[0].user;
+    state.taskById={};
+    state.tasks.forEach(function(t){state.taskById[t.id]=t});
+    state.expanded=new Set();
+    if(res[1].expanded) res[1].expanded.forEach(function(i){state.expanded.add(i)});
+    autoExpand();
+    renderBoard();
+  });
+}
+
+function saveExpanded(){api('PUT','/api/users/'+state.slug+'/ui-state',{expanded:Array.from(state.expanded)})}
 function df(ds){if(!ds)return 999;return Math.max(0,Math.round((new Date(ds+'T00:00:00')-TODAY)/864e5))}
 function bf(p,x){if(!p||!x)return 0;return Math.max(0,Math.round((new Date(x+'T00:00:00')-new Date(p+'T00:00:00'))/864e5))}
 function uc(n){return n<=0?"#ef4444":n<=2?"#C9652A":n<=5?"#A67A4B":"#71717a"}
 function bc(b){return b<=1?"#C9652A":b<=3?"#A67A4B":"#71717a"}
-
 function isBlocked(t){
   if(!t.needs||!t.needs.length)return false;
-  for(var k=0;k<t.needs.length;k++){
-    var dep=taskById[t.needs[k]];if(!dep)continue;
+  for(var k=0;k<t.needs.length;k++){var dep=state.taskById[t.needs[k]];if(!dep)continue;
     if(dep.subs&&dep.subs.length){if(!dep.subs.every(function(s){return s.done}))return true}
-    else{if(!dep.done)return true}
-  }return false;
+    else{if(!dep.done)return true}}return false;
 }
-function taskDone(t){
-  var a;if(t.subs&&t.subs.length)a=t.subs.every(function(s){return s.done});else a=!!t.done;
-  return a&&!isBlocked(t);
-}
-function taskProgress(t){
-  if(!t.subs||!t.subs.length)return t.done?1:0;
-  return t.subs.filter(function(s){return s.done}).length/t.subs.length;
-}
-function autoExpand(){
-  tasks.forEach(function(t){if(!t.subs||!t.subs.length)return;if(df(t.plan_date)<=2&&!taskDone(t))expanded.add(t.id)});
-}
-
+function taskDone(t){var a;if(t.subs&&t.subs.length)a=t.subs.every(function(s){return s.done});else a=!!t.done;return a&&!isBlocked(t)}
+function taskProgress(t){if(!t.subs||!t.subs.length)return t.done?1:0;return t.subs.filter(function(s){return s.done}).length/t.subs.length}
+function autoExpand(){state.tasks.forEach(function(t){if(!t.subs||!t.subs.length)return;if(df(t.plan_date)<=2&&!taskDone(t))state.expanded.add(t.id)})}
 function matchSearch(t){
-  if(!searchQuery)return true;
-  var q=searchQuery.toLowerCase();
-  if(t.name.toLowerCase().includes(q))return true;
-  if(t.domain.toLowerCase().includes(q))return true;
-  if(t.subs&&t.subs.some(function(s){return s.label.toLowerCase().includes(q)}))return true;
-  return false;
+  if(!state.searchQuery)return true;var q=state.searchQuery.toLowerCase();
+  return t.name.toLowerCase().includes(q)||t.domain.toLowerCase().includes(q)||(t.subs&&t.subs.some(function(s){return s.label.toLowerCase().includes(q)}));
 }
 
-var app=document.getElementById('app');
+function renderBoard(){
+  var root=document.getElementById('root');
+  var dateStr=TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  var userName=state.user?state.user.name:'';
 
-function render(){
+  root.innerHTML=
+    '<div class="hdr">'
+      +'<div class="hdr-top"><a class="back" href="/" onclick="event.preventDefault();history.pushState(null,\'\',\'/\');route()">&#8592;</a><h1>'+userName+'</h1></div>'
+      +'<p>'+dateStr+'</p>'
+      +'<div class="toggle-wrap">'
+        +'<button class="toggle-btn'+(state.view==='current'?' active':'')+'" data-view="current">current</button>'
+        +'<button class="toggle-btn'+(state.view==='archived'?' active':'')+'" data-view="archived">archived</button>'
+      +'</div>'
+    +'</div>'
+    +'<input class="search" id="searchInput" placeholder="Search tasks, subtasks, domains..." autocomplete="off">'
+    +'<div class="leg"><b>Speed</b> snap · sesh · grind &nbsp; <b>Stakes</b> low · high · crit</div>'
+    +'<div class="cards" id="app"></div>'
+    +'<button class="fab" id="fabAdd">+</button>';
+
+  document.querySelectorAll('[data-view]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      state.view=this.getAttribute('data-view');
+      loadBoard();
+    });
+  });
+  document.getElementById('searchInput').addEventListener('input',function(){
+    state.searchQuery=this.value;renderCards();
+  });
+  document.getElementById('fabAdd').addEventListener('click',openAddTask);
+  renderCards();
+}
+
+function renderCards(){
+  var app=document.getElementById('app');
+  var filtered=state.tasks.filter(matchSearch);
+  if(!filtered.length){app.innerHTML='<p class="empty">'+(state.searchQuery?'No matches':state.view==='archived'?'Nothing archived yet':'No tasks')+'</p>';return}
   app.innerHTML='';
-  var filtered=tasks.filter(matchSearch);
-  if(!filtered.length){app.innerHTML='<p style="color:var(--tx3);font-size:13px;padding:20px 0">'+(searchQuery?'No matches':'No tasks')+'</p>';return}
 
   filtered.forEach(function(t,idx){
     var dp=df(t.plan_date),dd=df(t.due_date),b=bf(t.plan_date,t.due_date);
@@ -182,41 +214,25 @@ function render(){
     var blocked=isBlocked(t);var done=taskDone(t);var prog=taskProgress(t);
     var dots='';var bcc=bc(b);
     for(var j=0;j<Math.min(b,7);j++)dots+='<span class="bd" style="background:'+bcc+'"></span>';
-
     var el=document.createElement('div');
     el.className='card'+(done?' alldone':'')+(t.archived?' archived-card':'');
-
     var blockerNames='';
-    if(blocked&&t.needs)blockerNames=t.needs.map(function(ni){var d=taskById[ni];return d?d.name:'?'}).join(', ');
-
+    if(blocked&&t.needs)blockerNames=t.needs.map(function(ni){var d=state.taskById[ni];return d?d.name:'?'}).join(', ');
     var hasSubs=t.subs&&t.subs.length>0;
-    var isOpen=expanded.has(t.id);
+    var isOpen=state.expanded.has(t.id);
     var chevron=hasSubs?'<span class="chevron'+(isOpen?' open':'')+'">&#9654;</span>':'';
-
     var subsHTML='';
     if(hasSubs&&isOpen){
       subsHTML='<div class="subs">';
       t.subs.forEach(function(s){
-        subsHTML+='<div class="sub'+(s.done?' subdone':'')+'" data-sid="'+s.id+'">'
-          +'<div class="scheck'+(s.done?' on':'')+'"></div>'
-          +'<span class="slabel">'+s.label+'</span>'
-          +'<span class="sub-del" data-delsub="'+s.id+'">&#10005;</span></div>';
+        subsHTML+='<div class="sub'+(s.done?' subdone':'')+'" data-sid="'+s.id+'"><div class="scheck'+(s.done?' on':'')+'"></div><span class="slabel">'+s.label+'</span><span class="sub-del" data-delsub="'+s.id+'">&#10005;</span></div>';
       });
-      subsHTML+='<div class="add-sub"><input placeholder="Add subtask..." data-addsub="'+t.id+'"><button data-addbtn="'+t.id+'">+</button></div>';
-      subsHTML+='</div>';
+      subsHTML+='<div class="add-sub"><input placeholder="Add subtask..." data-addsub="'+t.id+'"><button data-addbtn="'+t.id+'">+</button></div></div>';
     }
-
-    var pbarHTML='';
-    if(hasSubs)pbarHTML='<div class="pbar-wrap"><div class="pbar" style="width:'+Math.round(prog*100)+'%;background:'+col+'"></div></div>';
-
+    var pbarHTML=hasSubs?'<div class="pbar-wrap"><div class="pbar" style="width:'+Math.round(prog*100)+'%;background:'+col+'"></div></div>':'';
     var lockHTML='';
-    if(blocked){
-      var asd=hasSubs?t.subs.every(function(s){return s.done}):!!t.done;
-      lockHTML='<div class="dep-note">'+(asd?'All prep done — waiting on: ':'Completion blocked by: ')+blockerNames+'</div>';
-    }
-
-    var actionsHTML='<div class="actions">';
-    actionsHTML+='<button class="act-btn" data-edit="'+t.id+'">edit</button>';
+    if(blocked){var asd=hasSubs?t.subs.every(function(s){return s.done}):!!t.done;lockHTML='<div class="dep-note">'+(asd?'All prep done — waiting on: ':'Completion blocked by: ')+blockerNames+'</div>'}
+    var actionsHTML='<div class="actions"><button class="act-btn" data-edit="'+t.id+'">edit</button>';
     if(!hasSubs&&!isOpen)actionsHTML+='<button class="act-btn" data-addfirstsub="'+t.id+'">+ subtask</button>';
     if(t.archived)actionsHTML+='<button class="act-btn unarchive" data-unarchive="'+t.id+'">unarchive</button>';
     else if(done)actionsHTML+='<button class="act-btn archive" data-archive="'+t.id+'">archive</button>';
@@ -224,181 +240,76 @@ function render(){
 
     el.innerHTML=
       '<div class="stripe" style="background:'+col+'"></div>'
-      +'<div class="r1" data-tid="'+t.id+'">'
-        +'<span class="idx">'+(idx+1)+'</span>'
-        +'<span class="dtag" style="color:'+col+';border-color:'+col+'">'+label+'</span>'
-        +'<span class="title">'+t.name+'</span>'
-        +(blocked?'<span class="lock-badge">blocked</span>':'')
-        +chevron
-      +'</div>'
-      +'<div class="r2" data-tid="'+t.id+'">'
-        +'<span class="pill p-turn">'+TL[t.speed]+'</span>'
-        +'<span class="pill" style="background:'+sc.bg+';color:'+sc.fg+'">'+SL[t.stakes]+'</span>'
-        +'<span class="dates">'+(t.plan_label||'')+'<span class="arrow"> → </span>'+(t.due_label||'')+'</span>'
-        +'<span class="buf">'
-          +'<span class="tp" style="background:'+uc(dp)+'">T-'+dp+'</span>'
-          +dots
-          +'<span class="tp" style="background:'+uc(dd)+'">T-'+dd+'</span>'
-        +'</span>'
-      +'</div>'
+      +'<div class="r1" data-tid="'+t.id+'"><span class="idx">'+(idx+1)+'</span><span class="dtag" style="color:'+col+';border-color:'+col+'">'+label+'</span><span class="title">'+t.name+'</span>'+(blocked?'<span class="lock-badge">blocked</span>':'')+chevron+'</div>'
+      +'<div class="r2" data-tid="'+t.id+'"><span class="pill p-turn">'+TL[t.speed]+'</span><span class="pill" style="background:'+sc.bg+';color:'+sc.fg+'">'+SL[t.stakes]+'</span><span class="dates">'+(t.plan_label||'')+'<span class="arrow"> → </span>'+(t.due_label||'')+'</span><span class="buf"><span class="tp" style="background:'+uc(dp)+'">T-'+dp+'</span>'+dots+'<span class="tp" style="background:'+uc(dd)+'">T-'+dd+'</span></span></div>'
       +pbarHTML+lockHTML+actionsHTML+subsHTML;
     app.appendChild(el);
   });
-  bindEvents();
+  bindCardEvents();
 }
 
-function bindEvents(){
-  document.querySelectorAll('[data-tid]').forEach(function(el){
-    el.addEventListener('click',function(){
-      var tid=parseInt(this.getAttribute('data-tid'));var t=taskById[tid];
-      if(t.subs&&t.subs.length){expanded.has(tid)?expanded.delete(tid):expanded.add(tid);saveExpanded()}
-      else{api('PATCH','/api/tasks/'+tid+'/toggle').then(function(r){t.done=r.done?1:0;render()})}
-      render();
+function bindCardEvents(){
+  document.querySelectorAll('[data-tid]').forEach(function(el){el.addEventListener('click',function(){
+    var tid=parseInt(this.getAttribute('data-tid'));var t=state.taskById[tid];
+    if(t.subs&&t.subs.length){state.expanded.has(tid)?state.expanded.delete(tid):state.expanded.add(tid);saveExpanded();renderCards()}
+    else{api('PATCH','/api/tasks/'+tid+'/toggle').then(function(r){t.done=r.done?1:0;renderCards()})}
+  })});
+  document.querySelectorAll('[data-sid]').forEach(function(el){el.addEventListener('click',function(e){
+    e.stopPropagation();var sid=parseInt(this.getAttribute('data-sid'));
+    api('PATCH','/api/subtasks/'+sid+'/toggle').then(function(r){
+      for(var i=0;i<state.tasks.length;i++){var subs=state.tasks[i].subs;if(!subs)continue;for(var j=0;j<subs.length;j++){if(subs[j].id===sid){subs[j].done=r.done?1:0;renderCards();return}}}
     });
-  });
-  document.querySelectorAll('[data-sid]').forEach(function(el){
-    el.addEventListener('click',function(e){
-      e.stopPropagation();var sid=parseInt(this.getAttribute('data-sid'));
-      api('PATCH','/api/subtasks/'+sid+'/toggle').then(function(r){
-        for(var i=0;i<tasks.length;i++){var subs=tasks[i].subs;if(!subs)continue;
-          for(var j=0;j<subs.length;j++){if(subs[j].id===sid){subs[j].done=r.done?1:0;render();return}}}
-      });
-    });
-  });
-  document.querySelectorAll('[data-edit]').forEach(function(el){
-    el.addEventListener('click',function(e){e.stopPropagation();openEdit(parseInt(this.getAttribute('data-edit')))});
-  });
-  document.querySelectorAll('[data-archive]').forEach(function(el){
-    el.addEventListener('click',function(e){e.stopPropagation();var id=this.getAttribute('data-archive');
-      api('PATCH','/api/tasks/'+id+'/archive').then(function(){load()})});
-  });
-  document.querySelectorAll('[data-unarchive]').forEach(function(el){
-    el.addEventListener('click',function(e){e.stopPropagation();var id=this.getAttribute('data-unarchive');
-      api('PATCH','/api/tasks/'+id+'/unarchive').then(function(){load()})});
-  });
-  document.querySelectorAll('[data-delsub]').forEach(function(el){
-    el.addEventListener('click',function(e){e.stopPropagation();var sid=this.getAttribute('data-delsub');
-      api('DELETE','/api/subtasks/'+sid).then(function(){load()})});
-  });
-  document.querySelectorAll('[data-addbtn]').forEach(function(btn){
-    btn.addEventListener('click',function(e){
-      e.stopPropagation();var tid=this.getAttribute('data-addbtn');
-      var input=document.querySelector('[data-addsub="'+tid+'"]');
-      if(!input||!input.value.trim())return;
-      api('POST','/api/tasks/'+tid+'/subtasks',{label:input.value.trim()}).then(function(){load()});
-    });
-  });
-  document.querySelectorAll('[data-addsub]').forEach(function(inp){
-    inp.addEventListener('keydown',function(e){
-      if(e.key==='Enter'){e.preventDefault();var btn=document.querySelector('[data-addbtn="'+this.getAttribute('data-addsub')+'"]');if(btn)btn.click()}
-    });
-  });
-  document.querySelectorAll('[data-addfirstsub]').forEach(function(el){
-    el.addEventListener('click',function(e){e.stopPropagation();var tid=parseInt(this.getAttribute('data-addfirstsub'));expanded.add(tid);render()});
-  });
+  })});
+  document.querySelectorAll('[data-edit]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();openEdit(parseInt(this.getAttribute('data-edit')))})});
+  document.querySelectorAll('[data-archive]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();api('PATCH','/api/tasks/'+this.getAttribute('data-archive')+'/archive').then(function(){loadBoard()})})});
+  document.querySelectorAll('[data-unarchive]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();api('PATCH','/api/tasks/'+this.getAttribute('data-unarchive')+'/unarchive').then(function(){loadBoard()})})});
+  document.querySelectorAll('[data-delsub]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();api('DELETE','/api/subtasks/'+this.getAttribute('data-delsub')).then(function(){loadBoard()})})});
+  document.querySelectorAll('[data-addbtn]').forEach(function(btn){btn.addEventListener('click',function(e){
+    e.stopPropagation();var tid=this.getAttribute('data-addbtn');var input=document.querySelector('[data-addsub="'+tid+'"]');
+    if(!input||!input.value.trim())return;api('POST','/api/tasks/'+tid+'/subtasks',{label:input.value.trim()}).then(function(){loadBoard()});
+  })});
+  document.querySelectorAll('[data-addsub]').forEach(function(inp){inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();var btn=document.querySelector('[data-addbtn="'+this.getAttribute('data-addsub')+'"]');if(btn)btn.click()}})});
+  document.querySelectorAll('[data-addfirstsub]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();state.expanded.add(parseInt(this.getAttribute('data-addfirstsub')));renderCards()})});
 }
 
-// ---- Edit modal ----
+// ---- Modals ----
 function openEdit(id){
-  var t=taskById[id];if(!t)return;
-  var m=document.getElementById('modal');
-  m.innerHTML=
-    '<h2>Edit task</h2>'
+  var t=state.taskById[id];if(!t)return;var m=document.getElementById('modal');
+  m.innerHTML='<h2>Edit task</h2>'
     +'<div class="field"><label>Name</label><input id="e-name" value="'+t.name.replace(/"/g,'&quot;')+'"></div>'
     +'<div class="field"><label>Domain</label><select id="e-domain">'+DOMAINS.map(function(d){return'<option'+(d===t.domain?' selected':'')+'>'+d+'</option>'}).join('')+'</select></div>'
-    +'<div style="display:flex;gap:8px">'
-      +'<div class="field" style="flex:1"><label>Plan date</label><input id="e-pdate" type="date" value="'+(t.plan_date||'')+'"></div>'
-      +'<div class="field" style="flex:1"><label>Due date</label><input id="e-ddate" type="date" value="'+(t.due_date||'')+'"></div>'
-    +'</div>'
-    +'<div style="display:flex;gap:8px">'
-      +'<div class="field" style="flex:1"><label>Plan label</label><input id="e-plabel" value="'+(t.plan_label||'').replace(/"/g,'&quot;')+'"></div>'
-      +'<div class="field" style="flex:1"><label>Due label</label><input id="e-dlabel" value="'+(t.due_label||'').replace(/"/g,'&quot;')+'"></div>'
-    +'</div>'
-    +'<div style="display:flex;gap:8px">'
-      +'<div class="field" style="flex:1"><label>Speed</label><select id="e-speed">'+TL.map(function(s,i){return'<option value="'+i+'"'+(i===t.speed?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div>'
-      +'<div class="field" style="flex:1"><label>Stakes</label><select id="e-stakes">'+SL.map(function(s,i){return'<option value="'+i+'"'+(i===t.stakes?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div>'
-    +'</div>'
-    +'<div class="modal-actions">'
-      +'<button class="btn-cancel" id="e-cancel">Cancel</button>'
-      +'<button class="btn-save" id="e-save">Save</button>'
-    +'</div>';
+    +'<div style="display:flex;gap:8px"><div class="field" style="flex:1"><label>Plan date</label><input id="e-pdate" type="date" value="'+(t.plan_date||'')+'"></div><div class="field" style="flex:1"><label>Due date</label><input id="e-ddate" type="date" value="'+(t.due_date||'')+'"></div></div>'
+    +'<div style="display:flex;gap:8px"><div class="field" style="flex:1"><label>Plan label</label><input id="e-plabel" value="'+(t.plan_label||'').replace(/"/g,'&quot;')+'"></div><div class="field" style="flex:1"><label>Due label</label><input id="e-dlabel" value="'+(t.due_label||'').replace(/"/g,'&quot;')+'"></div></div>'
+    +'<div style="display:flex;gap:8px"><div class="field" style="flex:1"><label>Speed</label><select id="e-speed">'+TL.map(function(s,i){return'<option value="'+i+'"'+(i===t.speed?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div><div class="field" style="flex:1"><label>Stakes</label><select id="e-stakes">'+SL.map(function(s,i){return'<option value="'+i+'"'+(i===t.stakes?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div></div>'
+    +'<div class="modal-actions"><button class="btn-cancel" id="e-cancel">Cancel</button><button class="btn-save" id="e-save">Save</button></div>';
   document.getElementById('modalBg').classList.add('show');
   document.getElementById('e-cancel').onclick=closeModal;
   document.getElementById('e-save').onclick=function(){
-    api('PATCH','/api/tasks/'+id,{
-      name:document.getElementById('e-name').value,
-      domain:document.getElementById('e-domain').value,
-      plan_date:document.getElementById('e-pdate').value||null,
-      due_date:document.getElementById('e-ddate').value||null,
-      plan_label:document.getElementById('e-plabel').value,
-      due_label:document.getElementById('e-dlabel').value,
-      speed:parseInt(document.getElementById('e-speed').value),
-      stakes:parseInt(document.getElementById('e-stakes').value)
-    }).then(function(){closeModal();load()});
+    api('PATCH','/api/tasks/'+id,{name:document.getElementById('e-name').value,domain:document.getElementById('e-domain').value,plan_date:document.getElementById('e-pdate').value||null,due_date:document.getElementById('e-ddate').value||null,plan_label:document.getElementById('e-plabel').value,due_label:document.getElementById('e-dlabel').value,speed:parseInt(document.getElementById('e-speed').value),stakes:parseInt(document.getElementById('e-stakes').value)}).then(function(){closeModal();loadBoard()});
   };
 }
 
 function openAddTask(){
   var m=document.getElementById('modal');
-  m.innerHTML=
-    '<h2>New task</h2>'
+  m.innerHTML='<h2>New task</h2>'
     +'<div class="field"><label>Name</label><input id="e-name" placeholder="Task name..."></div>'
     +'<div class="field"><label>Domain</label><select id="e-domain">'+DOMAINS.map(function(d){return'<option>'+d+'</option>'}).join('')+'</select></div>'
-    +'<div style="display:flex;gap:8px">'
-      +'<div class="field" style="flex:1"><label>Plan date</label><input id="e-pdate" type="date"></div>'
-      +'<div class="field" style="flex:1"><label>Due date</label><input id="e-ddate" type="date"></div>'
-    +'</div>'
-    +'<div style="display:flex;gap:8px">'
-      +'<div class="field" style="flex:1"><label>Plan label</label><input id="e-plabel" placeholder="e.g. Wed Apr 8"></div>'
-      +'<div class="field" style="flex:1"><label>Due label</label><input id="e-dlabel" placeholder="e.g. Fri Apr 10"></div>'
-    +'</div>'
-    +'<div style="display:flex;gap:8px">'
-      +'<div class="field" style="flex:1"><label>Speed</label><select id="e-speed">'+TL.map(function(s,i){return'<option value="'+i+'">'+s+'</option>'}).join('')+'</select></div>'
-      +'<div class="field" style="flex:1"><label>Stakes</label><select id="e-stakes">'+SL.map(function(s,i){return'<option value="'+i+'">'+s+'</option>'}).join('')+'</select></div>'
-    +'</div>'
-    +'<div class="modal-actions">'
-      +'<button class="btn-cancel" id="e-cancel">Cancel</button>'
-      +'<button class="btn-save" id="e-save">Create</button>'
-    +'</div>';
+    +'<div style="display:flex;gap:8px"><div class="field" style="flex:1"><label>Plan date</label><input id="e-pdate" type="date"></div><div class="field" style="flex:1"><label>Due date</label><input id="e-ddate" type="date"></div></div>'
+    +'<div style="display:flex;gap:8px"><div class="field" style="flex:1"><label>Plan label</label><input id="e-plabel" placeholder="e.g. Wed Apr 8"></div><div class="field" style="flex:1"><label>Due label</label><input id="e-dlabel" placeholder="e.g. Fri Apr 10"></div></div>'
+    +'<div style="display:flex;gap:8px"><div class="field" style="flex:1"><label>Speed</label><select id="e-speed">'+TL.map(function(s,i){return'<option value="'+i+'">'+s+'</option>'}).join('')+'</select></div><div class="field" style="flex:1"><label>Stakes</label><select id="e-stakes">'+SL.map(function(s,i){return'<option value="'+i+'">'+s+'</option>'}).join('')+'</select></div></div>'
+    +'<div class="modal-actions"><button class="btn-cancel" id="e-cancel">Cancel</button><button class="btn-save" id="e-save">Create</button></div>';
   document.getElementById('modalBg').classList.add('show');
   document.getElementById('e-cancel').onclick=closeModal;
   document.getElementById('e-save').onclick=function(){
     var name=document.getElementById('e-name').value.trim();if(!name)return;
-    api('POST','/api/tasks',{
-      name:name,
-      domain:document.getElementById('e-domain').value,
-      plan_date:document.getElementById('e-pdate').value||null,
-      due_date:document.getElementById('e-ddate').value||null,
-      plan_label:document.getElementById('e-plabel').value,
-      due_label:document.getElementById('e-dlabel').value,
-      speed:parseInt(document.getElementById('e-speed').value),
-      stakes:parseInt(document.getElementById('e-stakes').value)
-    }).then(function(){closeModal();load()});
+    api('POST','/api/users/'+state.slug+'/tasks',{name:name,domain:document.getElementById('e-domain').value,plan_date:document.getElementById('e-pdate').value||null,due_date:document.getElementById('e-ddate').value||null,plan_label:document.getElementById('e-plabel').value,due_label:document.getElementById('e-dlabel').value,speed:parseInt(document.getElementById('e-speed').value),stakes:parseInt(document.getElementById('e-stakes').value)}).then(function(){closeModal();loadBoard()});
   };
 }
 
 function closeModal(){document.getElementById('modalBg').classList.remove('show')}
 document.getElementById('modalBg').addEventListener('click',function(e){if(e.target===this)closeModal()});
 
-// ---- Search ----
-var searchTimer;
-document.getElementById('searchInput').addEventListener('input',function(){
-  clearTimeout(searchTimer);var v=this.value;
-  searchTimer=setTimeout(function(){searchQuery=v;render()},150);
-});
-
-// ---- Archive toggle ----
-document.getElementById('archiveToggle').addEventListener('click',function(){
-  showArchived=!showArchived;
-  this.textContent=showArchived?'hide archived':'show archived';
-  this.classList.toggle('active',showArchived);
-  load();
-});
-
-// ---- FAB ----
-document.getElementById('fabAdd').addEventListener('click',openAddTask);
-
-load();
+route();
 </script>
 </body>
 </html>
