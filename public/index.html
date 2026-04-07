@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a1a1a">
+<title>Organizer</title>
+<style>
+:root {
+  --bg: #111113;
+  --bg2: #1c1c1f;
+  --bg3: #26262a;
+  --tx1: #e4e4e7;
+  --tx2: #a1a1aa;
+  --tx3: #71717a;
+  --brd: rgba(255,255,255,0.08);
+  --rd: #ef4444;
+  --or: #c9652a;
+  --tn: #a67a4b;
+  --gy: #71717a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif; background: var(--bg); color: var(--tx1); padding: 16px 12px 80px; max-width: 640px; margin: 0 auto; -webkit-font-smoothing: antialiased; }
+
+.header { margin-bottom: 20px; }
+.header h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.header p { font-size: 11px; color: var(--tx3); }
+.leg { font-size: 10px; color: var(--tx3); margin-bottom: 16px; line-height: 1.7; }
+.leg b { color: var(--tx2); }
+
+.card {
+  position: relative;
+  padding: 12px 14px 12px 22px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+  background: var(--bg2);
+  border: 1px solid var(--brd);
+  transition: opacity 0.2s;
+}
+.card.alldone { opacity: 0.2; }
+.card.alldone .title { text-decoration: line-through; }
+
+.stripe {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+  border-radius: 10px 0 0 10px;
+}
+
+.r1 { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.idx { font-size: 11px; color: var(--tx3); font-weight: 700; min-width: 16px; text-align: right; font-variant-numeric: tabular-nums; }
+.dtag { font-size: 8px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; border: 1.5px solid; background: transparent; }
+.title { font-size: 14px; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3; }
+.lock-badge { font-size: 8px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: var(--bg3); color: var(--tx3); text-transform: uppercase; letter-spacing: 0.5px; }
+.chevron { font-size: 10px; color: var(--tx3); transition: transform 0.2s; flex-shrink: 0; }
+.chevron.open { transform: rotate(90deg); }
+
+.r2 { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.pill { font-size: 8px; font-weight: 700; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
+.p-turn { background: var(--bg3); color: var(--tx2); }
+.dates { font-size: 10px; color: var(--tx2); white-space: nowrap; }
+.arrow { color: var(--tx3); margin: 0 2px; }
+.buf { display: flex; align-items: center; gap: 3px; margin-left: auto; flex-shrink: 0; }
+.tp { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 5px; color: #fff; }
+.bd { width: 4px; height: 4px; border-radius: 50%; display: inline-block; }
+
+.pbar-wrap { height: 3px; background: var(--bg3); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+.pbar { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+.dep-note { font-size: 9px; color: var(--tx3); margin-top: 6px; font-style: italic; }
+
+.subs { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--brd); }
+.sub { display: flex; align-items: flex-start; gap: 10px; padding: 6px 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.sub.subdone .slabel { text-decoration: line-through; color: var(--tx3); }
+.scheck {
+  width: 18px; height: 18px; border-radius: 5px;
+  border: 1.5px solid var(--tx3); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  transition: all 0.15s;
+}
+.scheck.on { background: #0d9488; border-color: #0d9488; }
+.scheck.on::after { content: ''; width: 5px; height: 9px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); margin-top: -2px; }
+.slabel { font-size: 12px; color: var(--tx1); line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>organizer</h1>
+  <p id="datestr"></p>
+</div>
+<div class="leg">
+  <b>Speed</b> snap · sesh · grind &nbsp; <b>Stakes</b> low · high · crit
+</div>
+<div id="app"></div>
+
+<script>
+var TODAY = new Date();
+TODAY.setHours(0,0,0,0);
+document.getElementById('datestr').textContent = TODAY.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+
+var DM = {
+  CTI:{c:"#60a5fa"},ECM:{c:"#c084fc"},CSD:{c:"#5eead4"},GRA:{c:"#7dd3fc"},Personal:{c:"#a5b4fc"}
+};
+var TL=["snap","sesh","grind"];
+var SL=["low","high","crit"];
+var SC=[{bg:"var(--bg3)",fg:"var(--tx3)"},{bg:"#C9652A",fg:"#fff"},{bg:"#D92B2B",fg:"#fff"}];
+
+var DEFAULT_TASKS=[
+  {d:"GRA",n:"Order MDS hardware",p:[2026,3,7],x:[2026,3,7],pl:"Tonight",xl:"Tonight",t:0,c:1,needs:[],subs:[
+    {s:"Check with Claude — pull specs from prior research chat",done:false},
+    {s:"Find vendor — balance speed and cost",done:false},
+    {s:"Place order + track aggressively",done:false}
+  ]},
+  {d:"Personal",n:"Discuss fall permits w/ Ronny",p:[2026,3,8],x:[2026,3,8],pl:"Wed Apr 8",xl:"Wed Apr 8",t:0,c:2,needs:[],subs:[
+    {s:"Message Ronny on Teams to confirm availability",done:false},
+    {s:"Prepare shortlist of fall courses to discuss",done:false},
+    {s:"Meet — confirm permit choices + any SPP requirements",done:false}
+  ]},
+  {d:"Personal",n:"Submit CoC permit survey",p:[2026,3,8],x:[2026,3,9],pl:"Wed Apr 8 eve",xl:"Thu Apr 9 9AM",t:0,c:2,needs:[1],subs:[
+    {s:"Open OSCAR — check schedule conflicts for Fall 2026",done:false},
+    {s:"Cross-ref equivalent courses chart (no repeats)",done:false},
+    {s:"Research candidate courses — check ratings, workload",done:false},
+    {s:"Finalise 4 CS/CSE course picks (needs Ronny input)",done:false},
+    {s:"Fill Qualtrics survey + submit before 9AM Thu",done:false}
+  ]},
+  {d:"Personal",n:"Sprintax tax filing",p:[2026,3,7],x:[2026,3,15],pl:"Tonight",xl:"Apr 15",t:1,c:2,needs:[],subs:[
+    {s:"Gather docs: W-2, 1042-S, visa info, SSN",done:false},
+    {s:"Log in to Sprintax — run through questionnaire",done:false},
+    {s:"Review generated 1040-NR",done:false},
+    {s:"E-file federal return",done:false},
+    {s:"Check if GA state return needed + file if so",done:false}
+  ]},
+  {d:"CSD",n:"Quiz study — Kalman + drone ctrl",p:[2026,3,8],x:[2026,3,8],pl:"Wed Apr 8",xl:"Wed Apr 8",t:1,c:0,needs:[],subs:[
+    {s:"Download drone control slides from Canvas",done:false},
+    {s:"Review Kalman filtering lecture notes",done:false},
+    {s:"Work through any practice problems",done:false}
+  ]},
+  {d:"CSD",n:"In-class quiz",p:[2026,3,9],x:[2026,3,9],pl:"Thu Apr 9",xl:"Thu Apr 9",t:0,c:0,needs:[4],subs:[]},
+  {d:"CTI",n:"Initial Intelligence Analysis",p:[2026,3,8],x:[2026,3,10],pl:"Wed Apr 8",xl:"Fri Apr 10",t:2,c:1,needs:[],subs:[
+    {s:"Assess current Resecurity research status — what's usable",done:false},
+    {s:"Draft initial analytic judgments",done:false},
+    {s:"Map findings to ICD 203 structure",done:false},
+    {s:"Write up findings document",done:false},
+    {s:"Review + submit",done:false}
+  ]},
+  {d:"ECM",n:"Exam 3 — Security Assurance",p:[2026,3,10],x:[2026,3,12],pl:"Fri Apr 10",xl:"Sun Apr 12",t:1,c:0,needs:[],subs:[
+    {s:"Review Security Assurance lecture slides",done:false},
+    {s:"Open exam + complete",done:false}
+  ]},
+  {d:"CSD",n:"Kalman Filtering HW",p:[2026,3,12],x:[2026,3,13],pl:"Sun Apr 12",xl:"Mon Apr 13",t:1,c:0,needs:[],subs:[]},
+  {d:"CTI",n:"Red Cell Analysis",p:[2026,3,13],x:[2026,3,15],pl:"Mon Apr 13",xl:"Wed Apr 15",t:1,c:1,needs:[6],subs:[]},
+  {d:"CTI",n:"Quiz #3",p:[2026,3,17],x:[2026,3,18],pl:"Fri Apr 17",xl:"Sat Apr 18",t:0,c:0,needs:[],subs:[]},
+  {d:"CTI",n:"Final Analysis",p:[2026,3,19],x:[2026,3,21],pl:"Sun Apr 19",xl:"Tue Apr 21",t:2,c:1,needs:[9],subs:[]},
+  {d:"CTI",n:"Presentation + Notebook",p:[2026,3,20],x:[2026,3,22],pl:"Mon Apr 20",xl:"Wed Apr 22",t:2,c:1,needs:[11],subs:[]},
+  {d:"ECM",n:"Panel 4 — Board Governance",p:[2026,3,22],x:[2026,3,22],pl:"Wed Apr 22",xl:"Wed Apr 22",t:0,c:0,needs:[],subs:[]},
+  {d:"ECM",n:"Extra Credit",p:[2026,3,23],x:[2026,3,24],pl:"Thu Apr 23",xl:"Fri Apr 24",t:0,c:0,needs:[],subs:[]},
+  {d:"CSD",n:"Final Exam (cumulative)",p:[2026,3,23],x:[2026,3,23],pl:"Thu Apr 23",xl:"Thu Apr 23",t:1,c:1,needs:[],subs:[]},
+  {d:"CTI",n:"Intelligence Final Report",p:[2026,3,27],x:[2026,3,29],pl:"Mon Apr 27",xl:"Wed Apr 29",t:2,c:1,needs:[12],subs:[]},
+  {d:"GRA",n:"GRA wrap-up",p:[2026,3,30],x:[2026,4,3],pl:"Thu Apr 30",xl:"Sun May 3",t:1,c:1,needs:[],subs:[]},
+  {d:"ECM",n:"ECM Final Exam",p:[2026,3,30],x:[2026,4,3],pl:"Thu Apr 30",xl:"Sun May 3",t:1,c:0,needs:[],subs:[]},
+  {d:"Personal",n:"Pack + move to storage",p:[2026,4,2],x:[2026,4,3],pl:"Sat May 2",xl:"Sun May 3",t:1,c:0,needs:[],subs:[]},
+  {d:"Personal",n:"Fly to SFO",p:[2026,4,4],x:[2026,4,4],pl:"Mon May 4",xl:"Mon May 4",t:0,c:0,needs:[17,18,19],subs:[]}
+];
+
+var tasks = null;
+var expanded = new Set();
+var saveTimeout = null;
+
+function init(){
+  fetch('/api/tasks').then(r=>r.json()).then(function(data){
+    if(data && data.tasks){
+      tasks = data.tasks;
+      if(data.expanded) data.expanded.forEach(function(i){expanded.add(i)});
+    } else {
+      tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+    }
+    autoExpand();
+    render();
+  }).catch(function(){
+    tasks = JSON.parse(JSON.stringify(DEFAULT_TASKS));
+    autoExpand();
+    render();
+  });
+}
+
+function persist(){
+  clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(function(){
+    fetch('/api/tasks',{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({tasks:tasks, expanded:Array.from(expanded)})
+    });
+  }, 500);
+}
+
+function df(a){
+  var d = new Date(a[0],a[1],a[2]);
+  d.setHours(0,0,0,0);
+  return Math.max(0,Math.round((d-TODAY)/864e5));
+}
+function bf(p,x){return Math.max(0,Math.round((new Date(x[0],x[1],x[2])-new Date(p[0],p[1],p[2]))/864e5))}
+function uc(n){return n<=0?"#ef4444":n<=2?"#C9652A":n<=5?"#A67A4B":"#71717a"}
+function bc(b){return b<=1?"#C9652A":b<=3?"#A67A4B":"#71717a"}
+
+function isBlocked(i){
+  var t=tasks[i];
+  if(!t.needs||!t.needs.length) return false;
+  for(var k=0;k<t.needs.length;k++){
+    var dep=tasks[t.needs[k]];
+    if(dep.subs&&dep.subs.length){if(!dep.subs.every(function(s){return s.done})) return true;}
+    else{if(!dep._done) return true;}
+  }
+  return false;
+}
+function taskDone(t,i){
+  var allSubs;
+  if(t.subs&&t.subs.length) allSubs=t.subs.every(function(s){return s.done});
+  else allSubs=!!t._done;
+  if(!allSubs) return false;
+  return !isBlocked(i);
+}
+function taskProgress(t){
+  if(!t.subs||!t.subs.length) return t._done?1:0;
+  return t.subs.filter(function(s){return s.done}).length/t.subs.length;
+}
+
+function autoExpand(){
+  tasks.forEach(function(t,i){
+    if(!t.subs||!t.subs.length) return;
+    var dp=df(t.p);
+    if(dp<=2 && !taskDone(t,i)) expanded.add(i);
+  });
+}
+
+var app=document.getElementById('app');
+
+function render(){
+  app.innerHTML='';
+  tasks.forEach(function(t,i){
+    var dp=df(t.p),dd=df(t.x),b=bf(t.p,t.x);
+    var col=DM[t.d].c;
+    var label=t.d==="Personal"?"PER":t.d;
+    var sc=SC[t.c];
+    var blocked=isBlocked(i);
+    var done=taskDone(t,i);
+    var prog=taskProgress(t);
+    var dots='';var bcc=bc(b);
+    for(var j=0;j<Math.min(b,7);j++) dots+='<span class="bd" style="background:'+bcc+'"></span>';
+
+    var el=document.createElement('div');
+    el.className='card'+(done?' alldone':'');
+
+    var blockerNames='';
+    if(blocked&&t.needs) blockerNames=t.needs.map(function(ni){return tasks[ni].n}).join(', ');
+
+    var hasSubs=t.subs&&t.subs.length>0;
+    var isOpen=expanded.has(i);
+    var chevron=hasSubs?'<span class="chevron'+(isOpen?' open':'')+'">&#9654;</span>':'';
+
+    var subsHTML='';
+    if(hasSubs&&isOpen){
+      subsHTML='<div class="subs">';
+      t.subs.forEach(function(s,si){
+        subsHTML+='<div class="sub'+(s.done?' subdone':'')+'" data-ti="'+i+'" data-si="'+si+'">'
+          +'<div class="scheck'+(s.done?' on':'')+'"></div>'
+          +'<span class="slabel">'+s.s+'</span></div>';
+      });
+      subsHTML+='</div>';
+    }
+
+    var pbarHTML='';
+    if(hasSubs) pbarHTML='<div class="pbar-wrap"><div class="pbar" style="width:'+Math.round(prog*100)+'%;background:'+col+'"></div></div>';
+
+    var lockHTML='';
+    if(blocked){
+      var allSubsDone=hasSubs?t.subs.every(function(s){return s.done}):!!t._done;
+      lockHTML='<div class="dep-note">'+(allSubsDone?'All prep done — waiting on: ':'Completion blocked by: ')+blockerNames+'</div>';
+    }
+
+    el.innerHTML=
+      '<div class="stripe" style="background:'+col+'"></div>'
+      +'<div class="r1" data-toggle="'+i+'">'
+        +'<span class="idx">'+(i+1)+'</span>'
+        +'<span class="dtag" style="color:'+col+';border-color:'+col+'">'+label+'</span>'
+        +'<span class="title">'+t.n+'</span>'
+        +(blocked?'<span class="lock-badge">blocked</span>':'')
+        +chevron
+      +'</div>'
+      +'<div class="r2" data-toggle="'+i+'">'
+        +'<span class="pill p-turn">'+TL[t.t]+'</span>'
+        +'<span class="pill" style="background:'+sc.bg+';color:'+sc.fg+'">'+SL[t.c]+'</span>'
+        +'<span class="dates">'+t.pl+'<span class="arrow"> → </span>'+t.xl+'</span>'
+        +'<span class="buf">'
+          +'<span class="tp" style="background:'+uc(dp)+'">T-'+dp+'</span>'
+          +dots
+          +'<span class="tp" style="background:'+uc(dd)+'">T-'+dd+'</span>'
+        +'</span>'
+      +'</div>'
+      +pbarHTML+lockHTML+subsHTML;
+
+    app.appendChild(el);
+  });
+
+  document.querySelectorAll('[data-toggle]').forEach(function(el){
+    el.addEventListener('click',function(){
+      var ti=parseInt(this.getAttribute('data-toggle'));
+      if(tasks[ti].subs&&tasks[ti].subs.length){
+        expanded.has(ti)?expanded.delete(ti):expanded.add(ti);
+      } else {
+        tasks[ti]._done=!tasks[ti]._done;
+      }
+      render();
+      persist();
+    });
+  });
+
+  document.querySelectorAll('.sub').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.stopPropagation();
+      var ti=parseInt(this.getAttribute('data-ti'));
+      var si=parseInt(this.getAttribute('data-si'));
+      tasks[ti].subs[si].done=!tasks[ti].subs[si].done;
+      render();
+      persist();
+    });
+  });
+}
+
+init();
+</script>
+</body>
+</html>
