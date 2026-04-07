@@ -1,0 +1,216 @@
+# ============================================================================
+# ORGANIZER — PROJECT CONTEXT
+# Place this in the repo root. Any LLM with MCP access can read this file
+# to understand the project and start working immediately.
+# ============================================================================
+
+project:
+  name: organizer
+  description: "Personal productivity app with task dependency tracking, subtask breakdown, progress visualization, and multi-user boards."
+  repo: "github.com/5acb/gamify_work_life_chores (public)"
+  infra_repo: "github.com/5acb/7ay_de_infra (private)"
+  live_url: "https://7ay.de"
+  owner: Anas
+
+# ============================================================================
+# GETTING ORIENTED
+# Run these commands first to understand current state.
+# ============================================================================
+
+orientation:
+  step_1_check_health: |
+    curl -s http://localhost:3000/api/me -H 'X-Auth-User: anas' | python3 -m json.tool
+  
+  step_2_list_users: |
+    sqlite3 /opt/organizer/data/organizer.db "SELECT id, name, slug FROM users"
+  
+  step_3_task_overview: |
+    sqlite3 /opt/organizer/data/organizer.db "
+    SELECT t.id, t.domain, substr(t.name,1,40) as name,
+      COALESCE(SUM(s.done),0) || '/' || COALESCE(COUNT(s.id),0) as progress,
+      t.plan_date, t.due_date, t.done, t.archived
+    FROM tasks t LEFT JOIN subtasks s ON s.task_id = t.id
+    GROUP BY t.id ORDER BY t.user_id, t.sort_order" -header -column
+  
+  step_4_check_services: |
+    systemctl is-active organizer organizer-mcp organizer-commit
+  
+  step_5_read_code: |
+    cat /opt/organizer/repo/server.js    # Express API
+    cat /opt/organizer/repo/public/index.html   # SPA frontend
+    cat /opt/organizer/repo/schema.sql   # DB schema
+
+# ============================================================================
+# ARCHITECTURE
+# ============================================================================
+
+architecture:
+  stack: "Node 22 + Express + better-sqlite3 + vanilla JS SPA"
+  no_build_step: true
+  no_frontend_framework: true
+  
+  server:
+    host: "7ay.de (164.92.90.91, DigitalOcean SFO3)"
+    os: "Ubuntu 24.04 LTS"
+    node: "v22"
+    
+  paths:
+    app_repo: /opt/organizer/repo
+    database: /opt/organizer/data/organizer.db
+    mcp_server: /opt/organizer/mcp-server
+    infra_repo: /opt/organizer/infra
+    nginx_config: /etc/nginx/sites-enabled/organizer
+    htpasswd: /etc/nginx/.htpasswd
+    ssl_cert: /etc/letsencrypt/live/7ay.de/
+    backup_log: /var/log/organizer-backup.log
+  
+  services:
+    organizer:
+      port: 3000
+      user: deploy
+      entry: "node server.js"
+      working_dir: /opt/organizer/repo
+    organizer-mcp:
+      port: 3002
+      user: root
+      entry: "node server.js"
+      working_dir: /opt/organizer/mcp-server
+      note: "SSE-based MCP server. Token auth via query param."
+    organizer-commit:
+      port: 3001
+      user: deploy
+      note: "socat-based auto-commit endpoint. localhost only."
+
+  auth_flow: |
+    Browser → Nginx basic auth → X-Auth-User: $remote_user header injected
+    → Express reads header → GET / redirects to /:slug
+    → /api/me returns authenticated user
+    Each htpasswd username maps to a users.slug in the DB.
+
+  backup: |
+    Cron every 7 minutes: sqlite3 .dump → backup.sql (text) → git commit if changed.
+    backup.sql is gitignored in the public repo, local to server only.
+    Restore: sqlite3 /opt/organizer/data/organizer.db < /opt/organizer/repo/backup.sql
+
+# ============================================================================
+# DATABASE
+# ============================================================================
+
+database:
+  engine: SQLite 3.45 with WAL mode
+  path: /opt/organizer/data/organizer.db
+  
+  tables:
+    users: "id, name, slug (unique), created_at"
+    tasks: "id, user_id (FK→users), domain, name, plan_date, due_date, plan_label, due_label, speed (0-2), stakes (0-2), sort_order, done, archived, archived_at, created_at, updated_at"
+    subtasks: "id, task_id (FK→tasks CASCADE), label, done, sort_order, created_at"
+    blockers: "task_id (FK→tasks CASCADE), blocked_by (FK→tasks CASCADE), PRIMARY KEY (task_id, blocked_by)"
+    ui_state: "key (PK), value (JSON string). Keys prefixed with user slug."
+  
+  conventions:
+    - "speed: 0=snap, 1=sesh, 2=grind"
+    - "stakes: 0=low, 1=high, 2=crit"
+    - "Blockers are many-to-many: task A blocked_by task B means A can't complete until B is done"
+    - "Subtasks are always interactive even on blocked tasks — only task-level completion is blocked"
+    - "plan_date = when you intend to start; due_date = hard deadline"
+    - "plan_label/due_label = human-friendly display strings (e.g. 'Wed Apr 8 eve')"
+
+# ============================================================================
+# API REFERENCE
+# ============================================================================
+
+api:
+  base: "http://localhost:3000"
+  
+  endpoints:
+    - { method: GET,    path: "/api/me",                          desc: "Returns auth'd user from X-Auth-User header" }
+    - { method: GET,    path: "/api/users",                       desc: "List all users" }
+    - { method: GET,    path: "/api/users/:slug/tasks",           desc: "Get user's tasks (?view=archived)" }
+    - { method: POST,   path: "/api/users/:slug/tasks",           desc: "Create task {domain,name,plan_date,due_date,plan_label,due_label,speed,stakes,needs[],subs[]}" }
+    - { method: PATCH,  path: "/api/tasks/:id",                   desc: "Update task fields" }
+    - { method: PATCH,  path: "/api/tasks/:id/toggle",            desc: "Toggle task done" }
+    - { method: PATCH,  path: "/api/tasks/:id/archive",           desc: "Archive task" }
+    - { method: PATCH,  path: "/api/tasks/:id/unarchive",         desc: "Unarchive task" }
+    - { method: DELETE, path: "/api/tasks/:id",                   desc: "Delete task" }
+    - { method: POST,   path: "/api/tasks/:id/subtasks",          desc: "Add subtask {label}" }
+    - { method: PATCH,  path: "/api/subtasks/:id",                desc: "Update subtask {label}" }
+    - { method: PATCH,  path: "/api/subtasks/:id/toggle",         desc: "Toggle subtask done" }
+    - { method: DELETE, path: "/api/subtasks/:id",                desc: "Delete subtask" }
+    - { method: POST,   path: "/api/blockers",                    desc: "Add dependency {task_id, blocked_by}" }
+    - { method: DELETE, path: "/api/blockers",                    desc: "Remove dependency {task_id, blocked_by}" }
+    - { method: GET,    path: "/api/users/:slug/ui-state",        desc: "Get UI state for user" }
+    - { method: PUT,    path: "/api/users/:slug/ui-state",        desc: "Save UI state" }
+
+# ============================================================================
+# DEPLOYMENT
+# ============================================================================
+
+deployment:
+  via_mcp:
+    - "Use write_file to edit code in /opt/organizer/repo/"
+    - "Use bash to test (curl, sqlite3, etc.)"
+    - "Use git_commit_push with a descriptive message"
+    - "Use deploy to npm install + restart service"
+    - "Use logs to verify"
+  
+  manual:
+    - "ssh root@164.92.90.91"
+    - "cd /opt/organizer/repo"
+    - "# make changes"
+    - "git add -A && git commit -m 'desc' && git push origin main"
+    - "npm install --omit=dev"
+    - "systemctl restart organizer"
+  
+  adding_a_user:
+    - "htpasswd /etc/nginx/.htpasswd <username>"
+    - "sqlite3 /opt/organizer/data/organizer.db \"INSERT INTO users (name, slug) VALUES ('<Name>', '<username>')\""
+    - "User visits 7ay.de → auto-redirects to /<username>"
+
+  common_fixes:
+    permission_error: "chown -R deploy:deploy /opt/organizer/repo /opt/organizer/data"
+    db_locked: "Check if backup.sh is running. WAL mode should prevent this but flock the backup script if needed."
+    mcp_disconnected: "systemctl restart organizer-mcp && check logs"
+    nginx_502: "systemctl status organizer — app probably crashed. Check logs."
+
+# ============================================================================
+# DESIGN PRINCIPLES
+# ============================================================================
+
+design:
+  ux_philosophy: |
+    This app exists to reduce task anxiety. Every design choice serves that goal:
+    - Tasks are broken into subtasks so you never face an amorphous blob
+    - Progress bars fill as subtasks complete (Zeigarnik effect — partial completion motivates)
+    - Blocked tasks show their subtasks so you can prep even when the final step is blocked
+    - Auto-expand for T-0/T-1/T-2 tasks so next actions are always visible
+    - Archive toggle (not delete) so nothing feels lost
+
+  color_system: |
+    Two independent visual channels:
+    - DOMAIN: cool tones only (blue, purple, teal, sky, periwinkle) via left border + chip
+    - URGENCY: warm tones only (red→orange→tan→grey) via T-n countdown pills
+    Warm colors detected faster by peripheral vision. No cross-contamination between channels.
+    
+  buffer_dots: |
+    Between T-plan and T-due pills, dots represent days of slack.
+    0 dots = no buffer. Max 7 dots shown. Dot color matches urgency scale.
+    Visual weight communicates faster than reading numbers.
+
+  speed_stakes: |
+    Three levels each (not four — tested, four caused decision fatigue):
+    - Speed: snap (<30min), sesh (few hours), grind (multi-day)
+    - Stakes: low (grade padding), high (real impact), crit (degree/legal/cascading)
+    Snap + crit is the most dangerous combo — easy to procrastinate because "it's quick."
+
+# ============================================================================
+# FILE STRUCTURE
+# ============================================================================
+
+files:
+  server.js: "Express API server — auth routing, all CRUD endpoints, SQLite queries"
+  public/index.html: "Single-file SPA — board picker, task tree, edit modal, search, archive toggle"
+  schema.sql: "Database schema (no seed data)"
+  scripts/backup.sh: "Cron backup script — sqlite3 .dump → git commit"
+  package.json: "Dependencies: express, better-sqlite3"
+  project-context.yaml: "This file"
+  KICKSTART.md: "Quick-start prompt for new LLM sessions"
