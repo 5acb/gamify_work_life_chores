@@ -11,9 +11,15 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // ---- Helpers ----
+function getAuthUser(req) {
+  const username = req.headers['x-auth-user'];
+  if (!username) return null;
+  return db.prepare('SELECT * FROM users WHERE slug = ?').get(username);
+}
+
 function getUser(slug) {
   return db.prepare('SELECT * FROM users WHERE slug = ?').get(slug);
 }
@@ -33,9 +39,23 @@ function getTasksForUser(userId, archived) {
   return tasks;
 }
 
+// ---- Root: auto-redirect based on auth ----
+app.get('/', (req, res) => {
+  const user = getAuthUser(req);
+  if (user) return res.redirect('/' + user.slug);
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// ---- API: Who am I ----
+app.get('/api/me', (req, res) => {
+  const user = getAuthUser(req);
+  if (!user) return res.json({ user: null });
+  res.json({ user });
+});
+
 // ---- API: Users ----
 app.get('/api/users', (req, res) => {
-  res.json({ users: db.prepare('SELECT * FROM users ORDER BY id').all() });
+  res.json({ users: db.prepare('SELECT id, name, slug FROM users ORDER BY id').all() });
 });
 
 // ---- API: Tasks (user-scoped) ----
@@ -66,7 +86,7 @@ app.post('/api/users/:slug/tasks', (req, res) => {
   res.json({ ok: true, id: taskId });
 });
 
-// ---- API: Tasks (by id, not user-scoped) ----
+// ---- API: Tasks (by id) ----
 app.patch('/api/tasks/:id', (req, res) => {
   const fields = ['domain','name','plan_date','due_date','plan_label','due_label','speed','stakes','sort_order','done'];
   const sets = []; const vals = [];
