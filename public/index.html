@@ -292,7 +292,7 @@ function renderTree(){
   var W=panel.clientWidth,H=panel.clientHeight;
   if(W<10||H<10)return;
   var cx=W/2,cy=H/2;
-  var ringR=Math.min(W,H)*0.18;
+  var ringR=Math.min(W,H)*0.15;
 
   // Build dependency graph
   var children={};var parents={};
@@ -327,7 +327,7 @@ function renderTree(){
   // Position nodes: branching outward from ring
   var pos={};
   var angle=-Math.PI/2;
-  var layerR=Math.min(W,H)*0.11;
+  var layerR=Math.min(W,H)*0.075;
 
   active.forEach(function(dom){
     var tasks=groups[dom];
@@ -411,8 +411,8 @@ function renderTree(){
       if(!f||!to)return;
       var srcDone=taskDone(state.taskById[bid]);
       var col=srcDone?(DM[state.taskById[bid].domain]||{c:"#444"}).c:'#333';
-      var op=srcDone?0.7:0.25;
-      var w=srcDone?2:1;
+      var op=srcDone?0.9:0.45;
+      var w=srcDone?2.5:1.5;
       // Draw edge with midpoint connector dot
       var mx=(f.x+to.x)/2,my=(f.y+to.y)/2;
       s+='<line x1="'+f.x+'" y1="'+f.y+'" x2="'+to.x+'" y2="'+to.y+'" stroke="'+col+'" stroke-width="'+w+'" opacity="'+op+'" filter="url(#edge-glow)"/>';
