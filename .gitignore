@@ -1,2 +1,9 @@
 node_modules/
+.env
+*.log
+dist/
+backup.sql
 data/
+*.db
+*.db-shm
+*.db-wal
