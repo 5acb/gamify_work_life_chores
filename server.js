@@ -182,6 +182,9 @@ app.get('/api/users/:slug/ui-state', (req, res) => {
   res.json(state);
 });
 
+// ---- Viz lab ----
+app.get("/viz", (req, res) => res.sendFile(path.join(__dirname, "public", "viz.html")));
+
 // ---- SPA: serve index.html for board routes ----
 app.get('/:slug', (req, res) => {
   if (req.params.slug.startsWith('api')) return res.status(404).end();
