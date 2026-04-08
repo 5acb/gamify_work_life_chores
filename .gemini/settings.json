@@ -1,7 +1,0 @@
-{
-  "mcpServers": {
-    "organizer": {
-      "url": "http://localhost:3002/mcp/sse?token=7f9d45a0ac60924936bfdd2c078678fb07f5d8951a58110015b77a336ab0e07a"
-    }
-  }
-}

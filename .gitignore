@@ -7,3 +7,5 @@ data/
 *.db
 *.db-shm
 *.db-wal
+# SEC-3: gemini settings contains MCP token — keep out of repo
+.gemini/settings.json
