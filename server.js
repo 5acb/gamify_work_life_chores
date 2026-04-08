@@ -117,6 +117,11 @@ app.post('/api/users/:slug/tasks', ensureAuth, (req, res) => {
   // SEC-16: validate domain
   if (!name?.trim()) return res.status(400).json({ error: 'name required' });
   if (domain && !VALID_DOMAINS.includes(domain)) return res.status(400).json({ error: 'invalid domain' });
+  // Input length validation
+  if (name.length > 500) return res.status(400).json({ error: 'name too long (max 500)' });
+  if (plan_label && plan_label.length > 100) return res.status(400).json({ error: 'plan_label too long (max 100)' });
+  if (due_label && due_label.length > 100) return res.status(400).json({ error: 'due_label too long (max 100)' });
+  if (subs?.some(s => typeof s === 'string' && s.length > 500)) return res.status(400).json({ error: 'subtask label too long (max 500)' });
   const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order),0) as max_sort_order FROM tasks WHERE user_id = ?').get(req.user.id);
   const taskId = db.transaction(() => {
     const r = db.prepare(
@@ -141,6 +146,10 @@ app.patch('/api/tasks/:id', ensureAuth, (req, res) => {
   if (!requireTaskOwner(req, res)) return;
   // SEC-16: validate domain if present
   if (req.body.domain && !VALID_DOMAINS.includes(req.body.domain)) return res.status(400).json({ error: 'invalid domain' });
+  // Input length validation
+  if (req.body.name && req.body.name.length > 500) return res.status(400).json({ error: 'name too long (max 500)' });
+  if (req.body.plan_label && req.body.plan_label.length > 100) return res.status(400).json({ error: 'plan_label too long (max 100)' });
+  if (req.body.due_label && req.body.due_label.length > 100) return res.status(400).json({ error: 'due_label too long (max 100)' });
   const fields = ['domain','name','plan_date','due_date','plan_label','due_label','speed','stakes','sort_order','done'];
   const sets = [], vals = [];
   for (const f of fields) {
@@ -184,6 +193,7 @@ app.post('/api/tasks/:id/subtasks', ensureAuth, (req, res) => {
   if (!requireTaskOwner(req, res)) return;
   const { label } = req.body;
   if (!label) return res.status(400).json({ error: 'label required' });
+  if (label.length > 500) return res.status(400).json({ error: 'label too long (max 500)' });
   const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order),0) as max_sort_order FROM subtasks WHERE task_id = ?').get(req.params.id);
   const r = db.prepare('INSERT INTO subtasks (task_id, label, sort_order) VALUES (?, ?, ?)').run(req.params.id, label, maxOrder.max_sort_order + 1);
   res.json({ ok: true, id: r.lastInsertRowid });
@@ -202,6 +212,7 @@ app.patch('/api/subtasks/:id', ensureAuth, (req, res) => {
   if (!requireSubtaskOwner(req, res)) return;
   const { label } = req.body;
   if (!label) return res.status(400).json({ error: 'label required' });
+  if (label.length > 500) return res.status(400).json({ error: 'label too long (max 500)' });
   db.prepare('UPDATE subtasks SET label = ? WHERE id = ?').run(label, req.params.id);
   res.json({ ok: true });
 });
@@ -234,7 +245,7 @@ app.delete('/api/blockers', ensureAuth, (req, res) => {
 // ---- API: UI State (per user) ----
 app.get('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
   if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
-  const rows = db.prepare('SELECT * FROM ui_state WHERE key LIKE ?').all(req.user.slug + ':%');
+  const rows = db.prepare('SELECT * FROM ui_state WHERE key GLOB ?').all(req.user.slug + ':*');
   const state = {};
   for (const r of rows) state[r.key.replace(req.user.slug + ':', '')] = JSON.parse(r.value);
   res.json(state);
@@ -246,10 +257,6 @@ app.put('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
   for (const [k, v] of Object.entries(req.body)) ins.run(req.user.slug + ':' + k, JSON.stringify(v));
   res.json({ ok: true });
 });
-
-// ---- Viz lab ----
-// SEC-10: require auth for viz page
-app.get('/viz', ensureAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'viz.html')));
 
 // ---- Agent: Gemini task analysis ----
 app.post('/api/agent/gemini', ensureAuth, async (req, res) => {

@@ -18,7 +18,7 @@ var state={
 };
 
 function isMobile(){return window.innerWidth<=768}
-function api(m,u,b){var o={method:m,headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}};if(b)o.body=JSON.stringify(b);return fetch(u,o).then(function(r){return r.json()})}
+function api(m,u,b){var o={method:m,headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}};if(b)o.body=JSON.stringify(b);return fetch(u,o).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).catch(function(e){console.error('API error:',m,u,e);throw e})}
 function df(ds){if(!ds)return 999;return Math.max(0,Math.round((new Date(ds+'T00:00:00')-TODAY)/864e5))}
 function isBlocked(t){
   if(!t.needs||!t.needs.length)return false;
@@ -758,4 +758,5 @@ function openAIModal(){
 function closeModal(){document.getElementById('modalBg').classList.remove('show')}
 document.getElementById('modalBg').addEventListener('click',function(e){if(e.target===this)closeModal()});
 
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()});
 route();
