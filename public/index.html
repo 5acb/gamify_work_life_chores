@@ -344,7 +344,7 @@ function renderApp(){
   root.innerHTML=
     '<div class="panel-list'+(isMobile()&&state.mobileTab!=='list'?' m-hidden':'')+'" id="panelList">'
       +'<div class="hdr">'
-        +'<div class="hdr-top"><a class="back" href="/" onclick="event.preventDefault();history.pushState(null,\'\',\'/\');route()">&#8592;</a><h1>'+(state.user?state.user.name:'')+'</h1></div>'
+        +'<div class="hdr-top"><a class="back" href="/" onclick="event.preventDefault();history.pushState(null,\'\',\'/\');route()">&#8592;</a><h1>'+(state.user?state.user.name:'')+'</h1><a href="/timeline.html" style="font-size:10px;color:var(--tx3);text-decoration:none;padding:3px 8px;border-radius:5px;border:1px solid var(--brd);flex-shrink:0">timeline ↗</a></div>'
         +'<p>'+dateStr+'</p>'
         +'<div class="toggle-wrap">'
           +'<button class="toggle-btn'+(state.view==='current'?' active':'')+'" data-view="current">current</button>'
