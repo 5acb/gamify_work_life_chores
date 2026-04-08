@@ -361,7 +361,17 @@ function renderApp(){
       +'<button class="m-tab'+(state.mobileTab==='tree'?' active':'')+'" data-tab="tree">◈ Tree</button>'
     +'</div>';
 
-  document.querySelectorAll('[data-view]').forEach(function(b){b.addEventListener('click',function(){state.view=this.getAttribute('data-view');loadBoard()})});
+  document.querySelectorAll('[data-view]').forEach(function(b){b.addEventListener('click',function(){
+    var v=this.getAttribute('data-view');if(v===state.view)return;
+    state.view=v;
+    document.querySelectorAll('.toggle-btn').forEach(function(btn){btn.classList.toggle('active',btn.getAttribute('data-view')===v)});
+    state.searchQuery='';var si=document.getElementById('searchInput');if(si)si.value='';
+    api('GET','/api/users/'+state.slug+'/tasks'+(v==='archived'?'?view=archived':'')).then(function(res){
+      state.tasks=res.tasks;state.taskById={};state.tasks.forEach(function(t){state.taskById[t.id]=t});
+      state.treePos=null;renderCards();
+      if(!isMobile()||state.mobileTab==='tree')renderTree();
+    });
+  })});
   document.getElementById('searchInput').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
   document.getElementById('fabAdd').addEventListener('click',openAddTask);
   document.querySelectorAll('.m-tab').forEach(function(b){b.addEventListener('click',function(){switchMobileTab(this.getAttribute('data-tab'))})});
