@@ -3,508 +3,476 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>viz — organizer</title>
+<title>viz explorer</title>
 <style>
 :root{--bg:#0e0e12;--bg2:#17171c;--bg3:#1c1c20;--tx1:#e4e4e7;--tx2:#a1a1aa;--tx3:#5a5a65;--brd:rgba(255,255,255,0.08);--accent:#0d9488}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Inter',system-ui,sans-serif;background:var(--bg);color:var(--tx1);height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased}
-#app{display:flex;flex-direction:column;height:100vh}
-.hdr{padding:11px 20px;border-bottom:1px solid var(--brd);display:flex;align-items:center;gap:14px;flex-shrink:0;background:var(--bg)}
-.hdr a{font-size:12px;color:var(--tx3);text-decoration:none;transition:color .15s}.hdr a:hover{color:var(--tx1)}
-.hdr h1{font-size:14px;font-weight:700;flex:1}
-.hdr .meta{font-size:11px;color:var(--tx3)}
-.tabs{display:flex;gap:2px;padding:6px 14px;border-bottom:1px solid var(--brd);flex-shrink:0;background:var(--bg)}
-.tab{padding:5px 13px;border-radius:5px;border:none;background:transparent;color:var(--tx3);font-size:11px;font-weight:600;cursor:pointer;letter-spacing:.2px;transition:all .15s}
-.tab:hover{color:var(--tx2);background:var(--bg3)}.tab.active{background:var(--bg3);color:var(--tx1)}
-#viz-area{flex:1;overflow:auto;padding:16px}
-.no-data{color:var(--tx3);font-size:12px;padding:40px;text-align:center}
-.viz-label{font-size:9px;font-weight:700;letter-spacing:1.5px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px}
+body{background:var(--bg);color:var(--tx1);font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;height:100vh;overflow:hidden;-webkit-font-smoothing:antialiased}
+#loading{display:flex;align-items:center;justify-content:center;height:100vh;color:var(--tx3);font-size:13px;gap:8px}
+#app{display:none;flex-direction:column;height:100vh}
+.topbar{display:flex;align-items:center;background:var(--bg2);border-bottom:1px solid var(--brd);height:44px;padding:0 16px;gap:4px;flex-shrink:0}
+.tab{border:none;background:transparent;color:var(--tx3);font-size:11px;font-weight:600;padding:6px 13px;border-radius:6px;cursor:pointer;letter-spacing:.3px;transition:all .15s}
+.tab:hover{color:var(--tx2);background:var(--bg3)}
+.tab.active{color:var(--tx1);background:var(--bg3)}
+.back{font-size:11px;color:var(--tx3);text-decoration:none;margin-right:8px;padding:4px 0}
+.back:hover{color:var(--tx2)}
+.note{font-size:10px;color:var(--tx3);margin-left:auto;font-style:italic}
+.legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:7px 16px;background:var(--bg2);border-bottom:1px solid var(--brd);flex-shrink:0}
+.li{display:flex;align-items:center;gap:5px;font-size:9px;color:var(--tx3);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.ld{width:8px;height:8px;border-radius:50%}
+.pane{flex:1;overflow:auto;position:relative;display:none}
+.pane.active{display:block}
+.pane-title{position:sticky;top:0;left:0;padding:10px 20px 6px;font-size:10px;font-weight:700;color:var(--tx3);letter-spacing:.8px;text-transform:uppercase;background:var(--bg);z-index:5;border-bottom:1px solid var(--brd)}
+svg text{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif}
 </style>
 </head>
 <body>
+<div id="loading"><span>⬡</span> loading task graph…</div>
 <div id="app">
-  <div class="hdr">
-    <a href="javascript:history.back()">← back</a>
-    <h1>Layout Explorations</h1>
-    <span class="meta" id="meta"></span>
+  <div class="topbar">
+    <a class="back" href="/">← board</a>
+    <button class="tab active" data-pane="dag">Layered DAG</button>
+    <button class="tab" data-pane="quad">Effort × Impact</button>
+    <button class="tab" data-pane="matrix">Dep Matrix</button>
+    <button class="tab" data-pane="gantt">Timeline</button>
+    <span class="note">prototype visualisations · live data</span>
   </div>
-  <div class="tabs" id="tabs">
-    <button class="tab active" data-viz="dag">Layered DAG</button>
-    <button class="tab" data-viz="matrix">Dependency Matrix</button>
-    <button class="tab" data-viz="gantt">Swimlane Gantt</button>
-    <button class="tab" data-viz="quadrant">Impact × Effort</button>
-  </div>
-  <div id="viz-area"></div>
+  <div class="legend" id="legend"></div>
+  <div class="pane active" id="pane-dag"><div class="pane-title">Layered DAG — critical path flows left → right, layer = longest dependency chain</div><div id="svg-dag"></div></div>
+  <div class="pane" id="pane-quad"><div class="pane-title">Effort × Impact — node size = tasks transitively unlocked · number badge = count</div><div id="svg-quad"></div></div>
+  <div class="pane" id="pane-matrix"><div class="pane-title">Dependency matrix — filled cell: row task is blocked by column task</div><div id="svg-matrix"></div></div>
+  <div class="pane" id="pane-gantt"><div class="pane-title">Timeline — swimlanes by domain · bar height ∝ effort · red right-edge = high/crit stakes</div><div id="svg-gantt"></div></div>
 </div>
+
 <script>
-var DM={CTI:{c:'#60a5fa'},ECM:{c:'#c084fc'},CSD:{c:'#5eead4'},GRA:{c:'#7dd3fc'},Personal:{c:'#a5b4fc'}};
-var state={tasks:[],byId:{},slug:null,viz:'dag'};
+const DM={CTI:'#60a5fa',ECM:'#c084fc',CSD:'#5eead4',GRA:'#7dd3fc',Personal:'#a5b4fc'};
+const SPEED=['snap','sesh','grind'],STAKES=['low','high','crit'];
+const TODAY=new Date('2026-04-07T00:00:00');
+const dc=d=>DM[d]||'#71717a';
+const tr=(s,n)=>s.length>n?s.slice(0,n-1)+'…':s;
+const pd=s=>s?new Date(s+'T00:00:00'):null;
+const dd=(a,b)=>Math.round((b-a)/86400000);
 
-function dc(d){return(DM[d]||{c:'#71717a'}).c}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
-function trunc(s,n){return s.length>n?s.slice(0,n-1)+'\u2026':s}
-function jx(id){return((id*2654435761&0xFFFFFF)/0xFFFFFF-0.5)*0.28} // deterministic jitter -0.14..+0.14
+// ── Data helpers ──────────────────────────────────────────────
 
-function computeDepths(tasks){
-  var depth={};
-  function d(id,stack){
-    if(depth[id]!==undefined)return depth[id];
-    if(stack.has(id)){depth[id]=0;return 0}
-    stack.add(id);
-    var t=state.byId[id],mx=0;
-    if(t&&t.needs)t.needs.forEach(function(b){mx=Math.max(mx,d(b,new Set(stack))+1)});
-    return(depth[id]=mx);
+function computeLayers(tasks){
+  const bn={};tasks.forEach(t=>{bn[t.id]=new Set(t.needs||[])});
+  const L={};
+  function lay(id){
+    if(L[id]!==undefined)return L[id];
+    const deps=[...(bn[id]||[])];
+    if(!deps.length){L[id]=0;return 0;}
+    L[id]=Math.max(...deps.map(lay))+1;return L[id];
   }
-  tasks.forEach(function(t){d(t.id,new Set())});
-  return depth;
+  tasks.forEach(t=>lay(t.id));return L;
 }
 
-function isBlocked(t){
-  if(!t.needs||!t.needs.length)return false;
-  for(var i=0;i<t.needs.length;i++){
-    var dep=state.byId[t.needs[i]];if(!dep)continue;
-    if(dep.subs&&dep.subs.length){if(!dep.subs.every(function(s){return s.done}))return true}
-    else if(!dep.done)return true;
-  }return false;
-}
-function prog(t){
-  if(!t.subs||!t.subs.length)return t.done?1:0;
-  return t.subs.filter(function(s){return s.done}).length/t.subs.length;
+function computeBlocksMap(tasks){
+  const m={};tasks.forEach(t=>{m[t.id]=[]});
+  tasks.forEach(t=>{(t.needs||[]).forEach(b=>{if(m[b])m[b].push(t.id)})});
+  return m;
 }
 
-// Fetch + init
-fetch('/api/me').then(function(r){return r.json()}).then(function(d){
-  if(!d.user){location.href='/';return}
-  state.slug=d.user.slug;
-  document.getElementById('meta').textContent=d.user.name;
-  return fetch('/api/users/'+state.slug+'/tasks').then(function(r){return r.json()});
-}).then(function(d){
-  if(!d)return;
-  state.tasks=d.tasks.filter(function(t){return!t.archived});
-  state.byId={};
-  state.tasks.forEach(function(t){state.byId[t.id]=t});
-  render();
-});
-
-document.getElementById('tabs').addEventListener('click',function(e){
-  var b=e.target.closest('.tab');if(!b)return;
-  state.viz=b.getAttribute('data-viz');
-  document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t===b)});
-  render();
-});
-
-function render(){
-  var el=document.getElementById('viz-area');
-  el.innerHTML='';
-  if(!state.tasks.length){el.innerHTML='<p class="no-data">No tasks.</p>';return}
-  ({dag:renderDAG,matrix:renderMatrix,gantt:renderGantt,quadrant:renderQuadrant})[state.viz](state.tasks,el);
+function computeFanOut(tasks,bm){
+  const memo={};
+  function fo(id){
+    if(memo[id]!==undefined)return memo[id];
+    const dir=bm[id]||[];
+    const all=new Set(dir);
+    dir.forEach(d=>fo(d).forEach(x=>all.add(x)));
+    return(memo[id]=all);
+  }
+  tasks.forEach(t=>fo(t.id));
+  return Object.fromEntries(Object.entries(memo).map(([k,v])=>[k,v.size]));
 }
 
-// ─────────────────────────────────────────────
-// 1. LAYERED DAG  (Sugiyama-style, left → right)
-// ─────────────────────────────────────────────
-function renderDAG(tasks,el){
-  var depth=computeDepths(tasks);
-  var maxL=0;tasks.forEach(function(t){if(depth[t.id]>maxL)maxL=depth[t.id]});
-  var layers=[];for(var i=0;i<=maxL;i++)layers.push([]);
-  tasks.forEach(function(t){layers[depth[t.id]].push(t)});
-  layers.forEach(function(l){l.sort(function(a,b){return a.domain.localeCompare(b.domain)||b.stakes-a.stakes})});
+// ── VIZ 1: Layered DAG ────────────────────────────────────────
 
-  var NW=152,NH=36,HGAP=88,VGAP=10,PAD=24,TOP=36;
-  var maxH=0;layers.forEach(function(l){if(l.length>maxH)maxH=l.length});
-  var W=(NW+HGAP)*(maxL+1)-HGAP+PAD*2;
-  var H=maxH*(NH+VGAP)-VGAP+PAD*2+TOP;
+function renderDAG(tasks,tById,layers){
+  const hasConn=new Set();
+  tasks.forEach(t=>{
+    if((t.needs||[]).length){hasConn.add(t.id);(t.needs||[]).forEach(b=>hasConn.add(b))}
+  });
+  const conn=tasks.filter(t=>hasConn.has(t.id));
+  const iso=tasks.filter(t=>!hasConn.has(t.id));
 
-  var pos={};
-  layers.forEach(function(layer,li){
-    var totalH=layer.length*(NH+VGAP)-VGAP;
-    var sy=TOP+(H-TOP-PAD-totalH)/2;
-    layer.forEach(function(t,ti){
-      pos[t.id]={x:PAD+li*(NW+HGAP),y:sy+ti*(NH+VGAP)};
-    });
+  const maxL=Math.max(...conn.map(t=>layers[t.id]));
+  const byL={};
+  for(let i=0;i<=maxL;i++)byL[i]=[];
+  conn.forEach(t=>byL[layers[t.id]].push(t));
+  const domOrd=Object.keys(DM);
+  Object.values(byL).forEach(a=>a.sort((a,b)=>{
+    const d=domOrd.indexOf(a.domain)-domOrd.indexOf(b.domain);
+    return d||b.stakes-a.stakes;
+  }));
+
+  const cW=165,nH=30,vG=10,hG=70,pL=28,pT=52,pB=36;
+  const isoH=iso.length?72:0;
+  const maxCol=Math.max(...Object.values(byL).map(a=>a.length));
+  const connH=maxCol*(nH+vG)+pT+pB;
+  const svgH=connH+isoH+20;
+  const svgW=pL+(maxL+1)*(cW+hG)+20;
+
+  const pos={};
+  Object.entries(byL).forEach(([ls,arr])=>{
+    const l=+ls,x=pL+l*(cW+hG);
+    const ch=arr.length*(nH+vG)-vG;
+    const sy=pT+(connH-pT-pB-ch)/2;
+    arr.forEach((t,i)=>{pos[t.id]={x,y:sy+i*(nH+vG),w:cW,h:nH}});
   });
 
-  var s='<svg width="'+W+'" height="'+H+'" xmlns="http://www.w3.org/2000/svg" style="display:block"><defs>';
-  s+='<marker id="ah" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">';
-  s+='<polygon points="0,0 7,3.5 0,7" fill="#444460"/></marker>';
-  s+='<marker id="ah-done" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">';
-  s+='<polygon points="0,0 7,3.5 0,7" fill="#4a7fa8"/></marker>';
-  s+='</defs>';
+  let s=`<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg">`;
 
-  // Layer column headers
-  layers.forEach(function(layer,li){
-    var lx=PAD+li*(NW+HGAP)+NW/2;
-    s+='<text x="'+lx+'" y="18" fill="#2e2e42" font-size="8.5" font-weight="700" text-anchor="middle" font-family="system-ui" letter-spacing="1.5">LAYER '+li+'</text>';
-    s+='<line x1="'+lx+'" y1="22" x2="'+lx+'" y2="'+(H-PAD/2)+'" stroke="rgba(255,255,255,0.025)" stroke-width="1" stroke-dasharray="3,4"/>';
-  });
-
-  // Edges (drawn before nodes)
-  tasks.forEach(function(t){
-    if(!t.needs)return;
-    t.needs.forEach(function(bid){
-      var f=pos[bid],to=pos[t.id];if(!f||!to)return;
-      var srcT=state.byId[bid];
-      var done=srcT&&(srcT.done||(srcT.subs&&srcT.subs.length&&srcT.subs.every(function(s){return s.done})));
-      var col=done?dc(srcT.domain):'#2e2e44';
-      var op=done?0.55:0.45;
-      var x1=f.x+NW,y1=f.y+NH/2,x2=to.x,y2=to.y+NH/2;
-      var cp=(x2-x1)*0.42;
-      s+='<path d="M'+x1+','+y1+' C'+(x1+cp)+','+y1+' '+(x2-cp)+','+y2+' '+x2+','+y2+'" fill="none" stroke="'+col+'" stroke-width="'+(done?2:1.5)+'" opacity="'+op+'" marker-end="url(#'+(done?'ah-done':'ah')+')"/>';
-    });
-  });
-
-  // Nodes
-  tasks.forEach(function(t){
-    var p=pos[t.id];if(!p)return;
-    var col=dc(t.domain);
-    var done=t.done||(t.subs&&t.subs.length&&t.subs.every(function(s){return s.done}));
-    var blocked=isBlocked(t);
-    var pr=prog(t);
-    var op=done?0.38:blocked?0.52:1;
-
-    s+='<g opacity="'+op+'">';
-    // Card shadow/border
-    s+='<rect x="'+p.x+'" y="'+p.y+'" width="'+NW+'" height="'+NH+'" rx="5" fill="#191921" stroke="'+col+'" stroke-width="'+(done?0.4:blocked?0.5:0.9)+'" stroke-opacity="'+(done?0.2:blocked?0.15:0.25)+'"/>';
-    // Domain stripe
-    s+='<rect x="'+p.x+'" y="'+p.y+'" width="4" height="'+NH+'" rx="2" fill="'+col+'" opacity="'+(done?0.35:0.75)+'"/>';
-    // Progress bar at bottom
-    if(pr>0&&!done)s+='<rect x="'+(p.x+4)+'" y="'+(p.y+NH-2.5)+'" width="'+(pr*(NW-4))+'" height="2.5" fill="'+col+'" opacity="0.5" rx="1"/>';
-    // Name
-    var name=esc(trunc(t.name,18));
-    s+='<text x="'+(p.x+10)+'" y="'+(p.y+NH/2+1)+'" fill="'+(done?'#4a4a60':blocked?'#55556a':'#d4d4d8')+'" font-size="10" font-weight="600" dominant-baseline="central" font-family="system-ui">'+name+'</text>';
-    // Stakes badge
-    var sc=['','●','▲'][t.stakes]||'';
-    if(sc)s+='<text x="'+(p.x+NW-10)+'" y="'+(p.y+NH/2+1)+'" fill="'+col+'" font-size="9" dominant-baseline="central" text-anchor="middle" font-family="system-ui" opacity="0.7">'+sc+'</text>';
-    s+='</g>';
-  });
-
-  // Domain legend
-  s+=svgLegend(tasks,W-8,8,'end');
-  s+='</svg>';
-  el.innerHTML='<div class="viz-label">Sugiyama Layered DAG — dependency depth left → right</div>'+s;
-}
-
-// ─────────────────────────────────────────────
-// 2. DEPENDENCY MATRIX
-// ─────────────────────────────────────────────
-function renderMatrix(tasks,el){
-  var depth=computeDepths(tasks);
-  var sorted=tasks.slice().sort(function(a,b){
-    if(a.domain!==b.domain)return a.domain.localeCompare(b.domain);
-    if(depth[a.id]!==depth[b.id])return depth[a.id]-depth[b.id];
-    return b.stakes-a.stakes;
-  });
-  var idx={};sorted.forEach(function(t,i){idx[t.id]=i});
-  var N=sorted.length;
-  var CELL=Math.max(18,Math.min(26,Math.floor((window.innerWidth-220)/N)));
-  var LBL=115,PAD=10;
-  var W=LBL+N*CELL+PAD+60;
-  var H=LBL+N*CELL+PAD+30;
-
-  var s='<svg width="'+W+'" height="'+H+'" xmlns="http://www.w3.org/2000/svg" style="display:block">';
-
-  // Grid cells background
-  for(var ri=0;ri<N;ri++){
-    for(var ci=0;ci<N;ci++){
-      var cx=LBL+ci*CELL,cy=LBL+ri*CELL;
-      s+='<rect x="'+cx+'" y="'+cy+'" width="'+CELL+'" height="'+CELL+'" fill="'+(ri===ci?'#1e1e2a':'#111118')+'" stroke="rgba(255,255,255,0.035)" stroke-width="0.5"/>';
-    }
+  // Column bands + labels
+  for(let l=0;l<=maxL;l++){
+    const x=pL+l*(cW+hG);
+    s+=`<rect x="${x-6}" y="${pT-16}" width="${cW+12}" height="${connH-pT-pB+32}" rx="6" fill="rgba(255,255,255,0.018)" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>`;
+    s+=`<text x="${x+cW/2}" y="${pT-26}" fill="#5a5a65" font-size="9" font-weight="700" text-anchor="middle" letter-spacing="1.5">LAYER ${l}</text>`;
+    s+=`<text x="${x+cW/2}" y="${pT-14}" fill="#3a3a45" font-size="8" text-anchor="middle">${byL[l].length} task${byL[l].length!==1?'s':''}</text>`;
   }
 
-  // Dependency fills: row=blocked task, col=blocker
-  tasks.forEach(function(t){
-    if(!t.needs)return;
-    t.needs.forEach(function(bid){
-      var ri=idx[t.id],ci=idx[bid];
-      if(ri===undefined||ci===undefined)return;
-      var col=dc(state.byId[bid]?state.byId[bid].domain:t.domain);
-      var cx=LBL+ci*CELL,cy=LBL+ri*CELL;
-      s+='<rect x="'+(cx+1)+'" y="'+(cy+1)+'" width="'+(CELL-2)+'" height="'+(CELL-2)+'" fill="'+col+'" opacity="0.72" rx="2"/>';
+  // Edges
+  conn.forEach(t=>{
+    (t.needs||[]).forEach(bid=>{
+      const src=pos[bid],dst=pos[t.id];if(!src||!dst)return;
+      const x1=src.x+src.w,y1=src.y+src.h/2;
+      const x2=dst.x,y2=dst.y+dst.h/2;
+      const cx1=x1+hG*.65,cx2=x2-hG*.65;
+      const c=dc(tById[bid].domain),done=tById[bid].done;
+      s+=`<path d="M${x1} ${y1} C${cx1} ${y1} ${cx2} ${y2} ${x2} ${y2}" fill="none" stroke="${c}" stroke-width="${done?2:1.5}" opacity="${done?.75:.32}"/>`;
+      const ang=Math.atan2(y2-y1,x2-x1),ah=5;
+      s+=`<polygon points="${x2},${y2} ${x2-ah*Math.cos(ang-.5)},${y2-ah*Math.sin(ang-.5)} ${x2-ah*Math.cos(ang+.5)},${y2-ah*Math.sin(ang+.5)}" fill="${c}" opacity="${done?.75:.32}"/>`;
     });
   });
 
-  // Domain group outlines on diagonal
-  var run=0,lastD=null;
-  sorted.forEach(function(t,i){
-    if(t.domain!==lastD){
-      if(lastD!==null){
-        var gx=LBL+run*CELL,gy=LBL+run*CELL,gw=(i-run)*CELL;
-        s+='<rect x="'+gx+'" y="'+gy+'" width="'+gw+'" height="'+gw+'" fill="none" stroke="'+dc(lastD)+'" stroke-width="1" stroke-opacity="0.25" rx="2"/>';
-      }
-      run=i;lastD=t.domain;
-    }
-  });
-  // last group
-  if(lastD){var gx=LBL+run*CELL,gy=LBL+run*CELL,gw=(N-run)*CELL;s+='<rect x="'+gx+'" y="'+gy+'" width="'+gw+'" height="'+gw+'" fill="none" stroke="'+dc(lastD)+'" stroke-width="1" stroke-opacity="0.25" rx="2"/>';}
-
-  // Row labels (blocked task)
-  sorted.forEach(function(t,i){
-    var cy=LBL+i*CELL+CELL/2;
-    var col=dc(t.domain);
-    s+='<rect x="0" y="'+(LBL+i*CELL)+'" width="3" height="'+CELL+'" fill="'+col+'" opacity="0.6"/>';
-    s+='<text x="'+(LBL-6)+'" y="'+cy+'" fill="#8a8a9a" font-size="8.5" text-anchor="end" dominant-baseline="central" font-family="system-ui">'+esc(trunc(t.name,15))+'</text>';
+  // Connected nodes
+  conn.forEach(t=>{
+    const p=pos[t.id],c=dc(t.domain),done=t.done;
+    const blk=(t.needs||[]).some(b=>{const d=tById[b];return d&&!d.done&&!(d.subs&&d.subs.length&&d.subs.every(s=>s.done))});
+    const op=done?.4:blk?.5:1;
+    s+=`<g opacity="${op}">`;
+    s+=`<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="5" fill="${c}" fill-opacity="${done?.2:.1}" stroke="${c}" stroke-width="1.5" stroke-opacity="${done?.7:.55}"/>`;
+    s+=`<rect x="${p.x}" y="${p.y}" width="3" height="${p.h}" rx="2" fill="${c}" opacity=".75"/>`;
+    s+=`<text x="${p.x+10}" y="${p.y+p.h/2+1}" fill="${done?c:'#ddd'}" font-size="10" font-weight="600" dominant-baseline="central">${tr(t.name,19)}</text>`;
+    // Speed dots
+    for(let i=0;i<=t.speed;i++) s+=`<circle cx="${p.x+p.w-20+i*7}" cy="${p.y+p.h-8}" r="2.5" fill="${c}" opacity=".55"/>`;
+    if(done) s+=`<text x="${p.x+p.w-9}" y="${p.y+p.h/2+1}" fill="${c}" font-size="10" text-anchor="middle" dominant-baseline="central">✓</text>`;
+    s+=`</g>`;
   });
 
-  // Column labels (blocker, rotated)
-  sorted.forEach(function(t,i){
-    var cx=LBL+i*CELL+CELL/2;
-    var col=dc(t.domain);
-    s+='<rect x="'+(LBL+i*CELL)+'" y="0" width="'+CELL+'" height="3" fill="'+col+'" opacity="0.6"/>';
-    s+='<text x="'+cx+'" y="'+(LBL-6)+'" fill="#8a8a9a" font-size="8.5" text-anchor="start" font-family="system-ui" transform="rotate(-42,'+cx+','+(LBL-6)+')">'+esc(trunc(t.name,15))+'</text>';
+  // Isolated tasks section
+  if(iso.length){
+    const iy=connH+20;
+    s+=`<text x="${pL}" y="${iy+2}" fill="#3a3a45" font-size="9" font-weight="700" letter-spacing="1">NO DEPENDENCIES (${iso.length})</text>`;
+    iso.forEach((t,i)=>{
+      const x=pL+i*(cW*0.7+8),y=iy+14,w=cW*0.7,h=nH-4;
+      const c=dc(t.domain),done=t.done;
+      s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="5" fill="${c}" fill-opacity="${done?.15:.07}" stroke="${c}" stroke-width="1" stroke-opacity=".4"/>`;
+      s+=`<rect x="${x}" y="${y}" width="3" height="${h}" rx="2" fill="${c}" opacity=".5"/>`;
+      s+=`<text x="${x+8}" y="${y+h/2+1}" fill="${done?c:'#a1a1aa'}" font-size="9" font-weight="500" dominant-baseline="central">${tr(t.name,15)}</text>`;
+    });
+  }
+
+  s+=`</svg>`;
+  document.getElementById('svg-dag').innerHTML=s;
+}
+
+// ── VIZ 2: Effort × Impact Quadrant ──────────────────────────
+
+function renderQuadrant(tasks,tById,bm,fanOut){
+  const W=Math.max(window.innerWidth,700);
+  const H=Math.max(window.innerHeight-120,500);
+  const pL=80,pT=60,pR=30,pB=60;
+  const cW=W-pL-pR,cH=H-pT-pB;
+
+  // Position: centre of each 1/3 zone + circular jitter for clusters
+  const cells={};
+  tasks.forEach(t=>{const k=`${t.speed},${t.stakes}`;(cells[k]=cells[k]||[]).push(t)});
+  const pos={};
+  Object.entries(cells).forEach(([k,arr])=>{
+    const [spd,stk]=k.split(',').map(Number);
+    const cx=pL+(spd/2+1/6)*cW;
+    const cy=pT+((2-stk)/2+1/6)*cH;
+    const n=arr.length,spread=Math.min(cW,cH)/3*0.28*Math.sqrt(n);
+    arr.forEach((t,i)=>{
+      const ang=(i/n)*Math.PI*2-Math.PI/2;
+      const r=n===1?0:spread;
+      pos[t.id]={x:cx+Math.cos(ang)*r,y:cy+Math.sin(ang)*r};
+    });
+  });
+
+  let s=`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Zone backgrounds
+  for(let sp=0;sp<3;sp++){for(let st=0;st<3;st++){
+    const x=pL+(sp/3)*cW,y=pT+((2-st)/3)*cH,zW=cW/3,zH=cH/3;
+    const good=sp===0&&st===2;
+    s+=`<rect x="${x}" y="${y}" width="${zW}" height="${zH}" fill="${good?'rgba(13,148,136,.06)':'rgba(255,255,255,.01)'}" stroke="rgba(255,255,255,.06)" stroke-width=".5"/>`;
+  }}
+
+  // Quadrant hint labels
+  [{sp:0,st:2,l:'Quick wins',s2:'do first'},{sp:2,st:2,l:'Major bets',s2:'plan carefully'},
+   {sp:0,st:0,l:'Fill-ins',s2:'when available'},{sp:2,st:0,l:'Questionable',s2:'cut if possible'}
+  ].forEach(h=>{
+    const x=pL+(h.sp/3+1/6)*cW,y=pT+((2-h.st)/3+1/6)*cH;
+    s+=`<text x="${x}" y="${y-16}" fill="rgba(255,255,255,.1)" font-size="12" font-weight="700" text-anchor="middle">${h.l}</text>`;
+    s+=`<text x="${x}" y="${y-3}" fill="rgba(255,255,255,.06)" font-size="9" text-anchor="middle">${h.s2}</text>`;
   });
 
   // Axis labels
-  s+='<text x="'+(LBL+N*CELL/2)+'" y="'+(LBL+N*CELL+18)+'" fill="#3a3a52" font-size="9" font-weight="700" text-anchor="middle" font-family="system-ui" letter-spacing="1">BLOCKER →</text>';
-  s+='<text x="10" y="'+(LBL+N*CELL/2)+'" fill="#3a3a52" font-size="9" font-weight="700" text-anchor="middle" transform="rotate(-90,10,'+(LBL+N*CELL/2)+')" font-family="system-ui" letter-spacing="1">BLOCKED ↓</text>';
-
-  s+=svgLegend(tasks,W-8,8,'end');
-  s+='</svg>';
-  el.innerHTML='<div class="viz-label">Dependency Matrix — filled cell = column task blocks row task</div>'+s;
-}
-
-// ─────────────────────────────────────────────
-// 3. SWIMLANE GANTT
-// ─────────────────────────────────────────────
-function renderGantt(tasks,el){
-  var TODAY=new Date();TODAY.setHours(0,0,0,0);
-  var SPEEDS=[1,3,7]; // snap/sesh/grind estimated days
-
-  var domains=['CTI','ECM','CSD','GRA','Personal'].filter(function(d){return tasks.some(function(t){return t.domain===d})});
-
-  // Date range
-  var allDates=[];
-  tasks.forEach(function(t){
-    if(t.plan_date)allDates.push(new Date(t.plan_date+'T00:00:00'));
-    if(t.due_date)allDates.push(new Date(t.due_date+'T00:00:00'));
+  ['SNAP','SESH','GRIND'].forEach((l,i)=>{
+    s+=`<text x="${pL+(i/3+1/6)*cW}" y="${H-40}" fill="#5a5a65" font-size="9" font-weight="700" text-anchor="middle" letter-spacing=".8">${l}</text>`;
   });
-  var minD=allDates.length?new Date(Math.min.apply(null,allDates)):TODAY;
-  var maxD=allDates.length?new Date(Math.max.apply(null,allDates)):new Date(TODAY.getTime()+30*864e5);
-  minD=new Date(minD.getTime()-2*864e5);
-  maxD=new Date(maxD.getTime()+4*864e5);
-  var totalDays=Math.round((maxD-minD)/864e5)||30;
-
-  var LW=90,PPD=Math.max(14,Math.min(32,Math.floor((window.innerWidth-160)/totalDays)));
-  var LANE=68,LPAD=6,PTOP=28,PBOT=20;
-  var W=LW+totalDays*PPD+10;
-  var H=PTOP+domains.length*(LANE+LPAD)+PBOT;
-
-  function dx(ds){if(!ds)return null;return LW+Math.round((new Date(ds+'T00:00:00')-minD)/864e5)*PPD}
-  function ddx(d){return LW+Math.round((d-minD)/864e5)*PPD}
-
-  // Pack rows within each lane (greedy no-overlap)
-  function packRows(ts){
-    var rows=[];
-    ts.forEach(function(t){
-      var ts1=t.plan_date?new Date(t.plan_date+'T00:00:00'):null;
-      var te1=t.due_date?new Date(t.due_date+'T00:00:00'):null;
-      var placed=false;
-      for(var r=0;r<rows.length;r++){
-        var last=rows[r][rows[r].length-1];
-        var le=last.due_date?new Date(last.due_date+'T00:00:00'):null;
-        if(!le||!ts1||le<ts1){rows[r].push(t);placed=true;break}
-      }
-      if(!placed)rows.push([t]);
-    });
-    return rows;
-  }
-
-  var s='<svg width="'+W+'" height="'+H+'" xmlns="http://www.w3.org/2000/svg" style="display:block">';
-  s+='<defs><marker id="garr" markerWidth="5" markerHeight="5" refX="5" refY="2.5" orient="auto"><polygon points="0,0 5,2.5 0,5" fill="rgba(255,255,255,0.2)"/></marker></defs>';
-
-  // Background grid — day lines
-  for(var di=0;di<=totalDays;di++){
-    var gd=new Date(minD.getTime()+di*864e5);
-    var gx=LW+di*PPD;
-    var isWknd=gd.getDay()===0||gd.getDay()===6;
-    if(isWknd)s+='<rect x="'+gx+'" y="'+PTOP+'" width="'+PPD+'" height="'+(H-PTOP-PBOT)+'" fill="rgba(255,255,255,0.012)"/>';
-    s+='<line x1="'+gx+'" y1="'+PTOP+'" x2="'+gx+'" y2="'+(H-PBOT)+'" stroke="rgba(255,255,255,'+(isWknd?0.05:0.02)+')" stroke-width="0.5"/>';
-    if(PPD>=18&&(gd.getDate()%3===0||PPD>=24)){
-      var lbl=gd.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-      s+='<text x="'+gx+'" y="'+(PTOP-5)+'" fill="#2e2e42" font-size="8" text-anchor="middle" font-family="system-ui">'+lbl+'</text>';
-    }
-  }
-
-  // Today line
-  var tx=ddx(TODAY);
-  s+='<line x1="'+tx+'" y1="'+PTOP+'" x2="'+tx+'" y2="'+(H-PBOT)+'" stroke="#0d9488" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.8"/>';
-  s+='<text x="'+(tx+3)+'" y="'+(PTOP+10)+'" fill="#0d9488" font-size="8" font-family="system-ui">today</text>';
-
-  // Swimlanes
-  domains.forEach(function(domain,di){
-    var sy=PTOP+di*(LANE+LPAD);
-    var col=dc(domain);
-    var domTasks=tasks.filter(function(t){return t.domain===domain}).sort(function(a,b){
-      if(a.plan_date&&b.plan_date)return new Date(a.plan_date)-new Date(b.plan_date);
-      return a.sort_order-b.sort_order;
-    });
-    var rows=packRows(domTasks);
-    var rowH=Math.max(14,Math.min(20,Math.floor((LANE-18)/Math.max(1,rows.length))-3));
-
-    // Lane bg
-    s+='<rect x="0" y="'+sy+'" width="'+W+'" height="'+LANE+'" fill="'+col+'" fill-opacity="0.03" rx="3"/>';
-    s+='<rect x="0" y="'+sy+'" width="3" height="'+LANE+'" fill="'+col+'" opacity="0.5" rx="1"/>';
-    s+='<text x="6" y="'+(sy+14)+'" fill="'+col+'" font-size="10" font-weight="700" font-family="system-ui" opacity="0.8">'+domain+'</text>';
-
-    rows.forEach(function(row,ri){
-      var ty=sy+18+ri*(rowH+3);
-      if(ty+rowH>sy+LANE)return;
-      row.forEach(function(t){
-        var x1=dx(t.plan_date);
-        var x2=dx(t.due_date);
-        if(x1===null)x1=LW+10;
-        if(x2===null)x2=x1+SPEEDS[t.speed]*PPD;
-        if(x2<=x1+4)x2=x1+Math.max(4,SPEEDS[t.speed]*PPD);
-        var bw=x2-x1;
-        var done=t.done||(t.subs&&t.subs.length&&t.subs.every(function(s){return s.done}));
-        var pr=prog(t);
-
-        s+='<g opacity="'+(done?0.35:1)+'">';
-        s+='<rect x="'+x1+'" y="'+ty+'" width="'+bw+'" height="'+rowH+'" rx="3" fill="'+col+'" fill-opacity="0.18" stroke="'+col+'" stroke-width="1" stroke-opacity="0.55"/>';
-        // Progress
-        if(pr>0&&!done)s+='<rect x="'+x1+'" y="'+ty+'" width="'+(bw*pr)+'" height="'+rowH+'" rx="3" fill="'+col+'" fill-opacity="0.3"/>';
-        var maxChars=Math.max(2,Math.floor(bw/6));
-        s+='<text x="'+(x1+4)+'" y="'+(ty+rowH/2+1)+'" fill="'+(done?col:'#d4d4d8')+'" font-size="8.5" font-weight="600" dominant-baseline="central" font-family="system-ui">'+esc(trunc(t.name,maxChars))+'</text>';
-        s+='</g>';
-      });
-    });
-
-    // Dependency arrows within lane
-    domTasks.forEach(function(t){
-      if(!t.needs)return;
-      t.needs.forEach(function(bid){
-        var dep=state.byId[bid];
-        if(!dep||dep.domain!==domain)return;
-        var x1=dep.due_date?dx(dep.due_date):null;
-        var x2=t.plan_date?dx(t.plan_date):null;
-        if(x1&&x2&&x2>x1+2){
-          s+='<line x1="'+x1+'" y1="'+(sy+LANE/2)+'" x2="'+(x2-4)+'" y2="'+(sy+LANE/2)+'" stroke="'+col+'" stroke-width="1.2" stroke-opacity="0.35" marker-end="url(#garr)" stroke-dasharray="3,2"/>';
-        }
-      });
-    });
+  s+=`<text x="${pL+cW/2}" y="${H-16}" fill="#4a4a55" font-size="11" font-weight="700" text-anchor="middle" letter-spacing="1.5">← EFFORT →</text>`;
+  ['CRIT','HIGH','LOW'].forEach((l,i)=>{
+    s+=`<text x="40" y="${pT+(i/3+1/6)*cH}" fill="#5a5a65" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central" letter-spacing=".8">${l}</text>`;
   });
+  s+=`<text x="14" y="${pT+cH/2}" fill="#4a4a55" font-size="11" font-weight="700" text-anchor="middle" dominant-baseline="central" letter-spacing="1.5" transform="rotate(-90 14 ${pT+cH/2})">← IMPACT →</text>`;
 
-  s+=svgLegend(tasks,W-8,8,'end');
-  s+='</svg>';
-  el.innerHTML='<div class="viz-label">Swimlane Gantt — time left → right, lanes by domain, height = effort (snap/sesh/grind)</div>'+s;
-}
-
-// ─────────────────────────────────────────────
-// 4. IMPACT × EFFORT QUADRANT
-// ─────────────────────────────────────────────
-function renderQuadrant(tasks,el){
-  var W=Math.min(window.innerWidth-40,680);
-  var H=Math.min(window.innerHeight-140,520);
-  var PAD={t:40,r:40,b:50,l:54};
-  var IW=W-PAD.l-PAD.r,IH=H-PAD.t-PAD.b;
-
-  // Fanout: how many tasks each task directly unblocks
-  var fanout={};
-  tasks.forEach(function(t){fanout[t.id]=0});
-  tasks.forEach(function(t){
-    if(t.needs)t.needs.forEach(function(bid){if(fanout[bid]!==undefined)fanout[bid]++});
-  });
-  var maxFo=Math.max(1,Math.max.apply(null,Object.values(fanout)));
-
-  function px(speed){return PAD.l+(speed+jx(speed*100))/2*IW} // speed 0-2 → 0-1
-  function py(stakes){return PAD.t+(1-(stakes+jx(stakes*100+50))/2)*IH} // inverted
-
-  var cx=PAD.l+IW/2,cy=PAD.t+IH/2;
-  var QCOLS=['#0d9488','#c084fc','#3a3a4a','#ef4444'];
-
-  var s='<svg width="'+W+'" height="'+H+'" xmlns="http://www.w3.org/2000/svg" style="display:block">';
-
-  // Quadrant backgrounds
-  s+='<rect x="'+PAD.l+'" y="'+PAD.t+'" width="'+IW/2+'" height="'+IH/2+'" fill="'+QCOLS[0]+'" fill-opacity="0.05"/>';
-  s+='<rect x="'+cx+'" y="'+PAD.t+'" width="'+IW/2+'" height="'+IH/2+'" fill="'+QCOLS[1]+'" fill-opacity="0.04"/>';
-  s+='<rect x="'+PAD.l+'" y="'+cy+'" width="'+IW/2+'" height="'+IH/2+'" fill="'+QCOLS[2]+'" fill-opacity="0.04"/>';
-  s+='<rect x="'+cx+'" y="'+cy+'" width="'+IW/2+'" height="'+IH/2+'" fill="'+QCOLS[3]+'" fill-opacity="0.035"/>';
-
-  // Quadrant labels
-  var QL=['QUICK WINS','MAJOR PROJECTS','FILL-INS','RECONSIDER'];
-  var QLx=[PAD.l+IW*0.25,PAD.l+IW*0.75,PAD.l+IW*0.25,PAD.l+IW*0.75];
-  var QLy=[PAD.t+14,PAD.t+14,cy+14,cy+14];
-  QL.forEach(function(q,i){
-    s+='<text x="'+QLx[i]+'" y="'+QLy[i]+'" fill="'+QCOLS[i]+'" font-size="9" font-weight="700" text-anchor="middle" font-family="system-ui" opacity="0.5" letter-spacing="0.8">'+q+'</text>';
-  });
-
-  // Axes
-  s+='<line x1="'+cx+'" y1="'+PAD.t+'" x2="'+cx+'" y2="'+(PAD.t+IH)+'" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>';
-  s+='<line x1="'+PAD.l+'" y1="'+cy+'" x2="'+(PAD.l+IW)+'" y2="'+cy+'" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>';
-
-  // Axis tick labels
-  var spNames=['snap','sesh','grind'],stNames=['low','high','crit'];
-  spNames.forEach(function(n,i){
-    s+='<text x="'+(PAD.l+i*IW/2)+'" y="'+(H-PAD.b+16)+'" fill="#5a5a65" font-size="9" text-anchor="middle" font-family="system-ui">'+n+'</text>';
-  });
-  stNames.forEach(function(n,i){
-    s+='<text x="'+(PAD.l-8)+'" y="'+(PAD.t+(1-i/2)*IH+4)+'" fill="#5a5a65" font-size="9" text-anchor="end" font-family="system-ui">'+n+'</text>';
-  });
-
-  // Axis titles
-  s+='<text x="'+(PAD.l+IW/2)+'" y="'+(H-4)+'" fill="#3a3a4a" font-size="9" font-weight="700" text-anchor="middle" font-family="system-ui" letter-spacing="1.2">EFFORT →</text>';
-  s+='<text x="12" y="'+(PAD.t+IH/2)+'" fill="#3a3a4a" font-size="9" font-weight="700" text-anchor="middle" transform="rotate(-90,12,'+(PAD.t+IH/2)+')" font-family="system-ui" letter-spacing="1.2">IMPACT →</text>';
-
-  // Dependency edges (very subtle)
-  tasks.forEach(function(t){
-    if(!t.needs)return;
-    t.needs.forEach(function(bid){
-      var dep=state.byId[bid];if(!dep)return;
-      s+='<line x1="'+px(dep.speed)+'" y1="'+py(dep.stakes)+'" x2="'+px(t.speed)+'" y2="'+py(t.stakes)+'" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>';
+  // Dependency edges (dashed, behind nodes)
+  tasks.forEach(t=>{
+    (t.needs||[]).forEach(bid=>{
+      const src=pos[bid],dst=pos[t.id];if(!src||!dst)return;
+      const dx=dst.x-src.x,dy=dst.y-src.y,len=Math.sqrt(dx*dx+dy*dy)||1;
+      const nx=dx/len,ny=dy/len;
+      const r1=8+(fanOut[bid]||0)*2.5,r2=10;
+      const x1=src.x+nx*r1,y1=src.y+ny*r1,x2=dst.x-nx*r2,y2=dst.y-ny*r2;
+      const c=dc(tById[bid].domain);
+      const ang=Math.atan2(dy,dx),ah=5;
+      s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="1" opacity=".22" stroke-dasharray="4 3"/>`;
+      s+=`<polygon points="${x2},${y2} ${x2-ah*Math.cos(ang-.5)},${y2-ah*Math.sin(ang-.5)} ${x2-ah*Math.cos(ang+.5)},${y2-ah*Math.sin(ang+.5)}" fill="${c}" opacity=".22"/>`;
     });
   });
 
   // Nodes
-  tasks.forEach(function(t){
-    var x=px(t.speed),y=py(t.stakes);
-    var col=dc(t.domain);
-    var fo=fanout[t.id];
-    var r=7+Math.round((fo/maxFo)*11);
-    var done=t.done||(t.subs&&t.subs.length&&t.subs.every(function(s){return s.done}));
-    var blocked=isBlocked(t);
-
-    s+='<g>';
-    // Fanout ring
-    if(fo>0)s+='<circle cx="'+x+'" cy="'+y+'" r="'+(r+4)+'" fill="none" stroke="'+col+'" stroke-width="1" opacity="0.18"/>';
-    // Main circle
-    s+='<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="'+col+'" fill-opacity="'+(done?0.12:blocked?0.12:0.2)+'" stroke="'+col+'" stroke-width="'+(done?0.8:1.5)+'" stroke-opacity="'+(done?0.3:0.75)+'"/>';
-    // Status icon
-    if(done)s+='<text x="'+x+'" y="'+(y+1)+'" fill="'+col+'" font-size="'+(r-2)+'" text-anchor="middle" dominant-baseline="central" font-family="system-ui">✓</text>';
-    // Label
-    var label=esc(trunc(t.name,11));
-    s+='<text x="'+x+'" y="'+(y+r+9)+'" fill="'+(done?'#5a5a65':'#9a9aaa')+'" font-size="8" text-anchor="middle" font-family="system-ui">'+label+'</text>';
-    // Fanout count badge
-    if(fo>0)s+='<text x="'+(x+r-1)+'" y="'+(y-r+1)+'" fill="'+col+'" font-size="7.5" font-weight="700" text-anchor="middle" dominant-baseline="central" font-family="system-ui">'+fo+'</text>';
-    s+='</g>';
+  tasks.forEach(t=>{
+    const p=pos[t.id],c=dc(t.domain),fo=fanOut[t.id]||0,r=8+fo*2.5,done=t.done;
+    if(fo>0) s+=`<circle cx="${p.x}" cy="${p.y}" r="${r+5}" fill="none" stroke="${c}" stroke-width="1" opacity=".12"/>`;
+    s+=`<circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${c}" fill-opacity="${done?.3:.18}" stroke="${c}" stroke-width="${done?2:1.5}" stroke-opacity="${done?.8:.65}"/>`;
+    if(done) s+=`<text x="${p.x}" y="${p.y+1}" fill="#fff" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">✓</text>`;
+    if(fo>0) s+=`<text x="${p.x+r+1}" y="${p.y-r}" fill="${c}" font-size="9" font-weight="800" text-anchor="middle">${fo}</text>`;
+    s+=`<text x="${p.x}" y="${p.y+r+11}" fill="${c}" font-size="8" font-weight="600" text-anchor="middle" opacity=".9">${tr(t.name,14)}</text>`;
   });
 
-  // Size legend
-  s+='<text x="'+(W-PAD.r)+'" y="'+(H-PAD.b+36)+'" fill="#5a5a65" font-size="8" text-anchor="end" font-family="system-ui">circle size = tasks unblocked</text>';
-
-  s+=svgLegend(tasks,W-8,8,'end');
-  s+='</svg>';
-  el.innerHTML='<div class="viz-label">Impact × Effort Quadrant — size = tasks this unblocks (fan-out), badge = count</div>'+s;
+  s+=`</svg>`;
+  document.getElementById('svg-quad').innerHTML=s;
 }
 
-// ─────────────────────────────────────────────
-// Shared: domain legend (top-right)
-// ─────────────────────────────────────────────
-function svgLegend(tasks,x,y,anchor){
-  var domains=[];
-  tasks.forEach(function(t){if(domains.indexOf(t.domain)<0)domains.push(t.domain)});
-  domains.sort();
-  var s='';
-  domains.forEach(function(d,i){
-    var ly=y+i*15;
-    if(anchor==='end'){
-      s+='<circle cx="'+(x-6)+'" cy="'+(ly+5)+'" r="4" fill="'+dc(d)+'" opacity="0.75"/>';
-      s+='<text x="'+(x-14)+'" y="'+(ly+9)+'" fill="#6a6a7a" font-size="8.5" text-anchor="end" font-family="system-ui">'+d+'</text>';
-    }else{
-      s+='<circle cx="'+(x+5)+'" cy="'+(ly+5)+'" r="4" fill="'+dc(d)+'" opacity="0.75"/>';
-      s+='<text x="'+(x+13)+'" y="'+(ly+9)+'" fill="#6a6a7a" font-size="8.5" font-family="system-ui">'+d+'</text>';
+// ── VIZ 3: Dependency Matrix ──────────────────────────────────
+
+function renderMatrix(tasks,tById,layers){
+  const domOrd=Object.keys(DM);
+  const sorted=[...tasks].sort((a,b)=>{
+    const d=domOrd.indexOf(a.domain)-domOrd.indexOf(b.domain);
+    return d||layers[a.id]-layers[b.id];
+  });
+  const n=sorted.length,cell=30,lW=155,hH=95;
+  const svgW=lW+n*cell+24,svgH=hH+n*cell+24;
+
+  const depSet=new Set();
+  tasks.forEach(t=>(t.needs||[]).forEach(b=>depSet.add(`${t.id}-${b}`)));
+
+  let s=`<svg width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Row domain bands
+  let curd=null,bs=0;
+  sorted.forEach((t,i)=>{
+    if(t.domain!==curd){
+      if(curd)s+=`<rect x="0" y="${hH+bs*cell}" width="${svgW}" height="${(i-bs)*cell}" fill="${dc(curd)}" fill-opacity=".04"/>`;
+      curd=t.domain;bs=i;
     }
   });
-  return s;
+  s+=`<rect x="0" y="${hH+bs*cell}" width="${svgW}" height="${(sorted.length-bs)*cell}" fill="${dc(curd)}" fill-opacity=".04"/>`;
+
+  // Column headers (rotated)
+  sorted.forEach((t,i)=>{
+    const x=lW+i*cell+cell/2,y=hH-6,c=dc(t.domain);
+    s+=`<text x="${x}" y="${y}" fill="${c}" font-size="8" font-weight="600" text-anchor="start" transform="rotate(-55 ${x} ${y})">${tr(t.name,13)}</text>`;
+    s+=`<circle cx="${x}" cy="${hH-3}" r="3" fill="${c}" opacity=".65"/>`;
+  });
+
+  // Rows
+  sorted.forEach((t,row)=>{
+    const y=hH+row*cell,c=dc(t.domain);
+    s+=`<rect x="0" y="${y+1}" width="3" height="${cell-2}" rx="1.5" fill="${c}" opacity=".6"/>`;
+    s+=`<text x="10" y="${y+cell/2+1}" fill="${t.done?c:'#a1a1aa'}" font-size="10" font-weight="500" dominant-baseline="central">${tr(t.name,21)}</text>`;
+    // Layer badge
+    s+=`<text x="${lW-8}" y="${y+cell/2+1}" fill="#3a3a45" font-size="8" font-weight="700" text-anchor="middle" dominant-baseline="central">L${layers[t.id]}</text>`;
+
+    sorted.forEach((t2,col)=>{
+      const x=lW+col*cell;
+      const isDep=depSet.has(`${t.id}-${t2.id}`);
+      const isSelf=t.id===t2.id;
+      const c2=dc(t2.domain);
+      if(isSelf){
+        s+=`<rect x="${x+1}" y="${y+1}" width="${cell-2}" height="${cell-2}" fill="rgba(255,255,255,.04)"/>`;
+        s+=`<text x="${x+cell/2}" y="${y+cell/2+1}" fill="#3a3a45" font-size="10" text-anchor="middle" dominant-baseline="central">╱</text>`;
+      } else if(isDep){
+        s+=`<rect x="${x+2}" y="${y+2}" width="${cell-4}" height="${cell-4}" rx="3" fill="${c2}" fill-opacity=".55"/>`;
+        s+=`<text x="${x+cell/2}" y="${y+cell/2+1}" fill="#fff" font-size="9" text-anchor="middle" dominant-baseline="central">▶</text>`;
+      } else {
+        s+=`<rect x="${x+1}" y="${y+1}" width="${cell-2}" height="${cell-2}" fill="transparent" stroke="rgba(255,255,255,.04)" stroke-width=".5"/>`;
+      }
+    });
+  });
+
+  // Corner label
+  s+=`<text x="${lW/2}" y="12" fill="#3a3a45" font-size="8" text-anchor="middle">blocked by col ▶</text>`;
+  s+=`<text x="${lW/2}" y="${svgH-6}" fill="#3a3a45" font-size="8" text-anchor="middle">${depSet.size} dependencies · ${n} tasks</text>`;
+
+  s+=`</svg>`;
+  document.getElementById('svg-matrix').innerHTML=s;
 }
+
+// ── VIZ 4: Timeline / Gantt ───────────────────────────────────
+
+function renderGantt(tasks,tById){
+  const W=Math.max(window.innerWidth-16,800);
+  const start=new Date('2026-04-07T00:00:00'),end=new Date('2026-05-04T00:00:00');
+  const nDays=dd(start,end)+1;
+  const pL=130,pT=42,pR=20;
+  const dW=(W-pL-pR)/nDays;
+
+  const domains=Object.keys(DM).filter(d=>tasks.some(t=>t.domain===d));
+  const laneH=90;
+  const svgH=pT+domains.length*laneH+36;
+
+  const byDom={};
+  domains.forEach(d=>{byDom[d]=tasks.filter(t=>t.domain===d).sort((a,b)=>pd(a.plan_date)-pd(b.plan_date))});
+
+  // Row assignment within lane (greedy)
+  const taskPos={};
+  domains.forEach(d=>{
+    const dt=byDom[d];
+    const rows=[];// rows[r] = last end date in that row
+    dt.forEach(t=>{
+      const ts=pd(t.plan_date)||start,te=pd(t.due_date)||ts;
+      let row=0;
+      while(rows[row]&&rows[row]>ts)row++;
+      rows[row]=te;
+      const rH=22,rG=5;
+      const nR=Math.max(rows.length,1);
+      const totalRH=nR*(rH+rG)-rG;
+      const laneY=pT+domains.indexOf(d)*laneH;
+      const y=laneY+(laneH-totalRH)/2+row*(rH+rG);
+      const x=pL+dd(start,ts)*dW;
+      const w=Math.max((dd(ts,te)+1)*dW,dW*.7);
+      taskPos[t.id]={x,y,w,h:rH,row};
+    });
+  });
+
+  let s=`<svg width="${W}" height="${svgH}" xmlns="http://www.w3.org/2000/svg">`;
+
+  // Lane backgrounds
+  domains.forEach((d,i)=>{
+    const y=pT+i*laneH,c=dc(d);
+    s+=`<rect x="0" y="${y}" width="${W}" height="${laneH}" fill="${c}" fill-opacity="${i%2===0?.05:.02}"/>`;
+    s+=`<rect x="0" y="${y}" width="3" height="${laneH}" fill="${c}" opacity=".6"/>`;
+    s+=`<text x="10" y="${y+laneH/2-6}" fill="${c}" font-size="11" font-weight="700" dominant-baseline="central" letter-spacing=".4">${d}</text>`;
+    s+=`<text x="10" y="${y+laneH/2+9}" fill="${c}" font-size="8" dominant-baseline="central" opacity=".4">${byDom[d].length} tasks</text>`;
+  });
+
+  // Date grid + labels
+  for(let day=0;day<=nDays;day++){
+    const x=pL+day*dW;
+    const dt=new Date(start);dt.setDate(dt.getDate()+day);
+    const isMon=dt.getDay()===1||day===0;
+    s+=`<line x1="${x}" y1="${pT}" x2="${x}" y2="${svgH-24}" stroke="rgba(255,255,255,${isMon?.07:.03})" stroke-width="${isMon?1:.5}"/>`;
+    if(isMon) s+=`<text x="${x+2}" y="${pT-6}" fill="#5a5a65" font-size="8" font-weight="500">${dt.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</text>`;
+  }
+
+  // Today line
+  const todayX=pL+dd(start,TODAY)*dW;
+  s+=`<line x1="${todayX}" y1="${pT-14}" x2="${todayX}" y2="${svgH-20}" stroke="#ef4444" stroke-width="1.5" opacity=".65" stroke-dasharray="4 3"/>`;
+  s+=`<text x="${todayX+3}" y="${pT-16}" fill="#ef4444" font-size="8" font-weight="700" opacity=".8">today</text>`;
+
+  // Dependency arrows (before tasks so tasks render on top)
+  tasks.forEach(t=>{
+    (t.needs||[]).forEach(bid=>{
+      const src=taskPos[bid],dst=taskPos[t.id];if(!src||!dst)return;
+      const c=dc(tById[bid].domain);
+      const x1=src.x+src.w,y1=src.y+src.h/2,x2=dst.x,y2=dst.y+dst.h/2;
+      if(Math.abs(y1-y2)<4){
+        s+=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="1.2" opacity=".4"/>`;
+      } else {
+        const mx=(x1+x2)/2;
+        s+=`<path d="M${x1} ${y1} H${mx} V${y2} H${x2}" fill="none" stroke="${c}" stroke-width="1.2" opacity=".35"/>`;
+      }
+      s+=`<polygon points="${x2},${y2} ${x2-6},${y2-4} ${x2-6},${y2+4}" fill="${c}" opacity=".45"/>`;
+    });
+  });
+
+  // Task bars
+  tasks.forEach(t=>{
+    const p=taskPos[t.id];if(!p)return;
+    const c=dc(t.domain),done=t.done;
+    const stAlpha=[.15,.28,.42][t.stakes]||.15;
+    s+=`<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="4" fill="${c}" fill-opacity="${done?.15:stAlpha+.08}" stroke="${c}" stroke-width="${done?1:1.5}" stroke-opacity="${done?.35:.7}"/>`;
+    // Label
+    if(p.w>30){
+      const chars=Math.floor(p.w/5.5);
+      s+=`<text x="${p.x+5}" y="${p.y+p.h/2+1}" fill="${done?'#666':'#e4e4e7'}" font-size="9" font-weight="600" dominant-baseline="central">${tr(t.name,chars)}</text>`;
+    }
+    // Stakes bar (right edge)
+    const stC=['','#c46b2a','#c73434'][t.stakes]||'';
+    if(stC) s+=`<rect x="${p.x+p.w-3}" y="${p.y}" width="3" height="${p.h}" rx="2" fill="${stC}" opacity=".75"/>`;
+    // Speed dots (top-left corner)
+    for(let i=0;i<=t.speed;i++) s+=`<circle cx="${p.x+5+i*6}" cy="${p.y+4}" r="2" fill="${c}" opacity=".45"/>`;
+    if(done) s+=`<text x="${p.x+p.w-10}" y="${p.y+p.h/2+1}" fill="${c}" font-size="9" font-weight="700" text-anchor="middle" dominant-baseline="central">✓</text>`;
+  });
+
+  // Bottom note
+  s+=`<text x="${pL+(W-pL-pR)/2}" y="${svgH-8}" fill="#3a3a45" font-size="9" text-anchor="middle">Apr 7 → May 4, 2026 · dots = effort (snap/sesh/grind) · red edge = high/crit stakes</text>`;
+
+  s+=`</svg>`;
+  document.getElementById('svg-gantt').innerHTML=s;
+}
+
+// ── Main ──────────────────────────────────────────────────────
+
+async function main(){
+  try{
+    const me=await fetch('/api/me').then(r=>r.json());
+    const slug=me.user?.slug||'anas';
+    const {tasks}=await fetch('/api/users/'+slug+'/tasks').then(r=>r.json());
+    tasks.forEach(t=>{t.needs=t.needs||[]});
+    const tById={};tasks.forEach(t=>{tById[t.id]=t});
+
+    const layers=computeLayers(tasks);
+    const bm=computeBlocksMap(tasks);
+    const fo=computeFanOut(tasks,bm);
+
+    // Legend
+    const leg=document.getElementById('legend');
+    Object.keys(DM).filter(d=>tasks.some(t=>t.domain===d)).forEach(d=>{
+      leg.innerHTML+=`<div class="li"><span class="ld" style="background:${DM[d]}"></span>${d}</div>`;
+    });
+    leg.innerHTML+=`<div class="li" style="margin-left:auto"><span style="color:#c73434;font-size:12px">▌</span>crit stakes</div>`;
+    leg.innerHTML+=`<div class="li"><span style="color:#c46b2a;font-size:12px">▌</span>high stakes</div>`;
+    leg.innerHTML+=`<div class="li"><span style="color:#5a5a65;font-size:11px">●●●</span>grind / sesh / snap effort</div>`;
+
+    renderDAG(tasks,tById,layers);
+    renderQuadrant(tasks,tById,bm,fo);
+    renderMatrix(tasks,tById,layers);
+    renderGantt(tasks,tById);
+
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab=>{
+      tab.addEventListener('click',()=>{
+        document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+        document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('pane-'+tab.dataset.pane).classList.add('active');
+      });
+    });
+
+    document.getElementById('loading').style.display='none';
+    document.getElementById('app').style.display='flex';
+  }catch(e){
+    document.getElementById('loading').textContent='Error: '+e.message;
+  }
+}
+main();
 </script>
 </body>
 </html>
