@@ -59,6 +59,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',system-u
 .c-pill{font-size:7px;font-weight:700;padding:1px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:.3px}
 .c-date{font-size:9px;color:var(--tx2);white-space:nowrap}
 .c-tp{font-size:8px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff}
+.c-dates{display:flex;align-items:center;gap:4px;margin-top:4px;justify-content:flex-end}
+.c-dots{font-size:7px;color:var(--tx3);letter-spacing:2px;line-height:1}
+.c-blocker{font-size:9px;color:var(--accent);font-style:italic;margin-top:4px;opacity:0.8}
 .c-pbar{height:2px;background:var(--bg3);border-radius:1px;margin-top:6px;overflow:hidden}
 .c-pbar-fill{height:100%;border-radius:1px;transition:width .3s}
 .c-subs{margin-top:6px;padding-top:6px;border-top:1px solid var(--brd)}

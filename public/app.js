@@ -32,6 +32,13 @@ function matchSearch(t){
   if(!state.searchQuery)return true;var q=state.searchQuery.toLowerCase();
   return t.name.toLowerCase().includes(q)||t.domain.toLowerCase().includes(q)||(t.subs&&t.subs.some(function(s){return s.label.toLowerCase().includes(q)}));
 }
+function getBlockerName(t){
+  if(!t.needs||!t.needs.length)return'';
+  for(var k=0;k<t.needs.length;k++){var dep=state.taskById[t.needs[k]];if(!dep)continue;
+    if(dep.subs&&dep.subs.length){if(!dep.subs.every(function(s){return s.done}))return dep.name}
+    else{if(!dep.done)return dep.name}}return'';
+}
+function bufferDots(dp,dd){var n=Math.max(0,Math.min(7,dd-dp));var d='';for(var i=0;i<n;i++)d+='•';return d}
 function saveExpanded(){api('PUT','/api/users/'+state.slug+'/ui-state',{expanded:Array.from(state.expanded)})}
 
 // ── Force layout ───────────────────────────────────────────────
@@ -306,7 +313,7 @@ function renderCards(){
   filtered.forEach(function(t,idx){
     var col=(DM[t.domain]||{c:"#71717a"}).c,label=DM[t.domain]?DM[t.domain].l:t.domain;
     var blocked=isBlocked(t),done=taskDone(t),prog=taskProgress(t);
-    var dd=df(t.due_date),sc=SC[t.stakes]||SC[0];
+    var dd=df(t.due_date),dp=df(t.plan_date),sc=SC[t.stakes]||SC[0];
     var hasSubs=t.subs&&t.subs.length>0,isOpen=state.expanded.has(t.id);
     var el=document.createElement('div');
     el.className='card'+(done?' alldone':'')+(blocked?' blocked-card':'')+(state.selectedId===t.id?' selected':'');
@@ -320,12 +327,14 @@ function renderCards(){
     actHTML+='</div>';
     el.innerHTML='<div class="stripe" style="background:'+col+'"></div>'
       +'<div class="c-row"><span class="c-idx">'+(idx+1)+'</span><span class="c-domain" style="color:'+col+';border-color:'+col+'"></span><span class="c-name"></span>'+(blocked?'<span class="c-lock">blocked</span>':'')+'</div>'
-      +'<div class="c-meta"><span class="c-pill" style="background:var(--bg3);color:var(--tx2)">'+TL[t.speed]+'</span><span class="c-pill" style="background:'+sc.bg+';color:'+sc.fg+'">'+SL[t.stakes]+'</span><span class="c-date"></span><span class="c-tp" style="background:'+(dd<=0?"#ef4444":dd<=2?"#C9652A":dd<=5?"#A67A4B":"#3f3f46")+'">T-'+dd+'</span></div>'
+      +'<div class="c-meta"><span class="c-pill" style="background:var(--bg3);color:var(--tx2)">'+TL[t.speed]+'</span><span class="c-pill" style="background:'+sc.bg+';color:'+sc.fg+'">'+SL[t.stakes]+'</span><span class="c-date"></span></div>'
+      +'<div class="c-dates">'+(dp<999?'<span class="c-tp" style="background:'+(dp<=0?"#ef4444":dp<=2?"#C9652A":dp<=5?"#A67A4B":"#3f3f46")+'">T-'+dp+'</span>':'')+(dp<999&&dd<999&&dd>dp?'<span class="c-dots">'+bufferDots(dp,dd)+'</span>':'')+(dd<999?'<span class="c-tp" style="background:'+(dd<=0?"#ef4444":dd<=2?"#C9652A":dd<=5?"#A67A4B":"#3f3f46")+'">T-'+dd+'</span>':'')+'</div>'
+      +(blocked?'<div class="c-blocker">Completion blocked by: '+esc(getBlockerName(t))+'</div>':'')
       +pbar+actHTML;
 
     el.querySelector('.c-domain').textContent=label;
     el.querySelector('.c-name').textContent=t.name;
-    el.querySelector('.c-date').textContent=t.due_label||'';
+    el.querySelector('.c-date').textContent=(t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' \u2192 '+t.due_label:t.due_label||t.plan_label||'');
 
     if(hasSubs&&isOpen){
       var sDiv=document.createElement('div'); sDiv.className='c-subs';
