@@ -33,7 +33,7 @@ Browser ──HTTPS──▶ Nginx (443)
                          /opt/organizer/data/organizer.db
 ```
 
-Single-file SPA frontend (`public/index.html`) with a REST API backend. No build step, no bundler, no framework — vanilla JS + Express + better-sqlite3.
+Split-file SPA frontend (index.html shell + style.css + app.js) with a REST API backend. No build step, no bundler, no framework — vanilla JS + Express + better-sqlite3. Gemini AI integration for task analysis.
 
 ## Features
 
@@ -134,13 +134,17 @@ Visit `http://localhost:3000` (without nginx, no auto-redirect — go to `http:/
 ## File Structure
 
 ```
-├── server.js          # Express API + auth routing + SQLite queries
+├── server.js          # Express API + auth + CSRF + CSP + Gemini endpoint (~300 lines)
 ├── schema.sql         # Database schema (no seed data)
 ├── package.json       # express, better-sqlite3
+├── TODO.md            # Prioritized TODO with security/arch/cleanup audit results
+├── project-context.yaml # Full project context for AI agents
 ├── public/
-│   └── index.html     # Single-file SPA (vanilla JS, all CSS inline)
+│   ├── index.html     # HTML shell (ARIA landmarks, CDN imports, noscript)
+│   ├── style.css      # All CSS (dark theme, split-panel, timeline, mobile)
+│   └── app.js         # All frontend JS (routing, cards, timeline, tree, modals, AI)
 ├── scripts/
-│   └── backup.sh      # SQLite dump → SQL text, auto-commit
+│   └── backup.sh      # SQLite dump → backup file
 └── .gitignore         # Excludes node_modules, data/, *.db, backup.sql
 ```
 

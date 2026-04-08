@@ -1,12 +1,13 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
+# Last updated: 2026-04-08
 
 project:
   name: gamify_work_life_chores
   domain: 7ay.de
   description: >
     Personal task organizer with dependency tracking, subtasks, progress bars,
-    multi-user boards, and a Watch Dogs-inspired skill tree visualization.
+    timeline view, multi-user boards, and Gemini AI integration.
     Built for managing academic deadlines, work tasks, and personal chores.
   repo: https://github.com/5acb/gamify_work_life_chores
   infra_repo: https://github.com/5acb/7ay_de_infra (private)
@@ -22,33 +23,52 @@ server:
 
 architecture:
   overview: >
-    Single-file SPA frontend (public/index.html ~545 lines) + Express REST API
-    (server.js ~200 lines) + SQLite WAL. No build step, no bundler, no framework.
+    Split-file SPA frontend (index.html shell + style.css + app.js) + Express REST API
+    (server.js ~300 lines) + SQLite WAL. No build step, no bundler, no framework.
     Vanilla JS + CSS. Three systemd services, Nginx reverse proxy.
+    Gemini AI integration via MCP server + 5 subagents.
   ports:
     3000: "App server (Express + SQLite) — proxied by Nginx on /"
     3001: "commit-daemon (socat + bash, localhost-only) — proxied on /api/commit"
     3002: "MCP server (SSE transport, token auth) — proxied on /mcp"
   auth_flow: >
     Nginx handles HTTP Basic Auth via /etc/nginx/.htpasswd. On successful auth,
-    Nginx injects X-Auth-User: <username> header before proxying to Express.
-    Express getAuthUser() reads this header and looks up users.slug. This is
-    how the app knows which user's board to show on GET /.
+    Nginx strips any client-supplied X-Auth-User, then injects X-Auth-User: $remote_user.
+    Express ensureAuth() middleware reads this header and looks up users.slug,
+    populating req.user for all downstream routes.
+  security:
+    - "ensureAuth middleware on all protected routes"
+    - "requireTaskOwner/requireSubtaskOwner ownership checks on mutations"
+    - "CSRF: X-Requested-With: XMLHttpRequest required on all non-GET requests"
+    - "CSP header: default-src 'self', script-src cdnjs.cloudflare.com"
+    - "X-Frame-Options: DENY, X-Content-Type-Options: nosniff"
+    - "Referrer-Policy: strict-origin-when-cross-origin"
+    - "Rate limiting: Gemini endpoint 5 req/min/user (Express), nginx 30r/m burst=20"
+    - "Input validation: task name 500 chars, labels 100, subtask 500"
+    - "Domain allowlist: VALID_DOMAINS array checked on create/update"
+    - "Bound to 127.0.0.1:3000 — nginx handles external traffic"
+    - "X-Auth-User stripped from client requests in nginx"
+    - "Backup outside repo at /opt/organizer/data/backups/"
   database:
     engine: SQLite (WAL mode, foreign_keys ON)
     path: /opt/organizer/data/organizer.db
     orm: none — raw SQL via better-sqlite3
-    backup: "cron every 7min → sqlite3 .dump → repo/backup.sql → git commit"
+    backup: "cron every 7min → sqlite3 .dump → /opt/organizer/data/backups/"
+    queries: "Single-query task fetching with SQLite JSON aggregation (json_group_array)"
 
 files:
-  repo/server.js: "Express API — all routes, DB queries, static serving (~200 lines)"
-  repo/public/index.html: "Entire frontend — HTML + CSS + JS in one file (~545 lines)"
+  repo/server.js: "Express API — auth, CSRF, CSP, routes, Gemini agent endpoint (~300 lines)"
+  repo/public/index.html: "HTML shell — loads style.css + app.js, ARIA landmarks, noscript fallback"
+  repo/public/style.css: "All CSS — dark theme, split-panel layout, cards, timeline, mobile responsive"
+  repo/public/app.js: "All frontend JS — routing, rendering, timeline, tree, modals, AI chat (~770 lines)"
   repo/schema.sql: "DB schema (structure only, no seed data)"
-  repo/scripts/backup.sh: "SQLite dump → backup.sql → triggers commit-daemon"
-  infra/nginx-organizer.conf: "Nginx vhost — SSL, basic auth, proxy rules"
-  infra/organizer.service: "systemd: node server.js as deploy user on port 3000"
-  infra/organizer-mcp.service: "systemd: MCP SSE server on port 3002"
-  infra/organizer-commit.service: "systemd: socat commit-daemon on port 3001"
+  repo/TODO.md: "Prioritized TODO with completion tracking from security/arch/cleanup audits"
+  repo/scripts/backup.sh: "SQLite dump → backup file"
+  mcp-server/server.js: "MCP SSE server — tool handlers, changelog, Gemini subagent dispatch"
+  mcp-server/subagents.js: "5 Gemini subagents (code_review, security_audit, arch_review, doc_sync, cleanup)"
+  mcp-server/changelog.js: "Append-only JSONL audit log with SHA-256 hash chaining"
+  scripts/gemini-ask.sh: "Gemini CLI wrapper — reads prompt from stdin, returns JSON"
+  scripts/daily-maintenance.sh: "Cron job: runs security_audit + doc_sync + auto-commits"
 
 database_schema:
   users:
@@ -70,16 +90,16 @@ database_schema:
     pk: "(task_id, blocked_by)"
     notes: >
       Dependency edges. task_id is blocked BY blocked_by. INSERT OR IGNORE prevents
-      duplicates. ON DELETE CASCADE from tasks. Forms a DAG for skill tree rendering.
+      duplicates. ON DELETE CASCADE from tasks. Forms a DAG for tree/timeline rendering.
   ui_state:
     columns: [key, value]
-    notes: "Per-user UI prefs. Key format: '{slug}:{keyname}', value is JSON-stringified."
+    notes: "Per-user UI prefs. Key format: '{slug}:{keyname}', value is JSON-stringified. Uses GLOB for safe prefix matching."
 
 api:
   auth:
     - "GET    /api/me                        → {user} from X-Auth-User header (null if unauthenticated)"
   users:
-    - "GET    /api/users                     → list all users (id, name, slug)"
+    - "GET    /api/users                     → list all users (requires auth)"
     - "GET    /api/users/:slug/tasks         → tasks + subtasks + blockers (?view=archived)"
     - "POST   /api/users/:slug/tasks         → create task (body: domain,name,plan_date,due_date,plan_label,due_label,speed,stakes,needs[],subs[])"
     - "GET    /api/users/:slug/ui-state      → {key: value} map for this user"
@@ -98,47 +118,77 @@ api:
   blockers:
     - "POST   /api/blockers                  → add edge (body: {task_id, blocked_by}) — INSERT OR IGNORE"
     - "DELETE /api/blockers                  → remove edge (body: {task_id, blocked_by})"
+  gemini:
+    - "POST   /api/agent/gemini              → AI query with live task context (body: {question, slug}) — rate limited 5/min/user"
   spa:
-    - "GET    /                              → redirect to /:slug if authed, else index.html"
+    - "GET    /                              → redirect to /:slug if authed"
     - "GET    /:slug                         → serve index.html (SPA handles routing)"
 
 deployment:
   workflow: >
-    All changes via Claude with PotatoMCP connector.
+    All changes via Claude with PotatoMCP connector or SSH to deploy@7ay.de.
     1. read_file source files to understand current state
     2. write_file to edit in /opt/organizer/repo/
     3. bash to validate (node -c, sqlite3 checks, curl tests)
     4. git_commit_push with descriptive message
     5. deploy (npm install if deps changed + systemctl restart organizer)
     6. logs to verify startup
+    NOTE: For long-running operations (subagents, large diffs), use SSH not MCP.
   services:
-    organizer: "Main app — restart after any server.js or index.html change"
-    organizer-mcp: "MCP server — restart only if mcp-server/server.js changes"
+    organizer: "Main app — restart after any server.js or frontend changes"
+    organizer-mcp: "MCP server — restart only if mcp-server/* changes"
     organizer-commit: "Commit daemon — restart only if commit-daemon.sh changes"
-  restart: "systemctl restart organizer"
+  cron:
+    backup: "*/7 * * * * /opt/organizer/repo/scripts/backup.sh"
+    maintenance: "0 6 * * * /opt/organizer/scripts/daily-maintenance.sh (security_audit + doc_sync)"
+  restart: "sudo systemctl restart organizer"
   logs: "journalctl -u organizer -n 50 --no-pager"
 
 design_principles:
-  - "Single-file SPA — all HTML/CSS/JS in public/index.html"
+  - "Split SPA — HTML shell + style.css + app.js (was single-file, split 2026-04-08)"
   - "No build step, no bundler, no React/Vue — vanilla JS only"
-  - "Dark theme, mobile-first, 640px max-width"
-  - "Minimal dependencies — only express and better-sqlite3"
-  - "Watch Dogs 1 inspired skill tree for dependency visualization"
+  - "Dark theme, mobile-first responsive design"
+  - "Desktop: split-panel (task list left + timeline right)"
+  - "Mobile: bottom tab navigation (Tasks / Tree / Timeline)"
+  - "Minimal dependencies — express, better-sqlite3, dayjs (CDN), leader-line (CDN)"
   - "Domain colors: CTI=#60a5fa, ECM=#c084fc, CSD=#5eead4, GRA=#7dd3fc, Personal=#a5b4fc"
   - "All state in SQLite — no localStorage, no cookies"
   - "No hardcoded secrets in code — public repo safe"
+  - "WCAG accessibility: zoomable viewport, ARIA landmarks, AA contrast ratios"
 
 ui_layout:
-  description: >
-    Split-panel layout: left ~40% scrollable task list (cards), right ~60%
-    Watch Dogs-style radial skill tree. Nodes = tasks, edges = blocker relationships.
-    Completed tasks glow (domain color), blocked tasks dimmed/locked, in-progress pulse.
-    Clicking a tree node selects it in the list and vice versa.
+  desktop: >
+    Split-panel: left ~38% scrollable task list (cards), right ~62% timeline view.
+    Timeline shows swimlanes by domain, cards positioned by plan/due dates,
+    dependency arrows via LeaderLine library. Today marker in red.
+    No layout toggle — timeline is always the RHS panel.
+  mobile: >
+    Bottom tab navigation with 3 tabs: Tasks (card list), Tree (dependency graph),
+    Timeline. FAB (+) button for adding tasks, visible only on Tasks tab.
   task_card_fields: [domain badge, name, plan/due labels, speed+stakes badges, subtask progress bar, done toggle, archive button]
-  skill_tree: "Canvas-based radial DAG. Circuit grid background. Branching layout, not force-directed."
+  modals: "Edit task, Add task, Ask Gemini — close via backdrop click or Escape key"
+
+gemini_agent:
+  description: >
+    Gemini 2.5 Flash Lite is available as a second AI agent. Modes:
+    1. ask_gemini(prompt) — pure text query, ~8s, via PotatoMCP tool
+    2. gemini_analyze_tasks(question, user) — injects live DB context, ~10s
+    3. gemini_agent(task) — full autonomous agent with tools, ~30-60s
+    4. run_subagent(name) — specialized audit agents (code_review, security_audit, arch_review, doc_sync, cleanup)
+    5. POST /api/agent/gemini {question, slug} — HTTP endpoint for frontend AI button
+  subagents:
+    code_review: "Reviews recent commits for code quality issues"
+    security_audit: "Scans codebase for security vulnerabilities"
+    arch_review: "Reviews architectural patterns and suggests improvements"
+    doc_sync: "Ensures documentation matches current code state"
+    cleanup: "Identifies dead code, unused files, cleanup opportunities"
+  timeout: "60s for subagent shell commands (subagents.js run() helper)"
+  credentials: "/root/.gemini/oauth_creds.json (root user, pre-authenticated)"
+  wrapper: "/opt/organizer/scripts/gemini-ask.sh"
+  model: "gemini-2.5-flash-lite (default, auto-selected)"
+  changelog: "/opt/organizer/data/changelog.jsonl — append-only JSONL with SHA-256 hash chain"
 
 orientation_commands:
-  # Run these after reading this file to get live state
   users:        "sqlite3 /opt/organizer/data/organizer.db 'SELECT * FROM users;'"
   active_tasks: "sqlite3 /opt/organizer/data/organizer.db 'SELECT id, user_id, domain, name, done, archived FROM tasks WHERE archived = 0 ORDER BY user_id, sort_order;'"
   blockers:     "sqlite3 /opt/organizer/data/organizer.db 'SELECT b.task_id, t1.name, b.blocked_by, t2.name blocked_by_name FROM blockers b JOIN tasks t1 ON t1.id = b.task_id JOIN tasks t2 ON t2.id = b.blocked_by;'"
@@ -146,27 +196,15 @@ orientation_commands:
   counts:       "sqlite3 /opt/organizer/data/organizer.db 'SELECT user_id, COUNT(*) total, SUM(done) done, SUM(archived) archived FROM tasks GROUP BY user_id;'"
   service:      "systemctl status organizer organizer-mcp organizer-commit --no-pager | grep -E '●|Active'"
   git_log:      "cd /opt/organizer/repo && git log --oneline -10"
-
-
-gemini_agent:
-  description: >
-    Gemini 2.5 Flash Lite is available as a second AI agent. Three modes:
-    1. ask_gemini(prompt) — pure text query, ~8s, via PotatoMCP tool
-    2. gemini_analyze_tasks(question, user) — injects live DB context (tasks/blockers/subtasks), ~10s
-    3. gemini_agent(task) — full autonomous agent with --yolo, has bash/read_file/write_file/git/deploy tools, ~30-60s
-    4. POST /api/agent/gemini {question, slug} — HTTP endpoint for frontend "✦ AI" button
-  credentials:   "/root/.gemini/oauth_creds.json (root user, pre-authenticated)"
-  wrapper:       "/opt/organizer/scripts/gemini-ask.sh (sudo-callable by deploy user)"
-  mcp_config:    "/opt/organizer/repo/.gemini/settings.json (registers organizer MCP as SSE url)"
-  model:         "gemini-2.5-flash-lite (default, auto-selected)"
-  a2a_loop:      "Claude → PotatoMCP tool → Gemini CLI → (organizer MCP tools) → response → Claude"
-  test_cli:      "echo 'your prompt' | /opt/organizer/scripts/gemini-ask.sh"
-  test_api:      "curl -X POST http://localhost:3000/api/agent/gemini -H 'Content-Type: application/json' -d '{"question":"what should I work on?","slug":"anas"}'"
+  changelog:    "tail -5 /opt/organizer/data/changelog.jsonl"
 
 common_fixes:
-  app_wont_start:   "journalctl -u organizer -n 30. Usually a syntax error in server.js — node -c server.js to check."
-  db_locked:        "sqlite3 /opt/organizer/data/organizer.db 'PRAGMA wal_checkpoint(TRUNCATE);' — WAL mode should prevent this."
+  app_wont_start:   "journalctl -u organizer -n 30. Usually a syntax error — node -c server.js / node -c public/app.js to check."
+  db_locked:        "sqlite3 /opt/organizer/data/organizer.db 'PRAGMA wal_checkpoint(TRUNCATE);'"
   permission_error: "chown -R deploy:deploy /opt/organizer/repo"
   nginx_502:        "App not on port 3000. systemctl restart organizer && journalctl -u organizer -n 20."
+  nginx_503:        "Rate limiting — check /var/log/nginx/error.log for 'limiting requests'. Current: 30r/m burst=20."
   mcp_disconnected: "systemctl restart organizer-mcp — then re-add PotatoMCP connector in Claude settings."
+  mcp_timeout:      "Use SSH for long-running ops. MCP has a hard connection timeout."
+  subagent_timeout: "subagents.js run() timeout is 60s. If still failing, increase or switch to async spawn."
   commit_fails:     "Check /opt/organizer/.commit.lock exists and is stale. rm .commit.lock && systemctl restart organizer-commit."
