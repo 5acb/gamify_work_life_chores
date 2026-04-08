@@ -223,7 +223,7 @@ function renderApp(){
   var dateStr=TODAY.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
   var mob=isMobile();
   root.innerHTML=
-    '<div class="panel-list'+(mob&&state.mobileTab!=='list'?' m-hidden':'')+'" id="panelList"' ' >'
+    '<div class="panel-list'+(mob&&state.mobileTab!=='list'?' m-hidden':'')+'" id="panelList">'
       +'<div class="hdr">'
         +'<div class="hdr-top">'
           +'<a class="back" href="/" onclick="event.preventDefault();history.pushState(null,\'\',\'/\');route()">&#8592;</a>'
@@ -243,7 +243,7 @@ function renderApp(){
       +'</div>'
       +'<div class="cards" id="cardList"></div>'
     +'</div>'
-    +'<div class="panel-tree'+(mob&&state.mobileTab!=='tree'?' m-hidden':'')+'" id="treePanel"' ' ></div>'
+    +'<div class="panel-tree'+(mob&&state.mobileTab!=='tree'?' m-hidden':'')+'" id="treePanel"></div>'
     +'<div class="panel-timeline'+(mob&&state.mobileTab!=='timeline'?' m-hidden':'')+(!mob?' tl-on':'')+'" id="panelTimeline"><div class="tl-canvas" id="tlCanvas"><div class="tl-axis" id="tlAxis"></div></div></div>'
     +'<button class="fab" id="fabAdd" style="'+(mob&&state.mobileTab!=='list'?'display:none':'')+'">+</button>'
     +'<div class="m-tabs" id="mTabs">'
