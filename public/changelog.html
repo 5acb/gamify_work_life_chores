@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Changelog — 7ay.de</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;background:#0d1117;color:#c9d1d9;padding:1rem}
+h1{font-size:1.4rem;margin-bottom:1rem;color:#58a6ff}
+.filters{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.filters input,.filters select{background:#161b22;border:1px solid #30363d;color:#c9d1d9;padding:0.4rem 0.6rem;border-radius:6px;font-size:0.85rem}
+.filters button{background:#238636;color:#fff;border:none;padding:0.4rem 1rem;border-radius:6px;cursor:pointer;font-size:0.85rem}
+.filters button:hover{background:#2ea043}
+.chain{font-size:0.8rem;margin-bottom:0.5rem;padding:0.4rem 0.8rem;border-radius:6px;display:inline-block}
+.chain.valid{background:#1a3a1a;color:#3fb950}
+.chain.invalid{background:#3a1a1a;color:#f85149}
+table{width:100%;border-collapse:collapse;font-size:0.82rem}
+th{background:#161b22;position:sticky;top:0;text-align:left;padding:0.5rem;border-bottom:2px solid #30363d;color:#8b949e}
+td{padding:0.4rem 0.5rem;border-bottom:1px solid #21262d;vertical-align:top;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:hover td{background:#161b22}
+.agent-claude{color:#a371f7}
+.agent-gemini{color:#f0883e}
+.agent-system{color:#8b949e}
+.agent-cron{color:#56d364}
+.outcome-success{color:#3fb950}
+.outcome-error{color:#f85149}
+.outcome-started{color:#d29922}
+.detail-cell{cursor:pointer}
+.detail-cell:hover{white-space:normal;word-break:break-all}
+.stats{font-size:0.8rem;color:#8b949e;margin-bottom:0.5rem}
+</style>
+</head>
+<body>
+<h1>📋 Changelog</h1>
+<div class="filters">
+  <input id="search" placeholder="Search..." type="text">
+  <select id="agent"><option value="">All agents</option><option value="claude">claude</option><option value="gemini">gemini</option><option value="system">system</option><option value="cron">cron</option></select>
+  <select id="action"><option value="">All actions</option><option value="tool_call">tool_call</option><option value="subagent">subagent</option><option value="maintenance">maintenance</option><option value="api_mutation">api_mutation</option><option value="lifecycle">lifecycle</option></select>
+  <input id="tail" type="number" value="50" min="1" max="500" style="width:70px" title="Last N entries">
+  <button onclick="load()">Filter</button>
+  <button onclick="verify()" style="background:#1f6feb">Verify Chain</button>
+</div>
+<div id="chain-status"></div>
+<div id="stats" class="stats"></div>
+<table>
+<thead><tr><th>Time</th><th>Agent</th><th>Action</th><th>Outcome</th><th>Details</th></tr></thead>
+<tbody id="rows"></tbody>
+</table>
+<script>
+async function load(){
+  const p=new URLSearchParams();
+  const t=document.getElementById("tail").value;if(t)p.set("tail",t);
+  const a=document.getElementById("agent").value;if(a)p.set("agent_id",a);
+  const ac=document.getElementById("action").value;if(ac)p.set("action_type",ac);
+  const s=document.getElementById("search").value;if(s)p.set("search",s);
+  const r=await fetch("/api/changelog?"+p);
+  const d=await r.json();
+  document.getElementById("stats").textContent=`${d.total} entries shown`;
+  const tb=document.getElementById("rows");
+  tb.innerHTML=d.entries.map(e=>{
+    const agentClass=e.agent_id?.startsWith("gemini")?"agent-gemini":e.agent_id==="claude"?"agent-claude":e.agent_id==="system"?"agent-system":"agent-cron";
+    const outcomeClass="outcome-"+e.outcome;
+    const ts=new Date(e.timestamp).toLocaleString();
+    const det=JSON.stringify(e.action_detail||{}).slice(0,200);
+    return `<tr><td>${ts}</td><td class="${agentClass}">${e.agent_id}</td><td>${e.action_type}</td><td class="${outcomeClass}">${e.outcome}</td><td class="detail-cell" title="${det.replace(/"/g,'&quot;')}">${det}</td></tr>`;
+  }).join("");
+}
+async function verify(){
+  const r=await fetch("/api/changelog/verify");
+  const d=await r.json();
+  const el=document.getElementById("chain-status");
+  el.className="chain "+(d.valid?"valid":"invalid");
+  el.textContent=d.valid?`✓ Chain intact (${d.entries} entries)`:`✗ Chain broken at entry ${d.broken_at} (${d.entries} total)`;
+}
+load();
+</script>
+</body>
+</html>
