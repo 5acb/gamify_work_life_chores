@@ -185,6 +185,73 @@ app.get('/api/users/:slug/ui-state', (req, res) => {
 // ---- Viz lab ----
 app.get("/viz", (req, res) => res.sendFile(path.join(__dirname, "public", "viz.html")));
 
+
+// ---- Agent: Gemini task analysis ----
+app.post('/api/agent/gemini', (req, res) => {
+  const { question, slug: qSlug } = req.body;
+  if (!question || !question.trim()) return res.status(400).json({ error: 'question required' });
+
+  // Resolve user: body slug > auth header > first user
+  const slug = qSlug || req.headers['x-auth-user'] || 'anas';
+  const user = db.prepare('SELECT * FROM users WHERE slug = ?').get(slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+
+  const today = new Date().toISOString().split('T')[0];
+  const tasks = db.prepare(`
+    SELECT t.id, t.domain, t.name, t.speed, t.stakes, t.done, t.plan_date, t.due_date
+    FROM tasks t WHERE t.user_id = ? AND t.archived = 0 ORDER BY t.sort_order
+  `).all(user.id);
+  const blockers = db.prepare(`
+    SELECT b.task_id, t1.name task_name, b.blocked_by, t2.name blocked_by_name
+    FROM blockers b
+    JOIN tasks t1 ON t1.id = b.task_id
+    JOIN tasks t2 ON t2.id = b.blocked_by
+    WHERE t1.user_id = ?
+  `).all(user.id);
+  const subtasks = db.prepare(`
+    SELECT s.task_id, s.label, s.done
+    FROM subtasks s JOIN tasks t ON t.id = s.task_id
+    WHERE t.user_id = ? AND t.archived = 0
+    ORDER BY s.task_id, s.sort_order
+  `).all(user.id);
+
+  const speed = ['snap', 'sesh', 'grind'];
+  const stakes = ['low', 'high', 'crit'];
+  const taskLines = tasks.map(t =>
+    `[${t.id}] ${t.domain} | ${t.name} | ${speed[t.speed]} | ${stakes[t.stakes]} | ${t.done ? 'done' : 'pending'} | ${t.plan_date || '?'} → ${t.due_date || '?'}`
+  ).join('\n');
+  const blockerLines = blockers.map(b => `"${b.task_name}" needs "${b.blocked_by_name}"`).join('\n') || 'none';
+  const subLines = subtasks.length
+    ? subtasks.map(s => `  [task ${s.task_id}] ${s.done ? '✓' : '○'} ${s.label}`).join('\n')
+    : 'none';
+
+  const prompt = [
+    `You are a productivity assistant for ${user.name}. Today is ${today}.`,
+    `Speed: snap=quick, sesh=medium, grind=long. Stakes: low/high/crit.`,
+    `\nCurrent tasks:\n${taskLines}`,
+    `\nDependencies:\n${blockerLines}`,
+    `\nSubtasks:\n${subLines}`,
+    `\nAnswer concisely and practically: ${question.trim()}`,
+  ].join('\n');
+
+  const { spawnSync } = require('child_process');
+  try {
+    // Use sudo wrapper so gemini runs as root (has cached OAuth creds in /root/.gemini)
+    const r = spawnSync(
+      'sudo', ['/opt/organizer/scripts/gemini-ask.sh'],
+      { input: prompt, encoding: 'utf-8', timeout: 90000, env: process.env }
+    );
+    if (r.error) throw r.error;
+    const raw = r.stdout || '';
+    const start = raw.indexOf('{');
+    const parsed = start >= 0 ? JSON.parse(raw.slice(start)) : {};
+    const model = Object.keys(parsed.stats?.models || {})[0] || null;
+    res.json({ answer: parsed.response || raw, model });
+  } catch (e) {
+    res.status(500).json({ error: e.message.slice(0, 200) });
+  }
+});
+
 // ---- SPA: serve index.html for board routes ----
 app.get('/:slug', (req, res) => {
   if (req.params.slug.startsWith('api')) return res.status(404).end();
