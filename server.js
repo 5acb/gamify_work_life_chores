@@ -15,6 +15,15 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 app.use(express.json());
+// SEC-17: security headers
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'");
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // ---- Middleware ----
@@ -101,7 +110,7 @@ app.get('/api/me', (req, res) => {
 });
 
 // ---- API: Users ----
-app.get('/api/users', (req, res) => {
+app.get('/api/users', ensureAuth, (req, res) => {
   res.json({ users: db.prepare('SELECT id, name, slug FROM users ORDER BY id').all() });
 });
 
@@ -259,7 +268,19 @@ app.put('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
 });
 
 // ---- Agent: Gemini task analysis ----
+// SEC-18: Rate limit: 5 requests per minute per user for Gemini endpoint
+const geminiLimiter = {};
+function checkGeminiRate(userId) {
+  const now = Date.now(), window = 60000, max = 5;
+  if (!geminiLimiter[userId]) geminiLimiter[userId] = [];
+  geminiLimiter[userId] = geminiLimiter[userId].filter(t => now - t < window);
+  if (geminiLimiter[userId].length >= max) return false;
+  geminiLimiter[userId].push(now);
+  return true;
+}
+
 app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
+  if (!checkGeminiRate(req.user.id)) return res.status(429).json({ error: 'rate limit exceeded, try again in a minute' });
   const { question, slug: qSlug } = req.body;
   if (!question?.trim()) return res.status(400).json({ error: 'question required' });
   // SEC-13: limit question length

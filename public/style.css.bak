@@ -54,7 +54,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',system-u
 .c-idx{font-size:9px;color:var(--tx3);font-weight:700;min-width:14px;text-align:right;font-variant-numeric:tabular-nums}
 .c-domain{font-size:7px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:1px 5px;border-radius:3px;border:1.5px solid;flex-shrink:0}
 .c-name{font-size:12px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
-.c-lock{font-size:7px;font-weight:700;padding:1px 4px;border-radius:3px;background:#2a1f1f;color:#f87171;text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
+.c-lock{font-size:7px;font-weight:700;padding:1px 4px;border-radius:3px;background:var(--bg3);color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;flex-shrink:0}
 .c-meta{display:flex;align-items:center;gap:4px;margin-top:5px;flex-wrap:wrap}
 .c-pill{font-size:7px;font-weight:700;padding:1px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:.3px}
 .c-date{font-size:9px;color:var(--tx2);white-space:nowrap}
