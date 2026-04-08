@@ -7,6 +7,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_PATH = process.env.DB_PATH || '/opt/organizer/data/organizer.db';
 
+// SEC-16: allowed domain values
+const VALID_DOMAINS = ['CTI', 'ECM', 'CSD', 'GRA', 'Personal'];
+
 const db = new Database(DB_PATH, { fileMustExist: true });
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
@@ -111,6 +114,9 @@ app.get('/api/users/:slug/tasks', ensureAuth, (req, res) => {
 app.post('/api/users/:slug/tasks', ensureAuth, (req, res) => {
   if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
   const { domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, needs, subs } = req.body;
+  // SEC-16: validate domain
+  if (!name?.trim()) return res.status(400).json({ error: 'name required' });
+  if (domain && !VALID_DOMAINS.includes(domain)) return res.status(400).json({ error: 'invalid domain' });
   const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order),0) as max_sort_order FROM tasks WHERE user_id = ?').get(req.user.id);
   const taskId = db.transaction(() => {
     const r = db.prepare(
@@ -133,6 +139,8 @@ app.post('/api/users/:slug/tasks', ensureAuth, (req, res) => {
 // ---- API: Tasks (by id) ----
 app.patch('/api/tasks/:id', ensureAuth, (req, res) => {
   if (!requireTaskOwner(req, res)) return;
+  // SEC-16: validate domain if present
+  if (req.body.domain && !VALID_DOMAINS.includes(req.body.domain)) return res.status(400).json({ error: 'invalid domain' });
   const fields = ['domain','name','plan_date','due_date','plan_label','due_label','speed','stakes','sort_order','done'];
   const sets = [], vals = [];
   for (const f of fields) {
@@ -240,12 +248,15 @@ app.put('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
 });
 
 // ---- Viz lab ----
-app.get('/viz', (req, res) => res.sendFile(path.join(__dirname, 'public', 'viz.html')));
+// SEC-10: require auth for viz page
+app.get('/viz', ensureAuth, (req, res) => res.sendFile(path.join(__dirname, 'public', 'viz.html')));
 
 // ---- Agent: Gemini task analysis ----
 app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
   const { question, slug: qSlug } = req.body;
   if (!question?.trim()) return res.status(400).json({ error: 'question required' });
+  // SEC-13: limit question length
+  if (question.length > 2000) return res.status(400).json({ error: 'question too long' });
   if (qSlug && qSlug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
 
   const user = req.user;
@@ -278,17 +289,23 @@ app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
   ].join('\n');
 
   // SEC-6: run gemini-ask.sh directly as deploy user — no sudo needed
+  // ARCH-4: async spawn with exit code check + stderr capture
   try {
     const raw = await new Promise((resolve, reject) => {
       const child = spawn('/opt/organizer/scripts/gemini-ask.sh', []);
-      let stdout = '';
+      let stdout = '', stderr = '';
       const timer = setTimeout(() => {
         child.kill();
         reject(new Error('gemini-ask.sh timed out after 90s'));
       }, 90000);
       child.stdout.on('data', (chunk) => { stdout += chunk; });
+      child.stderr.on('data', (chunk) => { stderr += chunk; });
       child.on('error', (err) => { clearTimeout(timer); reject(err); });
-      child.on('close', () => { clearTimeout(timer); resolve(stdout); });
+      child.on('close', (code) => {
+        clearTimeout(timer);
+        if (code !== 0) reject(new Error(`gemini-ask.sh exited ${code}: ${(stderr || stdout).slice(0, 200)}`));
+        else resolve(stdout);
+      });
       child.stdin.write(prompt);
       child.stdin.end();
     });
@@ -297,7 +314,9 @@ app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
     const model = Object.keys(parsed.stats?.models || {})[0] || null;
     res.json({ answer: parsed.response || raw, model });
   } catch (e) {
-    res.status(500).json({ error: e.message.slice(0, 200) });
+    // SEC-12: generic error message, don't leak internals
+    console.error('Gemini agent error:', e.message);
+    res.status(500).json({ error: 'gemini request failed' });
   }
 });
 
@@ -307,4 +326,5 @@ app.get('/:slug', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, () => console.log(`Organizer running on :${PORT}`));
+// SEC-11: bind to localhost only — nginx handles external traffic
+app.listen(PORT, '127.0.0.1', () => console.log(`Organizer running on 127.0.0.1:${PORT}`));

@@ -47,9 +47,10 @@ svg text{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif}
 <script>
 const DM={CTI:'#60a5fa',ECM:'#c084fc',CSD:'#5eead4',GRA:'#7dd3fc',Personal:'#a5b4fc'};
 const SPEED=['snap','sesh','grind'],STAKES=['low','high','crit'];
-const TODAY=new Date('2026-04-07T00:00:00');
+const TODAY=new Date();TODAY.setHours(0,0,0,0);
 const dc=d=>DM[d]||'#71717a';
-const tr=(s,n)=>s.length>n?s.slice(0,n-1)+'…':s;
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const tr=(s,n)=>{s=String(s);return esc(s.length>n?s.slice(0,n-1)+'…':s)};
 const pd=s=>s?new Date(s+'T00:00:00'):null;
 const dd=(a,b)=>Math.round((b-a)/86400000);
 
@@ -328,7 +329,10 @@ function renderMatrix(tasks,tById,layers){
 
 function renderGantt(tasks,tById){
   const W=Math.max(window.innerWidth-16,800);
-  const start=new Date('2026-04-07T00:00:00'),end=new Date('2026-05-04T00:00:00');
+  const dates=tasks.map(t=>pd(t.plan_date)||pd(t.due_date)).filter(Boolean);
+  if(!dates.length)dates.push(TODAY);
+  const start=new Date(Math.min(...dates));start.setDate(start.getDate()-1);
+  const end=new Date(Math.max(...dates));end.setDate(end.getDate()+7);
   const nDays=dd(start,end)+1;
   const pL=130,pT=42,pR=20;
   const dW=(W-pL-pR)/nDays;
@@ -422,7 +426,7 @@ function renderGantt(tasks,tById){
   });
 
   // Bottom note
-  s+=`<text x="${pL+(W-pL-pR)/2}" y="${svgH-8}" fill="#3a3a45" font-size="9" text-anchor="middle">Apr 7 → May 4, 2026 · dots = effort (snap/sesh/grind) · red edge = high/crit stakes</text>`;
+  s+=`<text x="${pL+(W-pL-pR)/2}" y="${svgH-8}" fill="#3a3a45" font-size="9" text-anchor="middle">dots = effort (snap/sesh/grind) · red edge = high/crit stakes</text>`;
 
   s+=`</svg>`;
   document.getElementById('svg-gantt').innerHTML=s;
@@ -444,12 +448,14 @@ async function main(){
 
     // Legend
     const leg=document.getElementById('legend');
+    let legHTML='';
     Object.keys(DM).filter(d=>tasks.some(t=>t.domain===d)).forEach(d=>{
-      leg.innerHTML+=`<div class="li"><span class="ld" style="background:${DM[d]}"></span>${d}</div>`;
+      legHTML+=`<div class="li"><span class="ld" style="background:${DM[d]}"></span>${d}</div>`;
     });
-    leg.innerHTML+=`<div class="li" style="margin-left:auto"><span style="color:#c73434;font-size:12px">▌</span>crit stakes</div>`;
-    leg.innerHTML+=`<div class="li"><span style="color:#c46b2a;font-size:12px">▌</span>high stakes</div>`;
-    leg.innerHTML+=`<div class="li"><span style="color:#5a5a65;font-size:11px">●●●</span>grind / sesh / snap effort</div>`;
+    legHTML+=`<div class="li" style="margin-left:auto"><span style="color:#c73434;font-size:12px">▌</span>crit stakes</div>`;
+    legHTML+=`<div class="li"><span style="color:#c46b2a;font-size:12px">▌</span>high stakes</div>`;
+    legHTML+=`<div class="li"><span style="color:#5a5a65;font-size:11px">●●●</span>grind / sesh / snap effort</div>`;
+    leg.innerHTML=legHTML;
 
     renderDAG(tasks,tById,layers);
     renderQuadrant(tasks,tById,bm,fo);

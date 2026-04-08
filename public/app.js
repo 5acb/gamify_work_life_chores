@@ -1,3 +1,4 @@
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
 var DAYJSTODAY=dayjs().startOf('day');
 var DM={CTI:{c:"#60a5fa",l:"CTI"},ECM:{c:"#c084fc",l:"ECM"},CSD:{c:"#5eead4",l:"CSD"},GRA:{c:"#7dd3fc",l:"GRA"},Personal:{c:"#a5b4fc",l:"PER"}};
@@ -275,6 +276,7 @@ function renderApp(){
   document.querySelectorAll('.m-tab').forEach(function(b){b.addEventListener('click',function(){switchMobileTab(this.dataset.tab)})});
 
   bindTreePanZoom(document.getElementById('treePanel'));
+  var userNameEl=document.getElementById('appUserName');if(userNameEl&&state.user)userNameEl.textContent=state.user.name;
   renderCards();
 
   // Timeline scroll handler
