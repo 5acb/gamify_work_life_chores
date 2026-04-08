@@ -223,7 +223,7 @@ function renderApp(){
   var dateStr=TODAY.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
   var mob=isMobile();
   root.innerHTML=
-    '<div class="panel-list'+(mob&&state.mobileTab!=='list'?' m-hidden':'')+'" id="panelList"'+((!mob&&state.layout==='timeline')?' style="display:none"':'')+' >'
+    '<div class="panel-list'+(mob&&state.mobileTab!=='list'?' m-hidden':'')+'" id="panelList"' ' >'
       +'<div class="hdr">'
         +'<div class="hdr-top">'
           +'<a class="back" href="/" onclick="event.preventDefault();history.pushState(null,\'\',\'/\');route()">&#8592;</a>'
@@ -243,8 +243,8 @@ function renderApp(){
       +'</div>'
       +'<div class="cards" id="cardList"></div>'
     +'</div>'
-    +'<div class="panel-tree'+(mob&&state.mobileTab!=='tree'?' m-hidden':'')+'" id="treePanel"'+((!mob&&state.layout==='timeline')?' style="display:none"':'')+' ></div>'
-    +'<div class="panel-timeline'+(mob&&state.mobileTab!=='timeline'?' m-hidden':'')+(!mob&&state.layout==='timeline'?' tl-on':'')+'" id="panelTimeline"><div class="tl-canvas" id="tlCanvas"><div class="tl-axis" id="tlAxis"></div></div></div>'
+    +'<div class="panel-tree'+(mob&&state.mobileTab!=='tree'?' m-hidden':'')+'" id="treePanel"' ' ></div>'
+    +'<div class="panel-timeline'+(mob&&state.mobileTab!=='timeline'?' m-hidden':'')+(!mob?' tl-on':'')+'" id="panelTimeline"><div class="tl-canvas" id="tlCanvas"><div class="tl-axis" id="tlAxis"></div></div></div>'
     +'<button class="fab" id="fabAdd" style="'+(mob&&state.mobileTab!=='list'?'display:none':'')+'">+</button>'
     +'<div class="m-tabs" id="mTabs">'
       +'<button class="m-tab'+(state.mobileTab==='list'?' active':'')+'" data-tab="list">☰ Tasks</button>'
@@ -261,8 +261,8 @@ function renderApp(){
     api('GET','/api/users/'+state.slug+'/tasks'+(v==='archived'?'?view=archived':'')).then(function(res){
       state.tasks=res.tasks;state.taskById={};state.tasks.forEach(function(t){state.taskById[t.id]=t});
       state.treePos=null;renderCards();
-      var showingTree=(!isMobile())||(state.mobileTab==='tree');
-      var showingTimeline=(!isMobile()&&state.layout==='timeline')||(isMobile()&&state.mobileTab==='timeline');
+      var showingTree=isMobile()&&(state.mobileTab==='tree');
+      var showingTimeline=!isMobile()||(isMobile()&&state.mobileTab==='timeline');
       if(showingTree)renderTree();
       if(showingTimeline){destroyTLLines();renderTimeline();}
     });
@@ -290,8 +290,8 @@ function renderApp(){
     });
   }
 
-  var showTree=!mob||(state.mobileTab==='tree');
-  var showTimeline=(!mob&&state.layout==='timeline')||(mob&&state.mobileTab==='timeline');
+  var showTree=mob&&(state.mobileTab==='tree');
+  var showTimeline=!mob||(mob&&state.mobileTab==='timeline');
   if(showTree)requestAnimationFrame(function(){setTimeout(renderTree,50)});
   if(showTimeline)requestAnimationFrame(function(){setTimeout(renderTimeline,50)});
 }
@@ -653,8 +653,8 @@ function renderTimeline(){
 
 window.addEventListener('resize',function(){
   if(!state.slug)return;
-  var showingTree=!isMobile()||(state.mobileTab==='tree');
-  var showingTimeline=(!isMobile()&&state.layout==='timeline')||(isMobile()&&state.mobileTab==='timeline');
+  var showingTree=isMobile()&&(state.mobileTab==='tree');
+  var showingTimeline=!isMobile()||(isMobile()&&state.mobileTab==='timeline');
   if(showingTree){state.treePos=null;renderTree()}
   if(showingTimeline){destroyTLLines();renderTimeline()}
 });

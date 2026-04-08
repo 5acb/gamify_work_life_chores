@@ -5,10 +5,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',system-u
 /* ── App shell ── */
 .app{display:flex;height:100vh;width:100vw}
 .panel-list{width:38%;min-width:300px;height:100vh;display:flex;flex-direction:column;border-right:1px solid var(--brd);background:var(--bg)}
-.panel-tree{flex:1;height:100vh;position:relative;background:var(--bg);overflow:hidden;cursor:grab;touch-action:none}
+.panel-tree{flex:1;height:100vh;position:relative;background:var(--bg);overflow:hidden;cursor:grab;touch-action:none;display:none}
 .panel-tree.grabbing{cursor:grabbing}
-.panel-timeline{flex:1;height:100vh;position:relative;background:var(--bg);overflow:auto;display:none;touch-action:pan-x pan-y}
-.panel-timeline.tl-on{display:block}
+.panel-timeline{flex:1;height:100vh;position:relative;background:var(--bg);overflow:auto;touch-action:pan-x pan-y}
+
 
 /* ── Header ── */
 .hdr{padding:14px 14px 10px;border-bottom:1px solid var(--brd);flex-shrink:0}
@@ -23,7 +23,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',system-u
 .search::placeholder{color:var(--tx3)}.search:focus{border-color:var(--accent)}
 
 /* Desktop layout toggle (board vs timeline) */
-.lt-wrap{display:flex;background:var(--bg3);border-radius:6px;padding:2px;gap:0;flex-shrink:0}
+.lt-wrap{display:none}
 .lt-btn{border:none;background:transparent;color:var(--tx3);font-size:9px;font-weight:700;padding:4px 10px;border-radius:4px;cursor:pointer;letter-spacing:.3px;transition:all .15s;text-transform:uppercase;white-space:nowrap}
 .lt-btn.active{background:var(--bg4);color:var(--tx1)}
 /* Ask AI button + modal */
@@ -141,7 +141,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',system-u
   .lt-wrap{display:none}
   .app{flex-direction:column}
   .panel-list{width:100%;height:calc(100vh - 48px);min-width:unset;border-right:none;border-bottom:none}
-  .panel-tree{height:calc(100vh - 48px);flex:none}
+  .panel-tree{height:calc(100vh - 48px);flex:none;display:block}
   .panel-timeline{height:calc(100vh - 48px);flex:none}
   .panel-list.m-hidden,.panel-tree.m-hidden,.panel-timeline.m-hidden{display:none!important}
   .m-tabs{display:flex;position:fixed;bottom:0;left:0;right:0;height:48px;background:var(--bg2);border-top:1px solid var(--brd);z-index:40}

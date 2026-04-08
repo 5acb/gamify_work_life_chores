@@ -9,3 +9,4 @@ data/
 *.db-wal
 # SEC-3: gemini settings contains MCP token — keep out of repo
 .gemini/settings.json
+mcp-server/node_modules/
