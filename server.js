@@ -1,6 +1,7 @@
 const express = require('express');
 const Database = require('better-sqlite3');
 const path = require('path');
+const { spawn } = require('child_process');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -242,7 +243,7 @@ app.put('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
 app.get('/viz', (req, res) => res.sendFile(path.join(__dirname, 'public', 'viz.html')));
 
 // ---- Agent: Gemini task analysis ----
-app.post('/api/agent/gemini', ensureAuth, (req, res) => {
+app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
   const { question, slug: qSlug } = req.body;
   if (!question?.trim()) return res.status(400).json({ error: 'question required' });
   if (qSlug && qSlug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
@@ -276,14 +277,21 @@ app.post('/api/agent/gemini', ensureAuth, (req, res) => {
     `\nAnswer concisely and practically: ${question.trim()}`,
   ].join('\n');
 
-  const { spawnSync } = require('child_process');
+  // SEC-6: run gemini-ask.sh directly as deploy user — no sudo needed
   try {
-    const r = spawnSync(
-      'sudo', ['/opt/organizer/scripts/gemini-ask.sh'],
-      { input: prompt, encoding: 'utf-8', timeout: 90000, env: process.env }
-    );
-    if (r.error) throw r.error;
-    const raw = r.stdout || '';
+    const raw = await new Promise((resolve, reject) => {
+      const child = spawn('/opt/organizer/scripts/gemini-ask.sh', []);
+      let stdout = '';
+      const timer = setTimeout(() => {
+        child.kill();
+        reject(new Error('gemini-ask.sh timed out after 90s'));
+      }, 90000);
+      child.stdout.on('data', (chunk) => { stdout += chunk; });
+      child.on('error', (err) => { clearTimeout(timer); reject(err); });
+      child.on('close', () => { clearTimeout(timer); resolve(stdout); });
+      child.stdin.write(prompt);
+      child.stdin.end();
+    });
     const start = raw.indexOf('{');
     const parsed = start >= 0 ? JSON.parse(raw.slice(start)) : {};
     const model = Object.keys(parsed.stats?.models || {})[0] || null;
