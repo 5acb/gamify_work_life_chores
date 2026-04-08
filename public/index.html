@@ -189,7 +189,7 @@ var state={
 };
 
 function isMobile(){return window.innerWidth<=768}
-function api(m,u,b){var o={method:m,headers:{'Content-Type':'application/json'}};if(b)o.body=JSON.stringify(b);return fetch(u,o).then(function(r){return r.json()})}
+function api(m,u,b){var o={method:m,headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}};if(b)o.body=JSON.stringify(b);return fetch(u,o).then(function(r){return r.json()})}
 function df(ds){if(!ds)return 999;return Math.max(0,Math.round((new Date(ds+'T00:00:00')-TODAY)/864e5))}
 function isBlocked(t){
   if(!t.needs||!t.needs.length)return false;
@@ -364,7 +364,9 @@ function showPicker(){
     var pk=document.querySelector('.picker');
     d.users.forEach(function(u){
       var c=document.createElement('div');c.className='picker-card';
-      c.innerHTML='<h2>'+u.name+'</h2><p>@'+u.slug+'</p>';
+      c.innerHTML='<h2></h2><p></p>';
+      c.querySelector('h2').textContent=u.name;
+      c.querySelector('p').textContent='@'+u.slug;
       c.onclick=function(){navigate(u.slug)};pk.appendChild(c);
     });
   });
@@ -393,7 +395,7 @@ function renderApp(){
       +'<div class="hdr">'
         +'<div class="hdr-top">'
           +'<a class="back" href="/" onclick="event.preventDefault();history.pushState(null,\'\',\'/\');route()">&#8592;</a>'
-          +'<h1>'+(state.user?state.user.name:'')+'</h1>'
+          +'<h1 id="appUserName"></h1>'
           +'<div class="lt-wrap">'
             +'<button class="lt-btn'+(state.layout==='split'?' active':'')+'" data-layout="split">board</button>'
             +'<button class="lt-btn'+(state.layout==='timeline'?' active':'')+'" data-layout="timeline">timeline</button>'
@@ -476,12 +478,7 @@ function renderCards(){
     var el=document.createElement('div');
     el.className='card'+(done?' alldone':'')+(blocked?' blocked-card':'')+(state.selectedId===t.id?' selected':'');
     el.setAttribute('data-cardid',t.id);
-    var subsHTML='';
-    if(hasSubs&&isOpen){
-      subsHTML='<div class="c-subs">';
-      t.subs.forEach(function(s){subsHTML+='<div class="c-sub'+(s.done?' subdone':'')+'" data-sid="'+s.id+'"><div class="c-scheck'+(s.done?' on':'')+'"></div><span class="c-slabel">'+s.label+'</span><span class="c-sub-del" data-delsub="'+s.id+'">&#10005;</span></div>'});
-      subsHTML+='<div class="c-add-sub"><input placeholder="Add subtask..." data-addsub="'+t.id+'"><button data-addbtn="'+t.id+'">+</button></div></div>';
-    }
+
     var pbar=hasSubs?'<div class="c-pbar"><div class="c-pbar-fill" style="width:'+Math.round(prog*100)+'%;background:'+col+'"></div></div>':'';
     var actHTML='<div class="c-actions"><button class="c-act" data-edit="'+t.id+'">edit</button>';
     if(!hasSubs)actHTML+='<button class="c-act" data-addfirstsub="'+t.id+'">+sub</button>';
@@ -489,9 +486,29 @@ function renderCards(){
     else if(done)actHTML+='<button class="c-act archive" data-archive="'+t.id+'">archive</button>';
     actHTML+='</div>';
     el.innerHTML='<div class="stripe" style="background:'+col+'"></div>'
-      +'<div class="c-row"><span class="c-idx">'+(idx+1)+'</span><span class="c-domain" style="color:'+col+';border-color:'+col+'">'+label+'</span><span class="c-name">'+t.name+'</span>'+(blocked?'<span class="c-lock">blocked</span>':'')+'</div>'
-      +'<div class="c-meta"><span class="c-pill" style="background:var(--bg3);color:var(--tx2)">'+TL[t.speed]+'</span><span class="c-pill" style="background:'+sc.bg+';color:'+sc.fg+'">'+SL[t.stakes]+'</span><span class="c-date">'+(t.due_label||'')+'</span><span class="c-tp" style="background:'+(dd<=0?"#ef4444":dd<=2?"#C9652A":dd<=5?"#A67A4B":"#3f3f46")+'">T-'+dd+'</span></div>'
-      +pbar+actHTML+subsHTML;
+      +'<div class="c-row"><span class="c-idx">'+(idx+1)+'</span><span class="c-domain" style="color:'+col+';border-color:'+col+'"></span><span class="c-name"></span>'+(blocked?'<span class="c-lock">blocked</span>':'')+'</div>'
+      +'<div class="c-meta"><span class="c-pill" style="background:var(--bg3);color:var(--tx2)">'+TL[t.speed]+'</span><span class="c-pill" style="background:'+sc.bg+';color:'+sc.fg+'">'+SL[t.stakes]+'</span><span class="c-date"></span><span class="c-tp" style="background:'+(dd<=0?"#ef4444":dd<=2?"#C9652A":dd<=5?"#A67A4B":"#3f3f46")+'">T-'+dd+'</span></div>'
+      +pbar+actHTML;
+
+    el.querySelector('.c-domain').textContent=label;
+    el.querySelector('.c-name').textContent=t.name;
+    el.querySelector('.c-date').textContent=t.due_label||'';
+
+    if(hasSubs&&isOpen){
+      var sDiv=document.createElement('div'); sDiv.className='c-subs';
+      t.subs.forEach(function(s){
+        var sd=document.createElement('div'); sd.className='c-sub'+(s.done?' subdone':''); sd.dataset.sid=s.id;
+        var sc=document.createElement('div'); sc.className='c-scheck'+(s.done?' on':'');
+        var sl=document.createElement('span'); sl.className='c-slabel'; sl.textContent=s.label;
+        var dx=document.createElement('span'); dx.className='c-sub-del'; dx.dataset.delsub=s.id; dx.innerHTML='&#10005;';
+        sd.appendChild(sc); sd.appendChild(sl); sd.appendChild(dx);
+        sDiv.appendChild(sd);
+      });
+      var add=document.createElement('div'); add.className='c-add-sub';
+      add.innerHTML='<input placeholder="Add subtask..." data-addsub="'+t.id+'"><button data-addbtn="'+t.id+'">+</button>';
+      sDiv.appendChild(add);
+      el.appendChild(sDiv);
+    }
     list.appendChild(el);
   });
   bindCardEvents();
@@ -569,14 +586,21 @@ function renderTree(){
     if(prog>0&&prog<1&&!done){var sa=-Math.PI/2,ea=sa+prog*Math.PI*2,ir=R+4;var ax1=p.x+Math.cos(sa)*ir,ay1=p.y+Math.sin(sa)*ir,ax2=p.x+Math.cos(ea)*ir,ay2=p.y+Math.sin(ea)*ir,lrg=prog>0.5?1:0;s+='<path d="M '+ax1+' '+ay1+' A '+ir+' '+ir+' 0 '+lrg+' 1 '+ax2+' '+ay2+'" fill="none" stroke="'+col+'" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>'}
     if(done)s+='<text x="'+p.x+'" y="'+(p.y+1)+'" fill="#fff" font-size="'+(mob?12:10)+'" text-anchor="middle" dominant-baseline="central" font-weight="700">✓</text>';
     var lbl=t.name.length>14?t.name.substring(0,13)+'…':t.name;
-    s+='<text x="'+p.x+'" y="'+(p.y+R+13)+'" fill="'+(done?col:'#aaa')+'" font-size="'+(mob?9:8)+'" font-weight="600" text-anchor="middle" opacity="'+(done?0.45:blocked?0.5:0.9)+'">'+lbl+'</text>';
+    s+='<text x="'+p.x+'" y="'+(p.y+R+13)+'" fill="'+(done?col:'#aaa')+'" font-size="'+(mob?9:8)+'" font-weight="600" text-anchor="middle" opacity="'+(done?0.45:blocked?0.5:0.9)+'">'+esc(lbl)+'</text>';
     if(active&&!hasSubs){var br=mob?10:6.5,bx=p.x+R*0.7,by=p.y-R*0.7;s+='<g class="tree-node-check" data-checkid="'+t.id+'" opacity="'+(mob?0.7:0.55)+'" style="cursor:pointer"><circle cx="'+bx+'" cy="'+by+'" r="'+br+'" fill="#16161e" stroke="'+col+'" stroke-width="1.5"/><text x="'+bx+'" y="'+(by+1)+'" fill="'+col+'" font-size="'+(mob?11:8)+'" font-weight="800" text-anchor="middle" dominant-baseline="central">✓</text></g>'}
     s+='</g>';
   });
   s+='</g></svg>';
   var activeDomains=DOMAINS.filter(function(d){return state.tasks.some(function(t){return t.domain===d})});
-  var leg='<div class="tree-legend">'+activeDomains.map(function(d){return'<div class="tree-legend-item"><span class="tree-legend-dot" style="background:'+DM[d].c+'"></span>'+d+'</div>'}).join('')+'</div>';
-  panel.innerHTML=s+leg+'<button class="tree-reset" id="treeReset">⊙ reset</button>';
+  panel.innerHTML=s+'<div class="tree-legend"></div><button class="tree-reset" id="treeReset">⊙ reset</button>';
+  var leg=panel.querySelector('.tree-legend');
+  activeDomains.forEach(function(d){
+    var item=document.createElement('div'); item.className='tree-legend-item';
+    var dot=document.createElement('span'); dot.className='tree-legend-dot'; dot.style.background=DM[d].c;
+    item.appendChild(dot);
+    item.appendChild(document.createTextNode(d));
+    leg.appendChild(item);
+  });
   applyTreeTransform();
   document.getElementById('treeReset').addEventListener('click',function(e){e.stopPropagation();state.tree.x=0;state.tree.y=0;state.tree.scale=1;applyTreeTransform()});
   document.querySelectorAll('.tree-node').forEach(function(n){
@@ -592,7 +616,12 @@ function renderTree(){
       var tip=document.getElementById('tooltip'),done=taskDone(t),blocked=isBlocked(t),prog=taskProgress(t);
       var status=done?'✓ Complete':blocked?'🔒 Blocked':'● Active';if(prog>0&&prog<1)status+=' — '+Math.round(prog*100)+'%';
       var hint=(!done&&!blocked&&(!t.subs||!t.subs.length))?' · click ✓ to complete':'';
-      tip.innerHTML='<div class="tt-domain" style="color:'+(DM[t.domain]||{c:"#999"}).c+'">'+t.domain+'</div><div class="tt-name">'+t.name+'</div><div class="tt-status">'+status+hint+'</div>';
+      tip.innerHTML='<div class="tt-domain"></div><div class="tt-name"></div><div class="tt-status"></div>';
+      var dEl=tip.querySelector('.tt-domain');
+      dEl.style.color=(DM[t.domain]||{c:"#999"}).c;
+      dEl.textContent=t.domain;
+      tip.querySelector('.tt-name').textContent=t.name;
+      tip.querySelector('.tt-status').textContent=status+hint;
       tip.classList.add('show');tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-12)+'px';
     });
     n.addEventListener('mousemove',function(e){var tip=document.getElementById('tooltip');if(isMobile())return;tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-12)+'px'});
@@ -702,9 +731,11 @@ function renderTimeline(){
     lane.innerHTML='<div style="position:absolute;inset:0;background:'+c+';opacity:.03;pointer-events:none"></div>'
       +'<div style="position:absolute;bottom:0;left:0;right:0;height:1px;background:var(--brd)"></div>'
       +'<div class="tl-lane-label" style="height:'+lm.h+'px;position:sticky;left:0;top:auto">'
-        +'<div><div class="tl-lane-name" style="color:'+c+'">'+dom+'</div>'
-        +'<div class="tl-lane-count">'+L.byDom[dom].length+' task'+(L.byDom[dom].length!==1?'s':'')+'</div></div>'
+        +'<div><div class="tl-lane-name"></div>'
+        +'<div class="tl-lane-count"></div></div>'
       +'</div>';
+    var nEl=lane.querySelector('.tl-lane-name'); nEl.style.color=c; nEl.textContent=dom;
+    lane.querySelector('.tl-lane-count').textContent=L.byDom[dom].length+' task'+(L.byDom[dom].length!==1?'s':'');
     canvas.appendChild(lane);
   });
 
@@ -721,10 +752,14 @@ function renderTimeline(){
     var pbar=hasSubs?'<div class="c-pbar"><div class="c-pbar-fill" style="width:'+Math.round(prog*100)+'%;background:'+col+'"></div></div>':'';
     var ddC=dd<=0?'#ef4444':dd<=2?'#C9652A':dd<=5?'#A67A4B':'#3f3f46';
     el.innerHTML='<div class="stripe" style="background:'+col+'"></div>'
-      +'<div class="c-row"><span class="c-domain" style="color:'+col+';border-color:'+col+'">'+label+'</span><span class="c-name">'+t.name+'</span>'+(blocked?'<span class="c-lock">blocked</span>':'')+'</div>'
-      +'<div class="c-meta"><span class="c-pill" style="background:var(--bg3);color:var(--tx2)">'+TL[t.speed]+'</span><span class="c-pill" style="background:'+sc.bg+';color:'+sc.fg+'">'+SL[t.stakes]+'</span>'+(t.due_label?'<span class="c-date">'+t.due_label+'</span>':'')+(dd<999?'<span class="c-tp" style="background:'+ddC+'">T-'+dd+'</span>':'')+'</div>'
+      +'<div class="c-row"><span class="c-domain"></span><span class="c-name"></span>'+(blocked?'<span class="c-lock">blocked</span>':'')+'</div>'
+      +'<div class="c-meta"><span class="c-pill" style="background:var(--bg3);color:var(--tx2)">'+TL[t.speed]+'</span><span class="c-pill" style="background:'+sc.bg+';color:'+sc.fg+'">'+SL[t.stakes]+'</span>'+(t.due_label?'<span class="c-date"></span>':'')+(dd<999?'<span class="c-tp" style="background:'+ddC+'">T-'+dd+'</span>':'')+'</div>'
       +pbar
       +(done?'<span style="position:absolute;top:7px;right:9px;font-size:11px;font-weight:700;color:'+col+'">✓</span>':'');
+
+    var dEl=el.querySelector('.c-domain'); dEl.style.color=col; dEl.style.borderColor=col; dEl.textContent=label;
+    el.querySelector('.c-name').textContent=t.name;
+    if(t.due_label)el.querySelector('.c-date').textContent=t.due_label;
 
     // Tooltip
     el.addEventListener('mouseenter',function(e){
@@ -732,7 +767,14 @@ function renderTimeline(){
       var needs=(t.needs||[]).map(function(id){return state.taskById[id]&&state.taskById[id].name}).filter(Boolean);
       var unlocks=state.tasks.filter(function(u){return(u.needs||[]).indexOf(t.id)>-1}).map(function(u){return u.name});
       var status=done?'✓ Complete':blocked?'🔒 Blocked':prog>0?'⬡ '+Math.round(prog*100)+'% done':'● Active';
-      tip.innerHTML='<div class="tl-tip-domain" style="color:'+col+'">'+t.domain+'</div><div class="tl-tip-name">'+t.name+'</div><div class="tl-tip-meta">'+status+(needs.length?'<br>needs: '+needs.join(', '):'')+(unlocks.length?'<br>unlocks: '+unlocks.join(', '):'')+(t.due_label?'<br>'+t.due_label:'')+'</div>';
+      tip.innerHTML='<div class="tl-tip-domain"></div><div class="tl-tip-name"></div><div class="tl-tip-meta"></div>';
+      var dEl=tip.querySelector('.tl-tip-domain'); dEl.style.color=col; dEl.textContent=t.domain;
+      tip.querySelector('.tl-tip-name').textContent=t.name;
+      var mEl=tip.querySelector('.tl-tip-meta');
+      mEl.textContent=status;
+      if(needs.length){ mEl.appendChild(document.createElement('br')); mEl.appendChild(document.createTextNode('needs: '+needs.join(', '))); }
+      if(unlocks.length){ mEl.appendChild(document.createElement('br')); mEl.appendChild(document.createTextNode('unlocks: '+unlocks.join(', '))); }
+      if(t.due_label){ mEl.appendChild(document.createElement('br')); mEl.appendChild(document.createTextNode(t.due_label)); }
       tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-10)+'px';tip.classList.add('show');
     });
     el.addEventListener('mousemove',function(e){var tip=document.getElementById('tlTip');tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-10)+'px'});
@@ -788,12 +830,26 @@ window.addEventListener('resize',function(){
 function openEdit(id){
   var t=state.taskById[id];if(!t)return;var m=document.getElementById('modal');
   m.innerHTML='<h2>Edit task</h2>'
-    +'<div class="field"><label>Name</label><input id="e-name" value="'+t.name.replace(/"/g,'&quot;')+'"></div>'
-    +'<div class="field"><label>Domain</label><select id="e-domain">'+DOMAINS.map(function(d){return'<option'+(d===t.domain?' selected':'')+'>'+d+'</option>'}).join('')+'</select></div>'
-    +'<div style="display:flex;gap:6px"><div class="field" style="flex:1"><label>Plan date</label><input id="e-pdate" type="date" value="'+(t.plan_date||'')+'"></div><div class="field" style="flex:1"><label>Due date</label><input id="e-ddate" type="date" value="'+(t.due_date||'')+'"></div></div>'
-    +'<div style="display:flex;gap:6px"><div class="field" style="flex:1"><label>Plan label</label><input id="e-plabel" value="'+(t.plan_label||'').replace(/"/g,'&quot;')+'"></div><div class="field" style="flex:1"><label>Due label</label><input id="e-dlabel" value="'+(t.due_label||'').replace(/"/g,'&quot;')+'"></div></div>'
-    +'<div style="display:flex;gap:6px"><div class="field" style="flex:1"><label>Speed</label><select id="e-speed">'+TL.map(function(s,i){return'<option value="'+i+'"'+(i===t.speed?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div><div class="field" style="flex:1"><label>Stakes</label><select id="e-stakes">'+SL.map(function(s,i){return'<option value="'+i+'"'+(i===t.stakes?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div></div>'
+    +'<div class="field"><label>Name</label><input id="e-name"></div>'
+    +'<div class="field"><label>Domain</label><select id="e-domain"></select></div>'
+    +'<div style="display:flex;gap:6px"><div class="field" style="flex:1"><label>Plan date</label><input id="e-pdate" type="date"></div><div class="field" style="flex:1"><label>Due date</label><input id="e-ddate" type="date"></div></div>'
+    +'<div style="display:flex;gap:6px"><div class="field" style="flex:1"><label>Plan label</label><input id="e-plabel"></div><div class="field" style="flex:1"><label>Due label</label><input id="e-dlabel"></div></div>'
+    +'<div style="display:flex;gap:6px"><div class="field" style="flex:1"><label>Speed</label><select id="e-speed">'+TL.map(function(s,i){return'<option value="'+i+'">'+s+'</option>'}).join('')+'</select></div><div class="field" style="flex:1"><label>Stakes</label><select id="e-stakes">'+SL.map(function(s,i){return'<option value="'+i+'">'+s+'</option>'}).join('')+'</select></div></div>'
     +'<div class="modal-actions"><button class="btn-cancel" id="e-cancel">Cancel</button><button class="btn-save" id="e-save">Save</button></div>';
+  
+  document.getElementById('e-name').value = t.name;
+  var sel=document.getElementById('e-domain');
+  DOMAINS.forEach(function(d){
+    var opt=document.createElement('option'); opt.textContent=d; if(d===t.domain) opt.selected=true;
+    sel.appendChild(opt);
+  });
+  document.getElementById('e-pdate').value = t.plan_date||'';
+  document.getElementById('e-ddate').value = t.due_date||'';
+  document.getElementById('e-plabel').value = t.plan_label||'';
+  document.getElementById('e-dlabel').value = t.due_label||'';
+  document.getElementById('e-speed').value = t.speed;
+  document.getElementById('e-stakes').value = t.stakes;
+
   document.getElementById('modalBg').classList.add('show');
   document.getElementById('e-cancel').onclick=closeModal;
   document.getElementById('e-save').onclick=function(){
@@ -804,11 +860,18 @@ function openAddTask(){
   var m=document.getElementById('modal');
   m.innerHTML='<h2>New task</h2>'
     +'<div class="field"><label>Name</label><input id="e-name" placeholder="Task name..."></div>'
-    +'<div class="field"><label>Domain</label><select id="e-domain">'+DOMAINS.map(function(d){return'<option>'+d+'</option>'}).join('')+'</select></div>'
+    +'<div class="field"><label>Domain</label><select id="e-domain"></select></div>'
     +'<div style="display:flex;gap:6px"><div class="field" style="flex:1"><label>Plan date</label><input id="e-pdate" type="date"></div><div class="field" style="flex:1"><label>Due date</label><input id="e-ddate" type="date"></div></div>'
     +'<div style="display:flex;gap:6px"><div class="field" style="flex:1"><label>Plan label</label><input id="e-plabel" placeholder="e.g. Wed Apr 8"></div><div class="field" style="flex:1"><label>Due label</label><input id="e-dlabel" placeholder="e.g. Fri Apr 10"></div></div>'
     +'<div style="display:flex;gap:6px"><div class="field" style="flex:1"><label>Speed</label><select id="e-speed">'+TL.map(function(s,i){return'<option value="'+i+'">'+s+'</option>'}).join('')+'</select></div><div class="field" style="flex:1"><label>Stakes</label><select id="e-stakes">'+SL.map(function(s,i){return'<option value="'+i+'">'+s+'</option>'}).join('')+'</select></div></div>'
     +'<div class="modal-actions"><button class="btn-cancel" id="e-cancel">Cancel</button><button class="btn-save" id="e-save">Create</button></div>';
+
+  var sel=document.getElementById('e-domain');
+  DOMAINS.forEach(function(d){
+    var opt=document.createElement('option'); opt.textContent=d;
+    sel.appendChild(opt);
+  });
+
   document.getElementById('modalBg').classList.add('show');
   document.getElementById('e-cancel').onclick=closeModal;
   document.getElementById('e-save').onclick=function(){

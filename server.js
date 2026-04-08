@@ -13,9 +13,9 @@ db.pragma('foreign_keys = ON');
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
-// ---- Auth middleware ----
-// ARCH-3: single middleware that resolves req.user from X-Auth-User header.
-// Apply to all routes that need an authenticated user.
+// ---- Middleware ----
+
+// ARCH-3: single auth middleware
 function ensureAuth(req, res, next) {
   const username = req.headers['x-auth-user'];
   if (!username) return res.status(401).json({ error: 'unauthorized' });
@@ -25,27 +25,48 @@ function ensureAuth(req, res, next) {
   next();
 }
 
+// SEC-5: CSRF protection — require X-Requested-With on all state-mutating requests.
+// Browsers auto-send Basic Auth but won't set custom headers cross-origin.
+function csrfCheck(req, res, next) {
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+    if (req.headers['x-requested-with'] !== 'XMLHttpRequest') {
+      return res.status(403).json({ error: 'csrf check failed' });
+    }
+  }
+  next();
+}
+app.use(csrfCheck);
+
 // ---- Helpers ----
-function getUser(slug) {
-  return db.prepare('SELECT * FROM users WHERE slug = ?').get(slug);
-}
 
+// ARCH-2 + CLEAN-2: single query with SQLite JSON aggregation — used by both tasks route and Gemini agent
 function getTasksForUser(userId, archived) {
-  const where = archived ? 'WHERE t.user_id = ? AND t.archived = 1' : 'WHERE t.user_id = ? AND t.archived = 0';
-  const tasks = db.prepare(`SELECT t.* FROM tasks t ${where} ORDER BY t.sort_order`).all(userId);
-  const ids = tasks.map(t => t.id);
-  if (!ids.length) return tasks;
-  const ph = ids.map(() => '?').join(',');
-  const subtasks = db.prepare(`SELECT * FROM subtasks WHERE task_id IN (${ph}) ORDER BY task_id, sort_order`).all(...ids);
-  const blockers = db.prepare(`SELECT * FROM blockers WHERE task_id IN (${ph})`).all(...ids);
-  const taskMap = {};
-  for (const t of tasks) { t.subs = []; t.needs = []; taskMap[t.id] = t; }
-  for (const s of subtasks) { if (taskMap[s.task_id]) taskMap[s.task_id].subs.push(s); }
-  for (const b of blockers) { if (taskMap[b.task_id]) taskMap[b.task_id].needs.push(b.blocked_by); }
-  return tasks;
+  const archVal = archived ? 1 : 0;
+  const rows = db.prepare(`
+    SELECT
+      t.*,
+      COALESCE(json_group_array(
+        CASE WHEN s.id IS NOT NULL
+          THEN json_object('id',s.id,'label',s.label,'done',s.done,'sort_order',s.sort_order,'task_id',s.task_id)
+        END
+      ) FILTER (WHERE s.id IS NOT NULL), '[]') AS subs_json,
+      COALESCE(json_group_array(b.blocked_by) FILTER (WHERE b.blocked_by IS NOT NULL), '[]') AS needs_json
+    FROM tasks t
+    LEFT JOIN subtasks s ON s.task_id = t.id
+    LEFT JOIN blockers b ON b.task_id = t.id
+    WHERE t.user_id = ? AND t.archived = ?
+    GROUP BY t.id
+    ORDER BY t.sort_order
+  `).all(userId, archVal);
+  return rows.map(r => {
+    const { subs_json, needs_json, ...task } = r;
+    task.subs = JSON.parse(subs_json);
+    task.needs = JSON.parse(needs_json);
+    return task;
+  });
 }
 
-// SEC-1: helper to verify a task belongs to the authenticated user
+// SEC-1: ownership check helpers
 function requireTaskOwner(req, res) {
   const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(req.params.id);
   if (!task) { res.status(404).json({ error: 'not found' }); return null; }
@@ -53,7 +74,6 @@ function requireTaskOwner(req, res) {
   return task;
 }
 
-// SEC-1: helper to verify a subtask's parent task belongs to the authenticated user
 function requireSubtaskOwner(req, res) {
   const sub = db.prepare(`
     SELECT s.*, t.user_id FROM subtasks s JOIN tasks t ON t.id = s.task_id WHERE s.id = ?
@@ -63,7 +83,7 @@ function requireSubtaskOwner(req, res) {
   return sub;
 }
 
-// ---- Root: auto-redirect based on auth ----
+// ---- Root ----
 app.get('/', ensureAuth, (req, res) => {
   res.redirect('/' + req.user.slug);
 });
@@ -82,44 +102,38 @@ app.get('/api/users', (req, res) => {
 });
 
 // ---- API: Tasks (user-scoped) ----
-// SEC-1: slug routes verify caller owns the slug
 app.get('/api/users/:slug/tasks', ensureAuth, (req, res) => {
   if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
-  const archived = req.query.view === 'archived';
-  res.json({ tasks: getTasksForUser(req.user.id, archived), user: req.user });
+  res.json({ tasks: getTasksForUser(req.user.id, req.query.view === 'archived'), user: req.user });
 });
 
 app.post('/api/users/:slug/tasks', ensureAuth, (req, res) => {
-  // SEC-1: only create tasks on your own board
   if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
   const { domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, needs, subs } = req.body;
   const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order),0) as max_sort_order FROM tasks WHERE user_id = ?').get(req.user.id);
-  // CLEAN-1: wrap multi-INSERT in a transaction to prevent orphans
-  const createTask = db.transaction(() => {
-    const result = db.prepare(
+  const taskId = db.transaction(() => {
+    const r = db.prepare(
       'INSERT INTO tasks (user_id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order) VALUES (?,?,?,?,?,?,?,?,?,?)'
     ).run(req.user.id, domain, name, plan_date || null, due_date || null, plan_label || '', due_label || '', speed || 0, stakes || 0, maxOrder.max_sort_order + 1);
-    const taskId = result.lastInsertRowid;
-    if (needs && needs.length) {
+    const id = r.lastInsertRowid;
+    if (needs?.length) {
       const ins = db.prepare('INSERT INTO blockers (task_id, blocked_by) VALUES (?, ?)');
-      for (const n of needs) ins.run(taskId, n);
+      for (const n of needs) ins.run(id, n);
     }
-    if (subs && subs.length) {
+    if (subs?.length) {
       const ins = db.prepare('INSERT INTO subtasks (task_id, label, sort_order) VALUES (?, ?, ?)');
-      subs.forEach((s, i) => ins.run(taskId, s, i + 1));
+      subs.forEach((s, i) => ins.run(id, s, i + 1));
     }
-    return taskId;
-  });
-  const taskId = createTask();
+    return id;
+  })();
   res.json({ ok: true, id: taskId });
 });
 
 // ---- API: Tasks (by id) ----
 app.patch('/api/tasks/:id', ensureAuth, (req, res) => {
-  // SEC-1: verify ownership before mutating
   if (!requireTaskOwner(req, res)) return;
   const fields = ['domain','name','plan_date','due_date','plan_label','due_label','speed','stakes','sort_order','done'];
-  const sets = []; const vals = [];
+  const sets = [], vals = [];
   for (const f of fields) {
     if (req.body[f] !== undefined) { sets.push(`${f} = ?`); vals.push(req.body[f]); }
   }
@@ -133,8 +147,9 @@ app.patch('/api/tasks/:id', ensureAuth, (req, res) => {
 app.patch('/api/tasks/:id/toggle', ensureAuth, (req, res) => {
   const task = requireTaskOwner(req, res);
   if (!task) return;
-  db.prepare('UPDATE tasks SET done = ?, updated_at = datetime("now") WHERE id = ?').run(task.done ? 0 : 1, task.id);
-  res.json({ ok: true, done: !task.done });
+  const done = task.done ? 0 : 1;
+  db.prepare('UPDATE tasks SET done = ?, updated_at = datetime("now") WHERE id = ?').run(done, task.id);
+  res.json({ ok: true, done: !!done });
 });
 
 app.patch('/api/tasks/:id/archive', ensureAuth, (req, res) => {
@@ -157,22 +172,21 @@ app.delete('/api/tasks/:id', ensureAuth, (req, res) => {
 
 // ---- API: Subtasks ----
 app.post('/api/tasks/:id/subtasks', ensureAuth, (req, res) => {
-  // SEC-1: task must belong to caller
-  const task = requireTaskOwner(req, res);
-  if (!task) return;
+  if (!requireTaskOwner(req, res)) return;
   const { label } = req.body;
   if (!label) return res.status(400).json({ error: 'label required' });
   const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order),0) as max_sort_order FROM subtasks WHERE task_id = ?').get(req.params.id);
-  const result = db.prepare('INSERT INTO subtasks (task_id, label, sort_order) VALUES (?, ?, ?)').run(req.params.id, label, maxOrder.max_sort_order + 1);
-  res.json({ ok: true, id: result.lastInsertRowid });
+  const r = db.prepare('INSERT INTO subtasks (task_id, label, sort_order) VALUES (?, ?, ?)').run(req.params.id, label, maxOrder.max_sort_order + 1);
+  res.json({ ok: true, id: r.lastInsertRowid });
 });
 
 app.patch('/api/subtasks/:id/toggle', ensureAuth, (req, res) => {
   const sub = requireSubtaskOwner(req, res);
   if (!sub) return;
-  db.prepare('UPDATE subtasks SET done = ? WHERE id = ?').run(sub.done ? 0 : 1, sub.id);
+  const done = sub.done ? 0 : 1;
+  db.prepare('UPDATE subtasks SET done = ? WHERE id = ?').run(done, sub.id);
   db.prepare('UPDATE tasks SET updated_at = datetime("now") WHERE id = ?').run(sub.task_id);
-  res.json({ ok: true, done: !sub.done });
+  res.json({ ok: true, done: !!done });
 });
 
 app.patch('/api/subtasks/:id', ensureAuth, (req, res) => {
@@ -192,7 +206,6 @@ app.delete('/api/subtasks/:id', ensureAuth, (req, res) => {
 // ---- API: Blockers ----
 app.post('/api/blockers', ensureAuth, (req, res) => {
   const { task_id, blocked_by } = req.body;
-  // SEC-1: verify the task being modified belongs to caller
   const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(task_id);
   if (!task) return res.status(404).json({ error: 'not found' });
   if (task.user_id !== req.user.id) return res.status(403).json({ error: 'forbidden' });
@@ -202,7 +215,6 @@ app.post('/api/blockers', ensureAuth, (req, res) => {
 
 app.delete('/api/blockers', ensureAuth, (req, res) => {
   const { task_id, blocked_by } = req.body;
-  // SEC-1: verify the task being modified belongs to caller
   const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(task_id);
   if (!task) return res.status(404).json({ error: 'not found' });
   if (task.user_id !== req.user.id) return res.status(403).json({ error: 'forbidden' });
@@ -211,16 +223,7 @@ app.delete('/api/blockers', ensureAuth, (req, res) => {
 });
 
 // ---- API: UI State (per user) ----
-app.put('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
-  // SEC-1: only write to your own ui-state
-  if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
-  const ins = db.prepare('INSERT OR REPLACE INTO ui_state (key, value) VALUES (?, ?)');
-  for (const [k, v] of Object.entries(req.body)) ins.run(req.user.slug + ':' + k, JSON.stringify(v));
-  res.json({ ok: true });
-});
-
 app.get('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
-  // SEC-1: only read your own ui-state
   if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
   const rows = db.prepare('SELECT * FROM ui_state WHERE key LIKE ?').all(req.user.slug + ':%');
   const state = {};
@@ -228,35 +231,32 @@ app.get('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
   res.json(state);
 });
 
+app.put('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
+  if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
+  const ins = db.prepare('INSERT OR REPLACE INTO ui_state (key, value) VALUES (?, ?)');
+  for (const [k, v] of Object.entries(req.body)) ins.run(req.user.slug + ':' + k, JSON.stringify(v));
+  res.json({ ok: true });
+});
+
 // ---- Viz lab ----
-app.get("/viz", (req, res) => res.sendFile(path.join(__dirname, "public", "viz.html")));
+app.get('/viz', (req, res) => res.sendFile(path.join(__dirname, 'public', 'viz.html')));
 
 // ---- Agent: Gemini task analysis ----
 app.post('/api/agent/gemini', ensureAuth, (req, res) => {
   const { question, slug: qSlug } = req.body;
-  if (!question || !question.trim()) return res.status(400).json({ error: 'question required' });
-
-  // SEC-1: only allow querying your own board
+  if (!question?.trim()) return res.status(400).json({ error: 'question required' });
   if (qSlug && qSlug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
-  const user = req.user;
 
+  const user = req.user;
   const today = new Date().toISOString().split('T')[0];
-  const tasks = db.prepare(`
-    SELECT t.id, t.domain, t.name, t.speed, t.stakes, t.done, t.plan_date, t.due_date
-    FROM tasks t WHERE t.user_id = ? AND t.archived = 0 ORDER BY t.sort_order
-  `).all(user.id);
+  // CLEAN-2: reuse getTasksForUser — single source of truth for task data
+  const tasks = getTasksForUser(user.id, false);
   const blockers = db.prepare(`
     SELECT b.task_id, t1.name task_name, b.blocked_by, t2.name blocked_by_name
     FROM blockers b
     JOIN tasks t1 ON t1.id = b.task_id
     JOIN tasks t2 ON t2.id = b.blocked_by
     WHERE t1.user_id = ?
-  `).all(user.id);
-  const subtasks = db.prepare(`
-    SELECT s.task_id, s.label, s.done
-    FROM subtasks s JOIN tasks t ON t.id = s.task_id
-    WHERE t.user_id = ? AND t.archived = 0
-    ORDER BY s.task_id, s.sort_order
   `).all(user.id);
 
   const speed = ['snap', 'sesh', 'grind'];
@@ -265,9 +265,7 @@ app.post('/api/agent/gemini', ensureAuth, (req, res) => {
     `[${t.id}] ${t.domain} | ${t.name} | ${speed[t.speed]} | ${stakes[t.stakes]} | ${t.done ? 'done' : 'pending'} | ${t.plan_date || '?'} → ${t.due_date || '?'}`
   ).join('\n');
   const blockerLines = blockers.map(b => `"${b.task_name}" needs "${b.blocked_by_name}"`).join('\n') || 'none';
-  const subLines = subtasks.length
-    ? subtasks.map(s => `  [task ${s.task_id}] ${s.done ? '✓' : '○'} ${s.label}`).join('\n')
-    : 'none';
+  const subLines = tasks.flatMap(t => t.subs.map(s => `  [task ${t.id}] ${s.done ? '✓' : '○'} ${s.label}`)).join('\n') || 'none';
 
   const prompt = [
     `You are a productivity assistant for ${user.name}. Today is ${today}.`,
@@ -295,7 +293,7 @@ app.post('/api/agent/gemini', ensureAuth, (req, res) => {
   }
 });
 
-// ---- SPA: serve index.html for board routes ----
+// ---- SPA ----
 app.get('/:slug', (req, res) => {
   if (req.params.slug.startsWith('api')) return res.status(404).end();
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
