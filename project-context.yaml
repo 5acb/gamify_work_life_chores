@@ -147,6 +147,22 @@ orientation_commands:
   service:      "systemctl status organizer organizer-mcp organizer-commit --no-pager | grep -E '●|Active'"
   git_log:      "cd /opt/organizer/repo && git log --oneline -10"
 
+
+gemini_agent:
+  description: >
+    Gemini 2.5 Flash Lite is available as a second AI agent. Three modes:
+    1. ask_gemini(prompt) — pure text query, ~8s, via PotatoMCP tool
+    2. gemini_analyze_tasks(question, user) — injects live DB context (tasks/blockers/subtasks), ~10s
+    3. gemini_agent(task) — full autonomous agent with --yolo, has bash/read_file/write_file/git/deploy tools, ~30-60s
+    4. POST /api/agent/gemini {question, slug} — HTTP endpoint for frontend "✦ AI" button
+  credentials:   "/root/.gemini/oauth_creds.json (root user, pre-authenticated)"
+  wrapper:       "/opt/organizer/scripts/gemini-ask.sh (sudo-callable by deploy user)"
+  mcp_config:    "/opt/organizer/repo/.gemini/settings.json (registers organizer MCP as SSE url)"
+  model:         "gemini-2.5-flash-lite (default, auto-selected)"
+  a2a_loop:      "Claude → PotatoMCP tool → Gemini CLI → (organizer MCP tools) → response → Claude"
+  test_cli:      "echo 'your prompt' | /opt/organizer/scripts/gemini-ask.sh"
+  test_api:      "curl -X POST http://localhost:3000/api/agent/gemini -H 'Content-Type: application/json' -d '{"question":"what should I work on?","slug":"anas"}'"
+
 common_fixes:
   app_wont_start:   "journalctl -u organizer -n 30. Usually a syntax error in server.js — node -c server.js to check."
   db_locked:        "sqlite3 /opt/organizer/data/organizer.db 'PRAGMA wal_checkpoint(TRUNCATE);' — WAL mode should prevent this."
