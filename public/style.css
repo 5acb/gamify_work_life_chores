@@ -182,3 +182,45 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Inter',system-u
   .fab{right:18px;bottom:22px}
   .cards-inner{max-width:100%}
 }
+
+/* ── Drag & Drop ── */
+.card-drag-handle{cursor:grab;transition:filter .15s}
+.card-drag-handle:hover{filter:brightness(1.4)}
+.card-drag-handle:active{cursor:grabbing}
+.card.dragging{opacity:.3;pointer-events:none}
+.card.drop-candidate{transition:border-color .12s}
+.card.drop-target{border-color:var(--accent)!important;box-shadow:var(--glow)!important}
+
+/* Drop gaps — hidden until a subtask drag starts */
+.drop-gap{
+  height:0;overflow:hidden;
+  border-radius:var(--r);
+  border:1.5px dashed transparent;
+  transition:height .15s,border-color .15s,background .15s;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none;
+}
+.drop-gap.active{
+  height:38px;pointer-events:all;margin-bottom:8px;
+  border-color:var(--brd2);
+}
+.drop-gap.active::after{
+  content:'drop to promote to task';
+  font-size:10px;color:var(--tx3);
+  letter-spacing:.4px;font-weight:500;
+  pointer-events:none;
+}
+.drop-gap.over{border-color:var(--accent);background:rgba(13,148,136,.07)}
+.drop-gap.over::after{color:var(--accent)}
+
+/* Subtask drag handle */
+.sub-handle{
+  cursor:grab;color:var(--tx3);
+  font-size:13px;padding:0 6px 0 0;
+  opacity:0;transition:opacity .15s;
+  user-select:none;flex-shrink:0;line-height:1;
+}
+.sub:hover .sub-handle{opacity:.45}
+.sub-handle:hover{opacity:.9!important}
+.sub-handle:active{cursor:grabbing}
+.sub.dragging{opacity:.3}
