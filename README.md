@@ -65,7 +65,7 @@ See [`schema.sql`](schema.sql) for the full schema.
 | Table | Purpose |
 |-------|---------|
 | `users` | Board owners (`name`, `slug`) |
-| `tasks` | Main items: domain, dates, speed, stakes, sort_order, done, archived, user_id |
+| `tasks` | Main items: domain, dates, plan_label, due_label, speed, stakes, sort_order, done, archived, user_id |
 | `subtasks` | Checklist items under each task |
 | `blockers` | Dependency edges (task A blocked by task B), many-to-many |
 | `ui_state` | Per-user UI preferences (expanded cards etc.) |
@@ -119,6 +119,11 @@ See [`schema.sql`](schema.sql) for the full schema.
 | POST | `/api/blockers` | Add dependency (body: `{task_id, blocked_by}`) |
 | DELETE | `/api/blockers` | Remove dependency |
 
+### Gemini
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/agent/gemini` | Ask Gemini about tasks (body: `{question, user?}`) |
+
 ## Running Locally
 
 ```bash
@@ -134,7 +139,7 @@ Visit `http://localhost:3000` (without nginx, no auto-redirect — go to `http:/
 ## File Structure
 
 ```
-├── server.js          # Express API + auth + CSRF + CSP + Gemini endpoint (~300 lines)
+├── server.js          # Express API + auth + CSRF + CSP + Gemini endpoint (~360 lines)
 ├── schema.sql         # Database schema (no seed data)
 ├── package.json       # express, better-sqlite3
 ├── TODO.md            # Prioritized TODO with security/arch/cleanup audit results
@@ -143,6 +148,7 @@ Visit `http://localhost:3000` (without nginx, no auto-redirect — go to `http:/
 │   ├── index.html     # HTML shell (ARIA landmarks, CDN imports, noscript)
 │   ├── style.css      # All CSS (dark theme, split-panel, timeline, mobile)
 │   └── app.js         # All frontend JS (routing, cards, timeline, tree, modals, AI)
+│   └── changelog.html # Changelog viewer (MCP event log)
 ├── scripts/
 │   └── backup.sh      # SQLite dump → backup file
 └── .gitignore         # Excludes node_modules, data/, *.db, backup.sql

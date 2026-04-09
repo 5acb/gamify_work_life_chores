@@ -1,6 +1,6 @@
 # 7ay.de Infrastructure & App TODO
 # Generated: 2026-04-08 from arch_review + security_audit + cleanup agents
-# Updated: 2026-04-08 — bulk fixes applied across 2 sessions
+# Updated: 2026-04-09 — audit sync (doc/system alignment)
 # Priority: P0 (do now) → P1 (this week) → P2 (soon) → P3 (backlog)
 
 ## P0 — Security Critical (ALL DONE)
@@ -46,7 +46,7 @@
 
 ## P3 — Backlog / Remaining
 
-- [x] **CLEAN-6: Delete public/timeline.html** — superseded (deleted in earlier session)
+- [x] **CLEAN-6: Delete public/timeline.html** — deleted 2026-04-09 (was marked done but still on disk)
 - [x] **CLEAN-7: Delete debug PNGs** — removed in earlier session
 - [x] **CLEAN-8: Verify gemini-ask.sh** — confirmed at /opt/organizer/scripts/gemini-ask.sh, works
 
@@ -57,7 +57,7 @@
 - [ ] **V3: BLOCKED label low contrast** — gray on dark, hard to read
 - [ ] **V4: Leader-line arrows overlap cards** — dependency arrows cross card text
 - [ ] **S1: Rate limit /api/agent/gemini** — no throttle on Gemini endpoint
-- [ ] **S2: Content-Security-Policy header** — not set (nginx or Express)
+- [x] **S2: Content-Security-Policy header** — set in Express middleware (SEC-17 block, line 20 of server.js)
 - [ ] **S3: /api/users unauthenticated** — returns all users without auth (user enumeration)
 - [ ] **U1: No keyboard navigation for cards** — no tabindex, no arrow key support
 - [ ] **U2: No focus trap in modals** — tab can escape to background elements
