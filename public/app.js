@@ -187,7 +187,7 @@ function renderCards(){
       +(!hasSubs?'<button class="cbtn" data-addfirstsub="'+t.id+'">+ subtask</button>':'')
     +'</div>';
     if(t.archived)h+='<button class="cbtn cbtn-restore" data-unarchive="'+t.id+'">restore</button>';
-    else if(done)h+='<button class="cbtn cbtn-archive" data-archive="'+t.id+'">archive</button>';
+    h+='<button class="cbtn cbtn-archive" data-archive="'+t.id+'">archive</button>';
     h+='</div>';
 
     // Subtasks (expanded)
