@@ -165,7 +165,7 @@ app.patch('/api/tasks/:id', ensureAuth, (req, res) => {
     if (req.body[f] !== undefined) { sets.push(`${f} = ?`); vals.push(req.body[f]); }
   }
   if (!sets.length) return res.status(400).json({ error: 'nothing to update' });
-  sets.push('updated_at = datetime("now")');
+  sets.push("updated_at = datetime('now')");
   vals.push(req.params.id);
   db.prepare(`UPDATE tasks SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
   res.json({ ok: true });
@@ -175,19 +175,19 @@ app.patch('/api/tasks/:id/toggle', ensureAuth, (req, res) => {
   const task = requireTaskOwner(req, res);
   if (!task) return;
   const done = task.done ? 0 : 1;
-  db.prepare('UPDATE tasks SET done = ?, updated_at = datetime("now") WHERE id = ?').run(done, task.id);
+  db.prepare("UPDATE tasks SET done = ?, updated_at = datetime('now') WHERE id = ?").run(done, task.id);
   res.json({ ok: true, done: !!done });
 });
 
 app.patch('/api/tasks/:id/archive', ensureAuth, (req, res) => {
   if (!requireTaskOwner(req, res)) return;
-  db.prepare('UPDATE tasks SET archived = 1, archived_at = datetime("now"), updated_at = datetime("now") WHERE id = ?').run(req.params.id);
+  db.prepare("UPDATE tasks SET archived = 1, archived_at = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(req.params.id);
   res.json({ ok: true });
 });
 
 app.patch('/api/tasks/:id/unarchive', ensureAuth, (req, res) => {
   if (!requireTaskOwner(req, res)) return;
-  db.prepare('UPDATE tasks SET archived = 0, archived_at = NULL, updated_at = datetime("now") WHERE id = ?').run(req.params.id);
+  db.prepare("UPDATE tasks SET archived = 0, archived_at = NULL, updated_at = datetime('now') WHERE id = ?").run(req.params.id);
   res.json({ ok: true });
 });
 
@@ -213,7 +213,7 @@ app.patch('/api/subtasks/:id/toggle', ensureAuth, (req, res) => {
   if (!sub) return;
   const done = sub.done ? 0 : 1;
   db.prepare('UPDATE subtasks SET done = ? WHERE id = ?').run(done, sub.id);
-  db.prepare('UPDATE tasks SET updated_at = datetime("now") WHERE id = ?').run(sub.task_id);
+  db.prepare("UPDATE tasks SET updated_at = datetime('now') WHERE id = ?").run(sub.task_id);
   res.json({ ok: true, done: !!done });
 });
 
