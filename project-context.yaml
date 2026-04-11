@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2024-05-15
+# Last updated: 2024-05-18
 
 project:
   name: gamify_work_life_chores
@@ -26,7 +26,7 @@ architecture:
     Split-file SPA frontend (index.html shell + style.css + app.js) + Express REST API
     (server.js ~300 lines) + SQLite WAL. No build step, no bundler, no framework.
     Vanilla JS + CSS. Three systemd services, Nginx reverse proxy.
-    Gemini AI integration via MCP server + 5 subagents.
+    Gemini AI integration via MCP server (McpServer SDK, SSE transport, token auth) + 5 subagents.
   ports:
     3000: "App server (Express + SQLite) — proxied by Nginx on /"
     3001: "commit-daemon (socat + bash, localhost-only) — proxied on /api/commit"
@@ -111,18 +111,25 @@ api:
   users:
     - "GET    /api/users                     → list all users (requires auth)"
     - "GET    /api/users/:slug/tasks         → tasks + subtasks + blockers (?view=archived)"
-    - "POST   /api/users/:slug/tasks         → create task (body: domain,name,plan_date,due_date,plan_label,due_label,speed,stakes,needs[],subs[])"
-    - "GET    /api/users/:slug/ui-state      → {key: value} map for this user"
-    - "PUT    /api/users/:slug/ui-state      → upsert ui state keys (body: {key: value, ...})"
-  tasks:
-    - "PATCH  /api/tasks/:id                 → update fields (domain,name,plan_date,due_date,plan_label,due_label,speed,stakes,sort_order,done)"
-    - "DELETE /api/tasks/:id                 → delete a task"
-    - "PATCH  /api/tasks/:id/toggle          → flip done bit → {ok, done}"
-    - "PATCH  /api/tasks/:id/archive         → flip archived bit → {ok, archived}"
-    - "POST   /api/tasks/:id/subtasks        → create subtask for task (body: label, sort_order)"
-    - "POST   /api/tasks/:id/blockers        → add a blocker dependency (body: blocked_by_id)"
-    - "DELETE /api/tasks/:id/blockers/:bid   → remove a blocker dependency"
-  subtasks:
-    - "PATCH  /api/subtasks/:id              → update subtask fields (label, done, sort_order)"
-    - "PATCH  /api/subtasks/:id/toggle       → flip done bit → {ok, done}"
-    - "DELETE /api/subtasks/:id              → delete a subtask"
+    - "POST   /api/users/:slug/tasks         → create new task (requires auth, ownership implied)"
+
+gemini_agents:
+  overview: "MCP server dispatches requests to specialized Gemini subagents via `subagents.js`."
+  subagents:
+    code_review: "Review code changes for quality, bugs, and best practices."
+    security_audit: "Identify potential security vulnerabilities in code."
+    arch_review: "Evaluate architecture decisions, scalability, and maintainability."
+    doc_sync: "Generate/update documentation based on code/system changes."
+    cleanup: "Suggest refactorings, dead code removal, and performance improvements."
+
+mcp_changelog:
+  path: mcp-server/changelog.js
+  description: >
+    Append-only audit log storing all MCP server interactions (agent calls, results, etc.).
+    Each entry includes a SHA-256 hash of the previous entry, forming a verifiable chain
+    to ensure log integrity. Supports read and verification functions.
+
+running_services:
+  - "organizer-commit.service       loaded active running Organizer Auto-Commit Endpoint"
+  - "organizer-mcp.service          loaded active running Organizer MCP Server"
+  - "organizer.service              loaded active running Organizer App"
