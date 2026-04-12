@@ -126,94 +126,107 @@ function renderApp(){
 
 // ── Cards ─────────────────────────────────────────────────────
 
+function makeCardEl(t){
+  var dm=DM[t.domain]||{c:'#71717a',l:t.domain};
+  var col=dm.c;
+  var blocked=isBlocked(t),done=taskDone(t),prog=taskProgress(t);
+  var dp=daysFrom(t.plan_date),dd=daysFrom(t.due_date);
+  var hasSubs=!!(t.subs&&t.subs.length),isOpen=state.expanded.has(t.id);
+
+  var el=document.createElement('div');
+  el.className='card'+(done?' done':'')+(state.selectedId===t.id?' selected':'');
+  el.dataset.id=t.id;
+
+  var h='';
+  h+='<div class="card-bar'+(hasSubs?'':' card-drag-handle')+'" style="background:'+col+'"'+(hasSubs?'':' draggable="true" data-drag-task="'+t.id+'" title="Drag to make subtask of another task"')+' data-task-id="'+t.id+'"></div>';
+  h+='<div class="card-body">';
+
+  var hasUrgency=dp<999||dd<999;
+  h+='<div class="card-r1">';
+  h+='<span class="card-domain" style="color:'+col+'">'+esc(dm.l)+'</span>';
+  if(hasUrgency){
+    h+='<div class="card-urgency">';
+    if(dp<999)h+='<span class="u-pill" style="background:'+urgencyColor(dp)+'">T−'+dp+'</span>';
+    if(dp<999&&dd<999&&dd>dp){var dots=bufferDots(dp,dd);if(dots)h+='<span class="u-dots">'+dots+'</span>'}
+    if(dd<999)h+='<span class="u-pill" style="background:'+urgencyColor(dd)+'">T−'+dd+'</span>';
+    h+='</div>';
+  } else h+='<span></span>';
+  h+='</div>';
+
+  h+='<div class="card-name">'+esc(t.name)+'</div>';
+
+  var dLabel2=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'';
+  h+='<div class="card-r3">';
+  h+='<div class="card-attrs">'
+    +'<span class="attr attr-speed">'+SPEED_L[t.speed]+'</span>'
+    +'<span class="attr attr-s'+t.stakes+'">'+STAKES_L[t.stakes]+'</span>'
+    +(blocked?'<span class="attr" style="background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.2)">blocked</span>':'')
+  +'</div>';
+  h+='<span class="card-date">'+esc(dLabel2)+'</span>';
+  h+='</div>';
+
+  if(blocked)h+='<div class="card-blocked">needs: '+esc(getBlockerName(t))+'</div>';
+
+  if(hasSubs&&prog>0&&prog<1)
+    h+='<div class="card-progress"><div class="card-progress-fill" style="width:'+Math.round(prog*100)+'%;background:'+col+'"></div></div>';
+
+  h+='<div class="card-r-actions"><div class="card-actions-l">'
+    +'<button class="cbtn" data-edit="'+t.id+'">edit</button>'
+    +(!hasSubs?'<button class="cbtn" data-addfirstsub="'+t.id+'">+ subtask</button>':'')
+  +'</div>';
+  if(t.archived)h+='<button class="cbtn cbtn-restore" data-unarchive="'+t.id+'">restore</button>';
+  h+='<button class="cbtn cbtn-archive" data-archive="'+t.id+'">archive</button>';
+  h+='</div>';
+
+  if(hasSubs&&isOpen){
+    h+='<div class="card-subs">';
+    t.subs.forEach(function(s){
+      h+='<div class="sub'+(s.done?' done':'')+'" data-sid="'+s.id+'">'
+        +'<span class="sub-handle" draggable="true" data-drag-sub="'+s.id+'" data-sub-parent="'+t.id+'" title="Drag to promote to its own task">⠿</span>'
+        +'<div class="sub-check'+(s.done?' on':'')+'"></div>'
+        +'<span class="sub-label">'+esc(s.label)+'</span>'
+        +'<span class="sub-del" data-delsub="'+s.id+'">✕</span>'
+      +'</div>';
+    });
+    h+='<div class="sub-add"><input placeholder="Add subtask..." data-addsub="'+t.id+'"><button data-addbtn="'+t.id+'">+</button></div>';
+    h+='</div>';
+  }
+
+  h+='</div>'; // card-body
+  el.innerHTML=h;
+  return el;
+}
+
+function makeSectionHeader(label,count){
+  var el=document.createElement('div');
+  el.className='section-hdr';
+  el.innerHTML='<span class="section-label">'+esc(label)+'</span><span class="section-count">'+count+'</span>';
+  return el;
+}
+
 function renderCards(){
   var list=document.getElementById('cardList');if(!list)return;
   var filtered=state.tasks.filter(matchSearch);
   if(!filtered.length){list.innerHTML='<p class="empty">'+(state.searchQuery?'No matches':'No tasks')+'</p>';return}
   list.innerHTML='';
 
-  // Drop gap before first card (for subtask→task)
-  list.appendChild(makeDropGap());
+  var unplanned=filtered.filter(function(t){return!t.plan_date&&!t.due_date});
+  var planned=filtered.filter(function(t){return t.plan_date||t.due_date});
+  var hasBoth=unplanned.length&&planned.length;
 
-  filtered.forEach(function(t){
-    var dm=DM[t.domain]||{c:'#71717a',l:t.domain};
-    var col=dm.c;
-    var blocked=isBlocked(t),done=taskDone(t),prog=taskProgress(t);
-    var dp=daysFrom(t.plan_date),dd=daysFrom(t.due_date);
-    var hasSubs=!!(t.subs&&t.subs.length),isOpen=state.expanded.has(t.id);
-    var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'';
-
-    var el=document.createElement('div');
-    el.className='card'+(done?' done':'')+(state.selectedId===t.id?' selected':'');
-    el.dataset.id=t.id;
-
-    var h='';
-    // Accent bar — doubles as drag handle for tasks without subtasks
-    h+='<div class="card-bar'+(hasSubs?'':' card-drag-handle')+'" style="background:'+col+'"'+(hasSubs?'':' draggable="true" data-drag-task="'+t.id+'" title="Drag to make subtask of another task"')+' data-task-id="'+t.id+'"></div>';
-    h+='<div class="card-body">';
-
-    // R1: domain ←→ urgency
-    var hasUrgency=dp<999||dd<999;
-    h+='<div class="card-r1">';
-    h+='<span class="card-domain" style="color:'+col+'">'+esc(dm.l)+'</span>';
-    if(hasUrgency){
-      h+='<div class="card-urgency">';
-      if(dp<999)h+='<span class="u-pill" style="background:'+urgencyColor(dp)+'">T−'+dp+'</span>';
-      if(dp<999&&dd<999&&dd>dp){var dots=bufferDots(dp,dd);if(dots)h+='<span class="u-dots">'+dots+'</span>'}
-      if(dd<999)h+='<span class="u-pill" style="background:'+urgencyColor(dd)+'">T−'+dd+'</span>';
-      h+='</div>';
-    } else h+='<span></span>';
-    h+='</div>';
-
-    // Name
-    h+='<div class="card-name">'+esc(t.name)+'</div>';
-
-    // R3: attrs ←→ date
-    var dLabel2=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'';
-    h+='<div class="card-r3">';
-    h+='<div class="card-attrs">'
-      +'<span class="attr attr-speed">'+SPEED_L[t.speed]+'</span>'
-      +'<span class="attr attr-s'+t.stakes+'">'+STAKES_L[t.stakes]+'</span>'
-      +(blocked?'<span class="attr" style="background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.2)">blocked</span>':'')
-    +'</div>';
-    h+='<span class="card-date">'+esc(dLabel2)+'</span>';
-    h+='</div>';
-
-    if(blocked)h+='<div class="card-blocked">needs: '+esc(getBlockerName(t))+'</div>';
-
-    if(hasSubs&&prog>0&&prog<1)
-      h+='<div class="card-progress"><div class="card-progress-fill" style="width:'+Math.round(prog*100)+'%;background:'+col+'"></div></div>';
-
-    h+='<div class="card-r-actions"><div class="card-actions-l">'
-      +'<button class="cbtn" data-edit="'+t.id+'">edit</button>'
-      +(!hasSubs?'<button class="cbtn" data-addfirstsub="'+t.id+'">+ subtask</button>':'')
-    +'</div>';
-    if(t.archived)h+='<button class="cbtn cbtn-restore" data-unarchive="'+t.id+'">restore</button>';
-    h+='<button class="cbtn cbtn-archive" data-archive="'+t.id+'">archive</button>';
-    h+='</div>';
-
-    // Subtasks (expanded) — each has a drag handle to promote to task
-    if(hasSubs&&isOpen){
-      h+='<div class="card-subs">';
-      t.subs.forEach(function(s){
-        h+='<div class="sub'+(s.done?' done':'')+'" data-sid="'+s.id+'">'
-          +'<span class="sub-handle" draggable="true" data-drag-sub="'+s.id+'" data-sub-parent="'+t.id+'" title="Drag to promote to its own task">⠿</span>'
-          +'<div class="sub-check'+(s.done?' on':'')+'"></div>'
-          +'<span class="sub-label">'+esc(s.label)+'</span>'
-          +'<span class="sub-del" data-delsub="'+s.id+'">✕</span>'
-        +'</div>';
-      });
-      h+='<div class="sub-add"><input placeholder="Add subtask..." data-addsub="'+t.id+'"><button data-addbtn="'+t.id+'">+</button></div>';
-      h+='</div>';
-    }
-
-    h+='</div>'; // card-body
-    el.innerHTML=h;
-    list.appendChild(el);
-
-    // Drop gap after each card
+  // ── Unplanned section — always at top ────────────────────────
+  if(unplanned.length){
+    list.appendChild(makeSectionHeader('unplanned',unplanned.length));
     list.appendChild(makeDropGap());
-  });
+    unplanned.forEach(function(t){list.appendChild(makeCardEl(t));list.appendChild(makeDropGap())});
+  }
+
+  // ── Planned section ──────────────────────────────────────────
+  if(planned.length){
+    if(hasBoth)list.appendChild(makeSectionHeader('planned',planned.length));
+    list.appendChild(makeDropGap());
+    planned.forEach(function(t){list.appendChild(makeCardEl(t));list.appendChild(makeDropGap())});
+  }
 
   bindEvents();
   initDrag();
@@ -283,11 +296,8 @@ function initDrag(){
       drag.type='task';drag.id=tid;
       e.dataTransfer.effectAllowed='move';
       e.dataTransfer.setData('text/plain','task:'+tid);
-      // Ghost = whole card
       e.dataTransfer.setDragImage(card,30,30);
-      // Defer so card isn't ghosted in place
       setTimeout(function(){card.classList.add('dragging')},0);
-      // Mark other cards as drop candidates
       document.querySelectorAll('.card').forEach(function(c){
         if(+c.dataset.id!==tid)c.classList.add('drop-candidate');
       });
@@ -302,7 +312,6 @@ function initDrag(){
     });
   });
 
-  // Card drop zones (receiving a task drag)
   document.querySelectorAll('.card').forEach(function(card){
     card.addEventListener('dragover',function(e){
       if(drag.type!=='task')return;
@@ -342,7 +351,6 @@ function initDrag(){
       e.dataTransfer.effectAllowed='move';
       e.dataTransfer.setData('text/plain','sub:'+sid);
       setTimeout(function(){sub.classList.add('dragging')},0);
-      // Reveal drop gaps
       document.querySelectorAll('.drop-gap').forEach(function(g){g.classList.add('active')});
     });
 
@@ -353,7 +361,6 @@ function initDrag(){
     });
   });
 
-  // Drop gaps
   document.querySelectorAll('.drop-gap').forEach(function(gap){
     gap.addEventListener('dragover',function(e){
       if(drag.type!=='subtask')return;
