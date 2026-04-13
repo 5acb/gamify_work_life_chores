@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2024-05-18
+# Last updated: 2025-01-24
 
 project:
   name: gamify_work_life_chores
@@ -26,110 +26,100 @@ architecture:
     Split-file SPA frontend (index.html shell + style.css + app.js) + Express REST API
     (server.js ~300 lines) + SQLite WAL. No build step, no bundler, no framework.
     Vanilla JS + CSS. Three systemd services, Nginx reverse proxy.
-    Gemini AI integration via MCP server (McpServer SDK, SSE transport, token auth) + 5 subagents.
+    Gemini AI integration via MCP server (McpServer SDK, SSE transport, token auth) 
+    with 5 subagents and Mem0 memory integration.
   ports:
     3000: "App server (Express + SQLite) — proxied by Nginx on /"
     3001: "commit-daemon (socat + bash, localhost-only) — proxied on /api/commit"
     3002: "MCP server (SSE transport, token auth) — proxied on /mcp"
   auth_flow: >
-    Nginx handles HTTP Basic Auth via /etc/nginx/.htpasswd. On successful auth,
-    Nginx strips any client-supplied X-Auth-User, then injects X-Auth-User: $remote_user.
-    Express ensureAuth() middleware reads this header and looks up users.slug,
-    populating req.user for all downstream routes.
+    Custom session-based authentication using signed cookies (sid). 
+    Passwords validated against /etc/nginx/.htpasswd via `htpasswd -v -i` child process.
+    Sessions are HMAC-signed (slug.ts.hmac) using a persistent secret in 
+    /opt/organizer/data/.session_secret. 30-day expiry.
   security:
-    - "ensureAuth middleware on all protected routes"
-    - "requireTaskOwner/requireSubtaskOwner ownership checks on mutations"
+    - "Custom session verification with timing-safe HMAC checks"
+    - "ensureAuth/requireTaskOwner/requireSubtaskOwner ownership checks"
+    - "Audit logging: task_events table tracks all mutations (id, task_id, user_id, action, detail, ts)"
     - "CSRF: X-Requested-With: XMLHttpRequest required on all non-GET requests"
-    - "CSP header: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'"
+    - "CSP header: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'"
     - "X-Frame-Options: DENY, X-Content-Type-Options: nosniff"
     - "Referrer-Policy: strict-origin-when-cross-origin"
     - "Rate limiting: Gemini endpoint 5 req/min/user (Express), nginx 30r/m burst=20"
     - "Input validation: task name 500 chars, labels 100, subtask 500"
-    - "Domain allowlist: VALID_DOMAINS array checked on create/update"
+    - "Domain allowlist: VALID_DOMAINS (CTI, ECM, CSD, GRA, Personal) checked on mutations"
     - "Bound to 127.0.0.1:3000 — nginx handles external traffic"
-    - "X-Auth-User stripped from client requests in nginx"
     - "Backup outside repo at /opt/organizer/data/backups/"
   database:
     engine: SQLite (WAL mode, foreign_keys ON)
     path: /opt/organizer/data/organizer.db
     orm: none — raw SQL via better-sqlite3
     backup: "cron every 7min → sqlite3 .dump → /opt/organizer/data/backups/"
-    queries: "Single-query task fetching with SQLite JSON aggregation (json_group_array)"
+    queries: "Single-query task fetching with SQLite JSON aggregation"
 
 files:
   .gemini/settings.json: "Gemini CLI settings (for `geminiAgentInvoke`)"
   .gitignore: "Git ignore file"
   KICKSTART.md: "Project setup and initial deployment guide"
   README.md: "Main project README"
-  TODO.md: "Prioritized TODO with completion tracking from security/arch/cleanup audits"
+  TODO.md: "Prioritized TODO list"
   backup.sql: "Generated SQLite dump (latest backup)"
   mcp-server/changelog.js: "Append-only JSONL audit log with SHA-256 hash chaining"
   mcp-server/icon.png: "Frontend icon for MCP server"
-  mcp-server/package-lock.json: "NPM lock file for MCP server"
   mcp-server/package.json: "NPM package definition for MCP server"
-  mcp-server/server.js: "MCP SSE server — tool handlers, changelog, Gemini subagent dispatch"
-  mcp-server/subagents.js: "5 Gemini subagents (code_review, security_audit, arch_review, doc_sync, cleanup)"
-  package-lock.json: "NPM lock file for main server"
+  mcp-server/server.js: "MCP SSE server — tool handlers, Mem0 integration, Gemini subagent dispatch"
+  mcp-server/subagents.js: "Gemini subagents: code_review, security_audit, arch_review, doc_sync, cleanup"
   package.json: "NPM package definition for main server"
   project-context.yaml: "This documentation file"
-  public/app.js: "All frontend JS — routing, rendering, timeline, tree, modals, AI chat (~770 lines)"
+  public/app.js: "Frontend JS — routing, rendering, timeline, AI chat"
   public/changelog.html: "Frontend view for MCP changelog"
-  public/index.html: "HTML shell — loads style.css + app.js, ARIA landmarks, noscript fallback"
-  public/style.css: "All CSS — dark theme, split-panel layout, cards, timeline, mobile responsive"
-  schema.sql: "DB schema (structure only, no seed data)"
+  public/index.html: "HTML shell"
+  public/style.css: "All CSS — dark theme, split-panel layout"
+  schema.sql: "DB schema (structure only)"
   scripts/backup.sh: "SQLite dump → backup file"
-  server.js: "Express API — auth, CSRF, CSP, routes, Gemini agent endpoint (~300 lines)"
+  server.js: "Express API — custom sessions, auth, task_events logging (~300 lines)"
 
 database_schema:
   users:
     columns: [id, name, slug, created_at]
-    notes: "Board owners. Each user gets a board at /:slug. Auth via nginx Basic Auth → slug match."
+    notes: "Board owners. slug used for board routing and session identification."
     current_users: ["anas", "pranjali"]
   tasks:
     columns: [id, user_id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, archived, archived_at, created_at, updated_at]
     indexes: [idx_tasks_archived, idx_tasks_domain]
-    notes: >
-      Core task items. domain is a category tag (CTI, ECM, CSD, GRA, Personal).
-      speed (0=snap, 1=sesh, 2=grind) and stakes (0=low, 1=high, 2=crit) are
-      orthogonal difficulty/importance axes. archived tasks are hidden from main view.
+    notes: "domain restricted to VALID_DOMAINS list. speed/stakes define task profile."
   subtasks:
     columns: [id, task_id, label, done, sort_order, created_at]
-    notes: "Checklist items. ON DELETE CASCADE from tasks. Progress = done/total ratio."
+    notes: "Checklist items linked to tasks."
   blockers:
     columns: [task_id, blocked_by]
     pk: "(task_id, blocked_by)"
-    notes: >
-      Dependency edges. task_id is blocked BY blocked_by. INSERT OR IGNORE prevents
-      duplicates. ON DELETE CASCADE from tasks. Forms a DAG for tree/timeline rendering.
+    notes: "DAG for dependency tracking."
   ui_state:
     columns: [key, value]
-    notes: "Per-user UI prefs. Key format: '{slug}:{keyname}', value is JSON-stringified. Uses GLOB for safe prefix matching."
+    notes: "Per-user UI preferences stored as JSON strings."
+  task_events:
+    columns: [id, task_id, user_id, action, detail, ts]
+    indexes: [idx_task_events_task, idx_task_events_user]
+    notes: "Audit log for all task mutations."
+
+subagents:
+  code_review: "Analyzes code changes for quality and standards"
+  security_audit: "Checks for vulnerabilities and security regressions"
+  arch_review: "Ensures changes align with the split-file SPA/Express architecture"
+  doc_sync: "Keeps project-context.yaml and README.md in sync with code"
+  cleanup: "Identifies dead code, large files, and optimization targets"
 
 api:
   auth:
-    - "GET    /api/me                        → {user} from X-Auth-User header (null if unauthenticated)"
+    - "GET    /api/me                        → {user} from session cookie (null if unauthenticated)"
+    - "POST   /login                         → Authenticates via htpasswd, sets sid cookie"
+    - "POST   /logout                        → Clears sid cookie"
   users:
     - "GET    /api/users                     → list all users (requires auth)"
     - "GET    /api/users/:slug/tasks         → tasks + subtasks + blockers (?view=archived)"
-    - "POST   /api/users/:slug/tasks         → create new task (requires auth, ownership implied)"
-
-gemini_agents:
-  overview: "MCP server dispatches requests to specialized Gemini subagents via `subagents.js`."
-  subagents:
-    code_review: "Review code changes for quality, bugs, and best practices."
-    security_audit: "Identify potential security vulnerabilities in code."
-    arch_review: "Evaluate architecture decisions, scalability, and maintainability."
-    doc_sync: "Generate/update documentation based on code/system changes."
-    cleanup: "Suggest refactorings, dead code removal, and performance improvements."
-
-mcp_changelog:
-  path: mcp-server/changelog.js
-  description: >
-    Append-only audit log storing all MCP server interactions (agent calls, results, etc.).
-    Each entry includes a SHA-256 hash of the previous entry, forming a verifiable chain
-    to ensure log integrity. Supports read and verification functions.
 
 running_services:
-  - "organizer-commit.service       loaded active running Organizer Auto-Commit Endpoint"
-  - "organizer-mcp.service          loaded active running Organizer MCP Server"
-  - "organizer.service              loaded active running Organizer App"
+  organizer-commit.service: "Auto-Commit Endpoint (socat + bash)"
+  organizer-mcp.service: "MCP Server (SSE transport, Node.js)"
+  organizer.service: "Main Organizer App (Express + SQLite)"

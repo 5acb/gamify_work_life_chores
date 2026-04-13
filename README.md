@@ -2,7 +2,7 @@
 
 A personal productivity system with task dependency tracking, subtask breakdown, progress visualization, and multi-user boards. Designed to reduce task anxiety through gamification principles — unlock mechanics, progress bars, urgency-based color coding, and incremental subtask completion.
 
-Live at [7ay.de](https://7ay.de) (behind basic auth).
+Live at [7ay.de](https://7ay.de) (cookie session auth — sign-in page at `/login`).
 
 ## Why This Exists
 
@@ -18,15 +18,18 @@ Built during a grad school semester crunch to solve a specific problem: seeing 2
 ```
 Browser ──HTTPS──▶ Nginx (443)
                      │
-                     ├── basic auth (per-user credentials)
-                     ├── X-Auth-User header injected
+                     ├── TLS 1.3 only, HSTS 1yr
+                     ├── rate-limits /login (burst=10)
+                     ├── strips X-Auth-User header from clients
                      │
                      └──▶ Node/Express (3000)
                             │
-                            ├── GET /          → 302 redirect to /:username
-                            ├── GET /api/me    → returns auth'd user
-                            ├── GET /:slug     → serves SPA
-                            └── /api/*         → REST endpoints
+                            ├── GET  /login    → sign-in form
+                            ├── POST /login    → validates htpasswd, sets sid cookie
+                            ├── GET  /logout   → clears sid cookie
+                            ├── GET  /         → 302 → /:slug (ensureAuth)
+                            ├── GET  /:slug    → serves SPA
+                            └── /api/*         → REST endpoints (ensureAuth)
                                   │
                                   ▼
                             SQLite (WAL mode)
@@ -57,6 +60,9 @@ Split-file SPA frontend (index.html shell + style.css + app.js) with a REST API 
 - **Auto-backup** every 7 minutes — `sqlite3 .dump` to text SQL, auto-committed to git
 - **MCP integration** — Claude can read/write the database directly from chat via server-side tooling
 - **Per-user UI state** — expanded card state persists per user
+- **Task audit log** — every state change (done/archived/created) logged in `task_events` with timestamp, used to give Gemini scheduling context
+- **Session cookies** — HMAC-SHA256 signed, 30-day expiry, `Secure; HttpOnly; SameSite=Strict`
+- **HSTS + TLS 1.3** — enforced at nginx layer; no TLS 1.2
 
 ## Data Model
 
@@ -69,6 +75,7 @@ See [`schema.sql`](schema.sql) for the full schema.
 | `subtasks` | Checklist items under each task |
 | `blockers` | Dependency edges (task A blocked by task B), many-to-many |
 | `ui_state` | Per-user UI preferences (expanded cards etc.) |
+| `task_events` | Audit log: task lifecycle events (created, done, undone, archived, unarchived) |
 
 ### Dimensions
 
@@ -85,7 +92,9 @@ See [`schema.sql`](schema.sql) for the full schema.
 ### Auth
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/me` | Returns the authenticated user (from `X-Auth-User` header) |
+| GET | `/api/me` | Returns the authenticated user from session cookie (null if unauthenticated) |
+| POST | `/login` | Authenticate with username + password (form), sets `sid` cookie |
+| GET | `/logout` | Clear session cookie, redirect to `/login` |
 
 ### Users
 | Method | Endpoint | Description |

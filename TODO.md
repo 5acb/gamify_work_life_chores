@@ -71,3 +71,37 @@
 - [x] Changelog viewer at /changelog.html
 - [x] Daily cron maintenance (6 AM UTC)
 - [x] Both repos synced and pushed
+
+## 2026-04-13 session — security hardening + auth overhaul + mem0 stack
+
+### Completed this session
+
+- [x] **SEC-CRIT-1: Shell injection in subagents.js** — `commits` now parseInt-clamped 1-50; git flag can't escape
+- [x] **SEC-CRIT-2: Path traversal in security_audit** — `safeRead()` validates all paths stay within REPO via path.resolve
+- [x] **SEC-WARN-1: Custom esc() XSS hardening** — added single-quote escaping (`&#39;`)
+- [x] **SEC-WARN-2: unsafe-inline removed from CSP style-src** — all inline styles replaced with CSS classes (.dm-*, .u-crit/hot/warn/cool, .attr-blocked)
+- [x] **SEC-WARN-3: SQLite PATCH fields documented** — hardcoded allowlist, confirmed no injection risk
+- [x] **SEC-INFO-1: HSTS header** — `max-age=31536000; includeSubDomains` via nginx `add_header always`
+- [x] **SEC-INFO-2: TLS 1.2 disabled** — `ssl_protocols TLSv1.3` override after letsencrypt include
+- [x] **SEC-INFO-3: nginx version disclosure** — `server_tokens off`
+- [x] **AUTH-1: Session cookie auth** — replaced nginx Basic Auth with Express cookie sessions (HMAC-SHA256, Secure/HttpOnly/SameSite=Strict, 30-day)
+- [x] **AUTH-2: Login/logout pages** — `GET /login` form, `POST /login` validates via `htpasswd -v -i`, `GET /logout` clears cookie
+- [x] **AUTH-3: 401 → /login redirect in app.js** — api() redirects browser to /login on 401 response
+- [x] **AUTH-4: Sign out button** — added to header nav in app.js
+- [x] **FEAT-1: task_events audit log** — new table + indexes; logged on create/done/undone/archive/unarchive
+- [x] **FEAT-2: Gemini scheduling context** — last 30 days of task_events included in Gemini agent prompt
+- [x] **INFRA-1: Mem0 memory stack** — postgres + qdrant + mem0 via docker compose on localhost:8000
+- [x] **INFRA-2: MCP v2.2.0** — memory_add/search/list/delete tools backed by Mem0 REST API
+- [x] **INFRA-3: Gemini model update** — gemini-3-flash-preview (text), gemini-embedding-001 (768-dim)
+- [x] **INFRA-4: SSH key injection** — cyan@yardang ed25519 key in /root/.ssh/authorized_keys
+
+### Still open
+
+- [ ] **V1: FAB overlaps timeline cards**
+- [ ] **V2: Cards clipped at right edge**
+- [ ] **V3: BLOCKED label low contrast**
+- [ ] **V4: Leader-line arrows overlap cards**
+- [ ] **S3: /api/users unauthenticated** — returns all users (user enumeration)
+- [ ] **U1: No keyboard navigation for cards**
+- [ ] **U2: No focus trap in modals**
+- [ ] **CLEAN-10: CDN fallback** — dayjs + leader-line have no local fallback
