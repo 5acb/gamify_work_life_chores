@@ -1,20 +1,101 @@
 const express = require('express');
 const Database = require('better-sqlite3');
 const path = require('path');
-const { spawn } = require('child_process');
+const crypto = require('crypto');
+const { spawn, spawnSync } = require('child_process');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_PATH = process.env.DB_PATH || '/opt/organizer/data/organizer.db';
+const HTPASSWD = process.env.HTPASSWD || '/etc/nginx/.htpasswd';
 
 // SEC-16: allowed domain values
 const VALID_DOMAINS = ['CTI', 'ECM', 'CSD', 'GRA', 'Personal'];
 
+// ---- Session secret (generated once, persisted to disk) ----
+const SECRET_PATH = '/opt/organizer/data/.session_secret';
+let SESSION_SECRET;
+try {
+  SESSION_SECRET = fs.readFileSync(SECRET_PATH, 'utf-8').trim();
+} catch {
+  SESSION_SECRET = crypto.randomBytes(48).toString('hex');
+  fs.writeFileSync(SECRET_PATH, SESSION_SECRET, { mode: 0o600 });
+}
+
+// ---- DB ----
 const db = new Database(DB_PATH, { fileMustExist: true });
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+// Migrate: task_events audit log (idempotent)
+db.exec(`
+  CREATE TABLE IF NOT EXISTS task_events (
+    id      INTEGER PRIMARY KEY,
+    task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    action  TEXT NOT NULL,
+    detail  TEXT,
+    ts      TEXT DEFAULT (datetime('now'))
+  );
+  CREATE INDEX IF NOT EXISTS idx_task_events_task ON task_events(task_id);
+  CREATE INDEX IF NOT EXISTS idx_task_events_user ON task_events(user_id, ts);
+`);
+
+// ---- Session helpers ----
+function parseSid(cookieHeader) {
+  if (!cookieHeader) return null;
+  const m = cookieHeader.match(/(?:^|;\s*)sid=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function signSession(slug) {
+  const ts = Date.now().toString(36);
+  const hmac = crypto.createHmac('sha256', SESSION_SECRET).update(slug + ':' + ts).digest('hex');
+  return `${slug}.${ts}.${hmac}`;
+}
+
+function verifySession(token) {
+  if (!token) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  const [slug, ts, hmac] = parts;
+  const expected = crypto.createHmac('sha256', SESSION_SECRET).update(slug + ':' + ts).digest('hex');
+  if (!crypto.timingSafeEqual(Buffer.from(hmac, 'hex'), Buffer.from(expected, 'hex'))) return null;
+  // 30-day expiry
+  const age = Date.now() - parseInt(ts, 36);
+  if (age > 30 * 24 * 60 * 60 * 1000) return null;
+  return slug;
+}
+
+function getSessionUser(req) {
+  const token = parseSid(req.headers.cookie);
+  const slug = verifySession(token);
+  if (!slug) return null;
+  return db.prepare('SELECT * FROM users WHERE slug = ?').get(slug) || null;
+}
+
+// ---- Password validation via htpasswd -v -i ----
+function checkPassword(slug, password) {
+  try {
+    const r = spawnSync('htpasswd', ['-v', '-i', HTPASSWD, slug], {
+      input: password,
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    return r.status === 0;
+  } catch { return false; }
+}
+
+// ---- task_events helper ----
+function logTaskEvent(taskId, userId, action, detail = null) {
+  db.prepare('INSERT INTO task_events (task_id, user_id, action, detail) VALUES (?, ?, ?, ?)')
+    .run(taskId, userId, action, detail ? JSON.stringify(detail) : null);
+}
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
 // SEC-17: security headers
 app.use((req, res, next) => {
   res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'");
@@ -24,31 +105,86 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+// ---- Login / Logout (public — before auth middleware) ----
+const LOGIN_HTML = (error = '') => `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0e0e12">
+<title>organizer</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,sans-serif;background:#09090b;color:#e4e4e7;display:flex;align-items:center;justify-content:center;min-height:100vh}
+  form{display:flex;flex-direction:column;gap:12px;width:280px}
+  h1{margin:0 0 4px;font-size:22px;font-weight:800;text-align:center;letter-spacing:-.5px}
+  input{padding:10px 12px;border-radius:8px;border:1px solid #3f3f46;background:#18181b;color:#e4e4e7;font-size:14px;outline:none}
+  input:focus{border-color:#60a5fa}
+  button{padding:10px;border-radius:8px;border:none;background:#3b82f6;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}
+  button:hover{background:#2563eb}
+  .err{color:#f87171;font-size:13px;text-align:center;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:6px;padding:8px}
+</style>
+</head>
+<body>
+<form method="POST" action="/login">
+  <h1>organizer</h1>
+  ${error ? `<p class="err">${error}</p>` : ''}
+  <input name="slug" placeholder="username" autocomplete="username" required autofocus>
+  <input name="password" type="password" placeholder="password" autocomplete="current-password" required>
+  <button type="submit">sign in</button>
+</form>
+</body>
+</html>`;
+
+app.get('/login', (req, res) => {
+  if (getSessionUser(req)) return res.redirect('/');
+  res.send(LOGIN_HTML());
+});
+
+app.post('/login', (req, res) => {
+  const { slug, password } = req.body;
+  if (!slug || !password) return res.status(400).send(LOGIN_HTML('Username and password required.'));
+  const user = db.prepare('SELECT * FROM users WHERE slug = ?').get(slug);
+  if (!user || !checkPassword(slug, password)) {
+    return res.status(401).send(LOGIN_HTML('Invalid username or password.'));
+  }
+  const token = signSession(slug);
+  res.setHeader('Set-Cookie', `sid=${encodeURIComponent(token)}; Path=/; Max-Age=${30*24*3600}; HttpOnly; Secure; SameSite=Strict`);
+  res.redirect('/');
+});
+
+app.get('/logout', (req, res) => {
+  res.setHeader('Set-Cookie', 'sid=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict');
+  res.redirect('/login');
+});
 
 // ---- Middleware ----
 
-// ARCH-3: single auth middleware
+// ARCH-3: single auth middleware — validates session cookie
+// Returns 401 JSON for /api/* paths, redirects to /login for everything else
 function ensureAuth(req, res, next) {
-  const username = req.headers['x-auth-user'];
-  if (!username) return res.status(401).json({ error: 'unauthorized' });
-  const user = db.prepare('SELECT * FROM users WHERE slug = ?').get(username);
-  if (!user) return res.status(401).json({ error: 'unauthorized' });
+  const user = getSessionUser(req);
+  if (!user) {
+    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'unauthorized' });
+    return res.redirect('/login');
+  }
   req.user = user;
   next();
 }
 
-// SEC-5: CSRF protection — require X-Requested-With on all state-mutating requests.
-// Browsers auto-send Basic Auth but won't set custom headers cross-origin.
+// SEC-5: CSRF — SameSite=Strict cookie prevents cross-origin requests from sending the cookie.
+// X-Requested-With check retained as defence-in-depth for older clients.
 function csrfCheck(req, res, next) {
   if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-    if (req.headers['x-requested-with'] !== 'XMLHttpRequest') {
+    if (req.path !== '/login' && req.headers['x-requested-with'] !== 'XMLHttpRequest') {
       return res.status(403).json({ error: 'csrf check failed' });
     }
   }
   next();
 }
 app.use(csrfCheck);
+
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
 // ---- Helpers ----
 
@@ -103,10 +239,9 @@ app.get('/', ensureAuth, (req, res) => {
 
 // ---- API: Who am I ----
 app.get('/api/me', (req, res) => {
-  const username = req.headers['x-auth-user'];
-  if (!username) return res.json({ user: null });
-  const user = db.prepare('SELECT id, name, slug, created_at FROM users WHERE slug = ?').get(username);
-  res.json({ user: user || null });
+  const user = getSessionUser(req);
+  if (!user) return res.json({ user: null });
+  res.json({ user: { id: user.id, name: user.name, slug: user.slug, created_at: user.created_at } });
 });
 
 // ---- API: Users ----
@@ -147,6 +282,7 @@ app.post('/api/users/:slug/tasks', ensureAuth, (req, res) => {
     }
     return id;
   })();
+  logTaskEvent(taskId, req.user.id, 'created', { domain, name });
   res.json({ ok: true, id: taskId });
 });
 
@@ -177,18 +313,23 @@ app.patch('/api/tasks/:id/toggle', ensureAuth, (req, res) => {
   if (!task) return;
   const done = task.done ? 0 : 1;
   db.prepare("UPDATE tasks SET done = ?, updated_at = datetime('now') WHERE id = ?").run(done, task.id);
+  logTaskEvent(task.id, req.user.id, done ? 'done' : 'undone');
   res.json({ ok: true, done: !!done });
 });
 
 app.patch('/api/tasks/:id/archive', ensureAuth, (req, res) => {
-  if (!requireTaskOwner(req, res)) return;
+  const task = requireTaskOwner(req, res);
+  if (!task) return;
   db.prepare("UPDATE tasks SET archived = 1, archived_at = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(req.params.id);
+  logTaskEvent(task.id, req.user.id, 'archived');
   res.json({ ok: true });
 });
 
 app.patch('/api/tasks/:id/unarchive', ensureAuth, (req, res) => {
-  if (!requireTaskOwner(req, res)) return;
+  const task = requireTaskOwner(req, res);
+  if (!task) return;
   db.prepare("UPDATE tasks SET archived = 0, archived_at = NULL, updated_at = datetime('now') WHERE id = ?").run(req.params.id);
+  logTaskEvent(task.id, req.user.id, 'unarchived');
   res.json({ ok: true });
 });
 
@@ -300,6 +441,14 @@ app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
     WHERE t1.user_id = ?
   `).all(user.id);
 
+  // Recent task lifecycle events for scheduling context
+  const recentEvents = db.prepare(`
+    SELECT te.action, te.ts, t.name, t.domain
+    FROM task_events te JOIN tasks t ON t.id = te.task_id
+    WHERE te.user_id = ? AND te.ts >= datetime('now', '-30 days')
+    ORDER BY te.ts DESC LIMIT 40
+  `).all(user.id);
+
   const speed = ['snap', 'sesh', 'grind'];
   const stakes = ['low', 'high', 'crit'];
   const taskLines = tasks.map(t =>
@@ -307,6 +456,7 @@ app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
   ).join('\n');
   const blockerLines = blockers.map(b => `"${b.task_name}" needs "${b.blocked_by_name}"`).join('\n') || 'none';
   const subLines = tasks.flatMap(t => t.subs.map(s => `  [task ${t.id}] ${s.done ? '✓' : '○'} ${s.label}`)).join('\n') || 'none';
+  const eventLines = recentEvents.map(e => `${e.ts.slice(0,10)} [${e.domain}] "${e.name}" → ${e.action}`).join('\n') || 'none';
 
   const prompt = [
     `You are a productivity assistant for ${user.name}. Today is ${today}.`,
@@ -314,6 +464,7 @@ app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
     `\nCurrent tasks:\n${taskLines}`,
     `\nDependencies:\n${blockerLines}`,
     `\nSubtasks:\n${subLines}`,
+    `\nRecent activity (last 30 days):\n${eventLines}`,
     `\nAnswer concisely and practically: ${question.trim()}`,
   ].join('\n');
 
@@ -350,7 +501,7 @@ app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
 });
 
 // ---- SPA ----
-app.get('/:slug', (req, res) => {
+app.get('/:slug', ensureAuth, (req, res) => {
   if (req.params.slug.startsWith('api')) return res.status(404).end();
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

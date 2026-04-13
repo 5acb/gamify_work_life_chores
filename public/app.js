@@ -10,7 +10,7 @@ var drag={type:null,id:null,label:null,parentDomain:null};
 function api(m,u,b){
   var o={method:m,headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}};
   if(b)o.body=JSON.stringify(b);
-  return fetch(u,o).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).catch(function(e){console.error('API:',m,u,e);throw e});
+  return fetch(u,o).then(function(r){if(r.status===401){location.href='/login';throw new Error('unauthorized')}if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).catch(function(e){console.error('API:',m,u,e);throw e});
 }
 
 function daysFrom(ds){if(!ds)return 999;return Math.max(0,Math.round((new Date(ds+'T00:00:00')-TODAY)/864e5))}
@@ -92,6 +92,7 @@ function renderApp(){
           +'<div class="hdr-nav">'
             +'<a class="hdr-btn" href="/timeline.html">Timeline</a>'
             +'<button class="ai-btn" id="aiBtn">✦ AI</button>'
+            +'<a class="hdr-btn" href="/logout">sign out</a>'
           +'</div>'
         +'</div>'
         +'<p class="hdr-date">'+dateStr+'</p>'
