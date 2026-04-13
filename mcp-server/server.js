@@ -481,6 +481,64 @@ function createMcpServer() {
     });
 
 
+
+  // ── SSL / nginx / system tools ──
+
+  loggedTool("ssl_status", "Check TLS certificate expiry and renewal status via certbot.",
+    {},
+    async () => {
+      const certs = runCmd("certbot certificates 2>&1", "/").trim();
+      const expiry = runCmd("echo | openssl s_client -connect 7ay.de:443 -servername 7ay.de 2>/dev/null | openssl x509 -noout -dates 2>/dev/null || true", "/").trim();
+      return { content: [{ type: "text", text: `## Certbot\n${certs}\n\n## Live cert dates\n${expiry}` }] };
+    });
+
+  loggedTool("nginx_reload", "Test nginx config (nginx -t) and reload if valid. Pass dry_run=true to only test without reloading.",
+    {
+      dry_run: z.boolean().optional().describe("If true, only test config without reloading. Default: false"),
+    },
+    async ({ dry_run = false }) => {
+      const test = runCmd("nginx -t 2>&1", "/").trim();
+      if (dry_run || test.includes("failed")) {
+        return { content: [{ type: "text", text: `## Config test\n${test}` }] };
+      }
+      const reload = runCmd("systemctl reload nginx 2>&1 && echo 'Reloaded OK'", "/").trim();
+      return { content: [{ type: "text", text: `## Config test\n${test}\n\n## Reload\n${reload}` }] };
+    });
+
+  loggedTool("system_update", "Run apt update + upgrade + autoremove. Pass dry_run=true to only show available updates without installing.",
+    {
+      dry_run: z.boolean().optional().describe("If true, only list available updates. Default: false"),
+    },
+    async ({ dry_run = false }) => {
+      const update = runCmd("apt update 2>&1 | tail -5", "/", 60000).trim();
+      if (dry_run) {
+        const available = runCmd("apt list --upgradable 2>/dev/null | tail -30", "/").trim();
+        return { content: [{ type: "text", text: `## Update index\n${update}\n\n## Upgradable\n${available}` }] };
+      }
+      const upgrade = runCmd("DEBIAN_FRONTEND=noninteractive apt upgrade -y 2>&1 | tail -15", "/", 120000).trim();
+      const autoremove = runCmd("apt autoremove -y 2>&1 | tail -5", "/", 60000).trim();
+      return { content: [{ type: "text", text: `## Update\n${update}\n\n## Upgrade\n${upgrade}\n\n## Autoremove\n${autoremove}` }] };
+    });
+
+  loggedTool("net_listeners", "Show all listening TCP/UDP ports (ss -tlnp) and health-check known local services.",
+    {},
+    async () => {
+      const listeners = runCmd("ss -tlnp", "/").trim();
+      const checks = [
+        ["organizer :3000", "curl -sf --max-time 2 http://127.0.0.1:3000/api/me 2>&1 | head -1 || echo 'no response'"],
+        ["mcp :3002",       "curl -sf --max-time 2 http://127.0.0.1:3002/health 2>&1 | head -1 || echo 'no response'"],
+        ["mem0 :8000",      "curl -sf --max-time 2 http://127.0.0.1:8000/docs 2>&1 | head -1 || echo 'no response'"],
+        ["nginx :80",       "curl -sf --max-time 2 http://127.0.0.1/ -o /dev/null -w '%{http_code}' 2>&1 || echo 'no response'"],
+        ["nginx :443",      "curl -sf --max-time 2 https://7ay.de/ -o /dev/null -w '%{http_code}' 2>&1 || echo 'no response'"],
+      ];
+      const healthLines = [];
+      for (const [label, cmd] of checks) {
+        const res = runCmd(cmd, "/", 5000).trim();
+        healthLines.push(`${label.padEnd(20)} ${res}`);
+      }
+      return { content: [{ type: "text", text: `## Listeners\n${listeners}\n\n## Health checks\n${healthLines.join("\n")}` }] };
+    });
+
   // ── System / infra tools ──
 
   loggedTool("sysinfo", "Get CPU, RAM, disk, and load stats for the server.",
