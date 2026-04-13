@@ -480,6 +480,131 @@ function createMcpServer() {
       return { content: [{ type: "text", text: Object.entries(results).map(([k, v]) => `## ${k}\n${v.status === "ok" ? v.response : `ERROR: ${v.error}`}`).join("\n\n") }] };
     });
 
+
+  // ── System / infra tools ──
+
+  loggedTool("sysinfo", "Get CPU, RAM, disk, and load stats for the server.",
+    {},
+    async () => {
+      const cpu = runCmd("top -bn1 | grep 'Cpu(s)'", "/").trim();
+      const mem = runCmd("free -h", "/").trim();
+      const disk = runCmd("df -h / /opt", "/").trim();
+      const load = runCmd("uptime", "/").trim();
+      const top5 = runCmd("ps aux --sort=-%cpu | head -6", "/").trim();
+      return { content: [{ type: "text", text: `## Load\n${load}\n\n## CPU\n${cpu}\n\n## Memory\n${mem}\n\n## Disk\n${disk}\n\n## Top Processes\n${top5}` }] };
+    });
+
+  loggedTool("docker_status", "List Docker containers with status and resource usage.",
+    {},
+    async () => {
+      const ps = runCmd("docker ps -a --format 'table {{.Names}}\\t{{.Status}}\\t{{.Image}}'", "/").trim();
+      const stats = runCmd("docker stats --no-stream --format 'table {{.Name}}\\t{{.CPUPerc}}\\t{{.MemUsage}}'", "/").trim();
+      return { content: [{ type: "text", text: `## Containers\n${ps}\n\n## Stats\n${stats}` }] };
+    });
+
+  loggedTool("service_control", "Start, stop, restart, or get status of an allowed systemd service.",
+    {
+      service: z.string().describe("Service name e.g. organizer, nginx"),
+      action: z.enum(["status", "start", "stop", "restart"]),
+    },
+    async ({ service, action }) => {
+      const SAFE_SERVICES = ["organizer", "organizer-mcp", "organizer-commit", "nginx", "mem0", "docker", "fail2ban", "ssh"];
+      if (!SAFE_SERVICES.includes(service)) {
+        return { content: [{ type: "text", text: `Error: '${service}' not in allowlist. Allowed: ${SAFE_SERVICES.join(", ")}` }] };
+      }
+      const out = runCmd(`systemctl ${action} ${service} 2>&1 && systemctl status ${service} --no-pager -l 2>&1 | head -30`, "/").trim();
+      return { content: [{ type: "text", text: out }] };
+    });
+
+  loggedTool("db_query", "Run a read-only SELECT query against the organizer SQLite database.",
+    {
+      sql: z.string().describe("SELECT statement only"),
+    },
+    async ({ sql }) => {
+      if (!sql.trim().toLowerCase().startsWith("select")) {
+        return { content: [{ type: "text", text: "Error: only SELECT queries are allowed." }] };
+      }
+      const escaped = sql.replace(/'/g, "'\\''");
+      const out = runCmd(`sqlite3 -column -header /opt/organizer/data/organizer.db '${escaped}' 2>&1 | head -100`, "/").trim();
+      return { content: [{ type: "text", text: out || "(no rows)" }] };
+    });
+
+  loggedTool("fail2ban_status", "Show fail2ban jail stats and recently banned IPs.",
+    {},
+    async () => {
+      const status = runCmd("fail2ban-client status 2>&1", "/").trim();
+      const sshd = runCmd("fail2ban-client status sshd 2>&1", "/").trim();
+      const nginx = runCmd("fail2ban-client status nginx-limit-req 2>&1 || true", "/").trim();
+      return { content: [{ type: "text", text: `## Jails\n${status}\n\n## sshd\n${sshd}\n\n## nginx\n${nginx}` }] };
+    });
+
+  loggedTool("fetch", "Make an HTTP request and return the response (text/JSON). Useful for local APIs or external endpoints.",
+    {
+      url: z.string(),
+      method: z.string().optional().describe("HTTP method. Default: GET"),
+      body: z.string().optional().describe("Request body for POST/PUT"),
+      headers: z.string().optional().describe("Extra headers as 'Key: Value' lines"),
+    },
+    async ({ url, method = "GET", body, headers }) => {
+      let cmd = `curl -s -L -X ${method} --max-time 15`;
+      if (headers) {
+        for (const line of headers.split("\n")) {
+          const h = line.trim();
+          if (h) cmd += ` -H '${h.replace(/'/g, "'\\''")}'`;
+        }
+      }
+      if (body) cmd += ` -d '${body.replace(/'/g, "'\\''")}'`;
+      cmd += ` '${url.replace(/'/g, "'\\''")}'`;
+      const out = runCmd(cmd, "/").slice(0, 4000);
+      return { content: [{ type: "text", text: out }] };
+    });
+
+  loggedTool("browser_get", "Fetch a web page with headless Chromium and return the text content.",
+    { url: z.string() },
+    async ({ url }) => {
+      const out = runCmd(`python3 /opt/organizer/scripts/browser.py get '${url.replace(/'/g, "'\\''")}'`, "/", 30000).slice(0, 8000);
+      return { content: [{ type: "text", text: out }] };
+    });
+
+  loggedTool("browser_screenshot", "Take a screenshot of a URL with headless Chromium. Returns base64 PNG.",
+    { url: z.string() },
+    async ({ url }) => {
+      const out = runCmd(`python3 /opt/organizer/scripts/browser.py screenshot '${url.replace(/'/g, "'\\''")}'`, "/", 30000).trim();
+      if (out.startsWith("data:image")) {
+        return { content: [{ type: "image", data: out.replace("data:image/png;base64,", ""), mimeType: "image/png" }] };
+      }
+      return { content: [{ type: "text", text: out }] };
+    });
+
+  loggedTool("pdf_read", "Extract text from a PDF file on the server using pdftotext.",
+    { path: z.string().describe("Absolute path to the PDF") },
+    async ({ path: filePath }) => {
+      const { resolve } = await import("path");
+      const abs = resolve(filePath);
+      const out = runCmd(`pdftotext '${abs.replace(/'/g, "'\\''")}'  - 2>&1 | head -200`, "/").trim();
+      return { content: [{ type: "text", text: out }] };
+    });
+
+  loggedTool("image_info", "Inspect or thumbnail an image using ImageMagick. Actions: info, thumbnail (256x256).",
+    {
+      path: z.string().describe("Absolute path to the image"),
+      action: z.enum(["info", "thumbnail"]).optional().describe("Default: info"),
+    },
+    async ({ path: filePath, action = "info" }) => {
+      const { resolve } = await import("path");
+      const { readFileSync } = await import("fs");
+      const abs = resolve(filePath);
+      const escaped = abs.replace(/'/g, "'\\''");
+      if (action === "thumbnail") {
+        const outPath = `/tmp/thumb_${Date.now()}.png`;
+        runCmd(`convert '${escaped}' -resize 256x256^ -gravity center -extent 256x256 '${outPath}' 2>&1`, "/");
+        const data = readFileSync(outPath).toString("base64");
+        return { content: [{ type: "image", data, mimeType: "image/png" }] };
+      }
+      const out = runCmd(`identify -verbose '${escaped}' 2>&1 | head -50`, "/").trim();
+      return { content: [{ type: "text", text: out }] };
+    });
+
   // ── Image + changelog tools ──
 
   loggedTool("generate_image", "Generate an image with Nano Banana. Default: free tier. Pass 'nb2' or 'nbpro' only when user explicitly requests higher quality.",
