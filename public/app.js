@@ -1,4 +1,4 @@
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
 var DM={CTI:{c:'#60a5fa',l:'CTI'},ECM:{c:'#c084fc',l:'ECM'},CSD:{c:'#5eead4',l:'CSD'},GRA:{c:'#7dd3fc',l:'GRA'},Personal:{c:'#a5b4fc',l:'Per'}};
 var SPEED_L=['snap','sesh','grind'],STAKES_L=['low','high','crit'];
@@ -42,8 +42,8 @@ function matchSearch(t){
   if(!state.searchQuery)return true;var q=state.searchQuery.toLowerCase();
   return t.name.toLowerCase().includes(q)||t.domain.toLowerCase().includes(q)||(t.subs&&t.subs.some(function(s){return s.label.toLowerCase().includes(q)}));
 }
-function urgencyColor(d){
-  if(d<=0)return'#b91c1c';if(d<=2)return'#c2410c';if(d<=5)return'#78350f';return'#27272a';
+function urgencyClass(d){
+  if(d<=0)return'u-crit';if(d<=2)return'u-hot';if(d<=5)return'u-warn';return'u-cool';
 }
 function bufferDots(dp,dd){var n=Math.max(0,Math.min(5,dd-dp));return'·'.repeat(n)}
 function saveExpanded(){api('PUT','/api/users/'+state.slug+'/ui-state',{expanded:Array.from(state.expanded)})}
@@ -128,7 +128,7 @@ function renderApp(){
 
 function makeCardEl(t){
   var dm=DM[t.domain]||{c:'#71717a',l:t.domain};
-  var col=dm.c;
+  var domCls=DM[t.domain]?t.domain:'unknown';
   var blocked=isBlocked(t),done=taskDone(t),prog=taskProgress(t);
   var dp=daysFrom(t.plan_date),dd=daysFrom(t.due_date);
   var hasSubs=!!(t.subs&&t.subs.length),isOpen=state.expanded.has(t.id);
@@ -138,17 +138,17 @@ function makeCardEl(t){
   el.dataset.id=t.id;
 
   var h='';
-  h+='<div class="card-bar'+(hasSubs?'':' card-drag-handle')+'" style="background:'+col+'"'+(hasSubs?'':' draggable="true" data-drag-task="'+t.id+'" title="Drag to make subtask of another task"')+' data-task-id="'+t.id+'"></div>';
+  h+='<div class="card-bar dm-'+domCls+(hasSubs?'':' card-drag-handle')+'"'+(hasSubs?'':' draggable="true" data-drag-task="'+t.id+'" title="Drag to make subtask of another task"')+' data-task-id="'+t.id+'"></div>';
   h+='<div class="card-body">';
 
   var hasUrgency=dp<999||dd<999;
   h+='<div class="card-r1">';
-  h+='<span class="card-domain" style="color:'+col+'">'+esc(dm.l)+'</span>';
+  h+='<span class="card-domain dm-'+domCls+'">'+esc(dm.l)+'</span>';
   if(hasUrgency){
     h+='<div class="card-urgency">';
-    if(dp<999)h+='<span class="u-pill" style="background:'+urgencyColor(dp)+'">T−'+dp+'</span>';
+    if(dp<999)h+='<span class="u-pill '+urgencyClass(dp)+'">T−'+dp+'</span>';
     if(dp<999&&dd<999&&dd>dp){var dots=bufferDots(dp,dd);if(dots)h+='<span class="u-dots">'+dots+'</span>'}
-    if(dd<999)h+='<span class="u-pill" style="background:'+urgencyColor(dd)+'">T−'+dd+'</span>';
+    if(dd<999)h+='<span class="u-pill '+urgencyClass(dd)+'">T−'+dd+'</span>';
     h+='</div>';
   } else h+='<span></span>';
   h+='</div>';
@@ -160,7 +160,7 @@ function makeCardEl(t){
   h+='<div class="card-attrs">'
     +'<span class="attr attr-speed">'+SPEED_L[t.speed]+'</span>'
     +'<span class="attr attr-s'+t.stakes+'">'+STAKES_L[t.stakes]+'</span>'
-    +(blocked?'<span class="attr" style="background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.2)">blocked</span>':'')
+    +(blocked?'<span class="attr attr-blocked">blocked</span>':'')
   +'</div>';
   h+='<span class="card-date">'+esc(dLabel2)+'</span>';
   h+='</div>';
@@ -168,7 +168,7 @@ function makeCardEl(t){
   if(blocked)h+='<div class="card-blocked">needs: '+esc(getBlockerName(t))+'</div>';
 
   if(hasSubs&&prog>0&&prog<1)
-    h+='<div class="card-progress"><div class="card-progress-fill" style="width:'+Math.round(prog*100)+'%;background:'+col+'"></div></div>';
+    h+='<div class="card-progress"><div class="card-progress-fill dm-'+domCls+'" data-pct="'+Math.round(prog*100)+'"></div></div>';
 
   h+='<div class="card-r-actions"><div class="card-actions-l">'
     +'<button class="cbtn" data-edit="'+t.id+'">edit</button>'

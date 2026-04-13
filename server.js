@@ -17,7 +17,7 @@ db.pragma('foreign_keys = ON');
 app.use(express.json());
 // SEC-17: security headers
 app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'");
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'");
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -159,6 +159,7 @@ app.patch('/api/tasks/:id', ensureAuth, (req, res) => {
   if (req.body.name && req.body.name.length > 500) return res.status(400).json({ error: 'name too long (max 500)' });
   if (req.body.plan_label && req.body.plan_label.length > 100) return res.status(400).json({ error: 'plan_label too long (max 100)' });
   if (req.body.due_label && req.body.due_label.length > 100) return res.status(400).json({ error: 'due_label too long (max 100)' });
+  // SEC: fields is a hardcoded allowlist — f is never user-supplied, no SQL injection risk
   const fields = ['domain','name','plan_date','due_date','plan_label','due_label','speed','stakes','sort_order','done'];
   const sets = [], vals = [];
   for (const f of fields) {

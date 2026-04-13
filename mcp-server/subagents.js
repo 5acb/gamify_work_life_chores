@@ -5,6 +5,7 @@
 
 import { readFileSync, writeFileSync, existsSync } from "fs";
 import { execSync } from "child_process";
+import { resolve } from "path";
 import { logEvent } from "./changelog.js";
 
 const REPO = "/opt/organizer/repo";
@@ -15,14 +16,24 @@ function run(cmd, cwd = REPO) {
   catch { return ""; }
 }
 
+// Safe file reader — rejects paths that escape REPO
+function safeRead(relPath) {
+  const abs = resolve(REPO, relPath.replace(/^\.\//, ""));
+  if (!abs.startsWith(REPO + "/") && abs !== REPO) return "";
+  try { return readFileSync(abs, "utf-8").slice(0, 3000); }
+  catch { return ""; }
+}
+
 // ── Subagent definitions ──────────────────────────────────────
 
 export const SUBAGENTS = {
   code_review: {
     description: "Reviews recent commits for bugs, logic errors, and code quality issues",
     buildPrompt: ({ commits = 5 } = {}) => {
-      const log = run(`git log --oneline -${commits}`);
-      const diff = run(`git diff HEAD~${Math.min(commits, 5)}..HEAD -- '*.js' '*.json' '*.yaml' '*.html' '*.css' '*.sh'`);
+      // SEC: clamp to integer 1-50 to prevent shell injection via git flag
+      const n = Math.max(1, Math.min(50, parseInt(commits, 10) || 5));
+      const log = run(`git log --oneline -${n}`);
+      const diff = run(`git diff HEAD~${Math.min(n, 5)}..HEAD -- '*.js' '*.json' '*.yaml' '*.html' '*.css' '*.sh'`);
       return `You are a senior code reviewer. Review the following recent changes for:
 - Bugs and logic errors
 - Security issues (hardcoded secrets, injection, unsafe evals)
@@ -44,9 +55,10 @@ If everything looks good, say so briefly.`;
     description: "Scans codebase for security issues: secrets, permissions, dependency vulns, misconfigs",
     buildPrompt: () => {
       const files = run(`find . -type f \\( -name '*.js' -o -name '*.json' -o -name '*.yaml' -o -name '*.sh' -o -name '*.conf' \\) -not -path '*/node_modules/*' -not -path '*/.git/*' | head -30`);
+      // SEC: safeRead validates each path stays within REPO before reading
       const contents = files.split("\n").filter(Boolean).map(f => {
-        try { return `── ${f} ──\n${readFileSync(`${REPO}/${f.replace("./","")}`, "utf-8").slice(0, 3000)}`; }
-        catch { return ""; }
+        const content = safeRead(f);
+        return content ? `── ${f} ──\n${content}` : "";
       }).filter(Boolean).join("\n\n");
       const npmAudit = run(`npm audit --json 2>/dev/null | head -100 || echo "{}"`);
       const perms = run(`ls -la ${REPO}/scripts/ 2>/dev/null; ls -la /opt/organizer/scripts/ 2>/dev/null; cat /etc/sudoers.d/gemini-ask 2>/dev/null`);
