@@ -609,6 +609,39 @@ function createMcpServer() {
       return { content: [{ type: "text", text: out }] };
     });
 
+
+  loggedTool("kb_ingest_url", "Fetch a URL and ingest its text content into the knowledge base. Useful for adding docs, GitHub READMEs, reference pages.",
+    {
+      url: z.string().describe("URL to fetch and ingest"),
+      source: z.string().describe("Label for this content in the KB (e.g. 'mds-datasheet', 'mpc850-ref')"),
+      doc_type: z.string().optional().describe("Type tag: context, memory, note, chat. Default: context"),
+      tags: z.string().optional().describe("Comma-separated tags"),
+    },
+    async ({ url, source, doc_type = "context", tags = "" }) => {
+      const escaped = url.replace(/'/g, "'\\''");
+      const text = runCmd(`curl -sL --max-time 20 '${escaped}' | python3 -c "
+import sys, re
+html = sys.stdin.read()
+# Strip tags, collapse whitespace
+text = re.sub(r'<[^>]+>', ' ', html)
+text = re.sub(r'[ \\t]+', ' ', text)
+text = re.sub(r'\\n{3,}', '\\n\\n', text)
+print(text[:50000].strip())
+"`, "/", 25000).trim();
+      if (!text || text.startsWith("ERROR")) {
+        return { content: [{ type: "text", text: `Failed to fetch: ${url}\n${text}` }] };
+      }
+      const { writeFileSync, unlinkSync } = await import("fs");
+      const tmp = `/tmp/kb_url_${Date.now()}.txt`;
+      writeFileSync(tmp, text, "utf-8");
+      const out = runCmd(
+        `cd /opt/organizer/scripts/kb-scripts && /root/.local/bin/uv run --env-file .env python3 kb.py add --file ${tmp} --source ${JSON.stringify(source)} --type ${doc_type} --tags ${JSON.stringify(tags)}`,
+        "/", 30000
+      );
+      try { unlinkSync(tmp); } catch {}
+      return { content: [{ type: "text", text: `Fetched ${text.length} chars from ${url}\n${out}` }] };
+    });
+
   // ── System / infra tools ──
 
   loggedTool("sysinfo", "Get CPU, RAM, disk, and load stats for the server.",
