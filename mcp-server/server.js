@@ -665,6 +665,22 @@ print(text[:50000].strip())
       return { content: [{ type: "text", text: out }] };
     });
 
+  loggedTool("kb_export", "Export knowledge base to JSONL. Returns server-side file path and row count. Optionally filter by doc_type or source substring.",
+    {
+      doc_type: z.string().optional().describe("Filter by doc_type (e.g. 'context', 'chat', 'note')"),
+      source:   z.string().optional().describe("Filter by source substring (case-insensitive)"),
+    },
+    async ({ doc_type, source }) => {
+      const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      const outPath = `/tmp/kb_export_${ts}.jsonl`;
+      const typeFlag   = doc_type ? `--type "${doc_type}"`   : "";
+      const sourceFlag = source   ? `--source "${source}"` : "";
+      const cmd = `cd /opt/organizer/scripts/kb-scripts && /root/.local/bin/uv run --env-file .env python3 kb.py export ${typeFlag} ${sourceFlag} > ${outPath}`;
+      runCmd(cmd, "/", 60000);
+      const lines = runCmd(`wc -l < ${outPath} 2>/dev/null || echo 0`, "/").trim();
+      return { content: [{ type: "text", text: `Export saved to ${outPath}\n${lines} rows exported.` }] };
+    });
+
   // ── System / infra tools ──
 
   loggedTool("sysinfo", "Get CPU, RAM, disk, and load stats for the server.",

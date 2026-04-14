@@ -12,6 +12,7 @@ Commands:
   graph-link FROM RELATION TO [--source SOURCE]
   graph-query ENTITY
   stats
+  export [--type TYPE] [--source FILTER]   → JSONL to stdout
 """
 import argparse, hashlib, json, os, re, sys, textwrap, uuid
 from datetime import datetime, timezone
@@ -382,6 +383,35 @@ def sync_check(repair: bool = False) -> str:
     pg.close()
     return "\n".join(lines)
 
+# ── Export ───────────────────────────────────────────────────
+def export_kb(doc_type: str = None, source: str = None) -> int:
+    """
+    Dump all kb_docs as JSONL to stdout.
+    Returns the number of rows exported.
+    """
+    pg = get_pg(); cur = pg.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    clauses, params = [], []
+    if doc_type:
+        clauses.append("doc_type = %s"); params.append(doc_type)
+    if source:
+        clauses.append("source ILIKE %s"); params.append(f"%{source}%")
+    where = ("WHERE " + " AND ".join(clauses)) if clauses else ""
+    cur.execute(f"""
+        SELECT id, source, doc_type, chunk_seq, content, tags, created_at
+        FROM kb_docs
+        {where}
+        ORDER BY doc_type, source, chunk_seq
+    """, params)
+    count = 0
+    for row in cur:
+        obj = dict(row)
+        if obj.get("created_at"):
+            obj["created_at"] = obj["created_at"].isoformat()
+        print(json.dumps(obj))
+        count += 1
+    pg.close()
+    return count
+
 # ── Stats ─────────────────────────────────────────────────────
 def stats() -> str:
     qdrant = get_qdrant()
@@ -414,7 +444,7 @@ def main():
     p.add_argument("command",
         choices=["search", "add", "context", "ingest",
                  "graph-link", "graph-query", "stats",
-                 "vacuum", "delete-source", "sync-check"])
+                 "vacuum", "delete-source", "sync-check", "export"])
     p.add_argument("args", nargs="*")
     p.add_argument("--n", type=int, default=8)
     p.add_argument("--source", default="")
@@ -484,6 +514,13 @@ def main():
 
         elif cmd == "sync-check":
             print(sync_check(repair=a.execute))
+
+        elif cmd == "export":
+            n = export_kb(
+                doc_type=a.doc_type if a.doc_type != "note" else None,
+                source=a.source or None,
+            )
+            print(f"# Exported {n} rows", file=sys.stderr)
 
     except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)
