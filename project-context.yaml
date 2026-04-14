@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2025-01-24
+# Last updated: 2025-01-26
 
 project:
   name: gamify_work_life_chores
@@ -27,7 +27,7 @@ architecture:
     (server.js ~300 lines) + SQLite WAL. No build step, no bundler, no framework.
     Vanilla JS + CSS. Three systemd services, Nginx reverse proxy.
     Gemini AI integration via MCP server (McpServer SDK, SSE transport, token auth) 
-    with 5 subagents and Mem0 memory integration.
+    with 5 subagents and Mem0 memory integration (knowledge base).
   ports:
     3000: "App server (Express + SQLite) — proxied by Nginx on /"
     3001: "commit-daemon (socat + bash, localhost-only) — proxied on /api/commit"
@@ -77,6 +77,10 @@ files:
   public/style.css: "All CSS — dark theme, split-panel layout"
   schema.sql: "DB schema (structure only)"
   scripts/backup.sh: "SQLite dump → backup file"
+  scripts/kb-pyproject.toml: "Python dependencies for Knowledge Base"
+  scripts/kb.py: "Knowledge Base (Mem0) management script"
+  scripts/post-session-kb.sh: "Automated KB updates after dev sessions"
+  scripts/setup-mcp-client.sh: "Utility to configure local MCP clients"
   server.js: "Express API — custom sessions, auth, task_events logging (~300 lines)"
 
 database_schema:
@@ -87,7 +91,7 @@ database_schema:
   tasks:
     columns: [id, user_id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, archived, archived_at, created_at, updated_at]
     indexes: [idx_tasks_archived, idx_tasks_domain]
-    notes: "domain restricted to VALID_DOMAINS list. speed/stakes define task profile."
+    notes: "domain restricted to VALID_DOMAINS list (CTI, ECM, CSD, GRA, Personal)."
   subtasks:
     columns: [id, task_id, label, done, sort_order, created_at]
     notes: "Checklist items linked to tasks."
@@ -117,9 +121,21 @@ api:
     - "POST   /logout                        → Clears sid cookie"
   users:
     - "GET    /api/users                     → list all users (requires auth)"
-    - "GET    /api/users/:slug/tasks         → tasks + subtasks + blockers (?view=archived)"
+    - "GET    /api/users/:slug/tasks         → tasks + subtasks + blockers for board"
+  tasks:
+    - "POST   /api/tasks                     → create new task"
+    - "PATCH  /api/tasks/:id                 → update task properties"
+    - "DELETE /api/tasks/:id                 → remove task"
+    - "POST   /api/tasks/:id/subtasks        → add subtask"
+    - "PATCH  /api/subtasks/:id              → toggle/rename subtask"
+    - "DELETE /api/subtasks/:id              → remove subtask"
+    - "POST   /api/tasks/:id/blockers        → add dependency"
+    - "DELETE /api/tasks/:id/blockers/:bid   → remove dependency"
+  ai:
+    - "POST   /mcp/*                         → Proxied to MCP server (3002)"
+    - "GET    /api/changelog                 → Returns JSONL audit log"
 
-running_services:
-  organizer-commit.service: "Auto-Commit Endpoint (socat + bash)"
-  organizer-mcp.service: "MCP Server (SSE transport, Node.js)"
-  organizer.service: "Main Organizer App (Express + SQLite)"
+services:
+  organizer.service: "Main Express app (Port 3000)"
+  organizer-mcp.service: "MCP SSE server (Port 3002)"
+  organizer-commit.service: "Auto-commit daemon (Port 3001)"
