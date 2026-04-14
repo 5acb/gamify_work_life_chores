@@ -4,6 +4,7 @@ import express from "express";
 import { execSync, spawn } from "child_process";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, unlinkSync } from "fs";
 import { join, dirname } from "path";
+import { randomUUID } from "crypto";
 import { z } from "zod";
 import { logEvent, readChangelog, verifyChain } from "./changelog.js";
 import { SUBAGENTS, runSubagent } from "./subagents.js";
@@ -539,6 +540,75 @@ function createMcpServer() {
       return { content: [{ type: "text", text: `## Listeners\n${listeners}\n\n## Health checks\n${healthLines.join("\n")}` }] };
     });
 
+
+  // ── Knowledge Base tools ──
+
+  loggedTool("kb_search", "Search the knowledge base (vector + full-text hybrid). Use for: finding prior work, context about projects, past decisions.",
+    {
+      query: z.string().describe("Natural language search query"),
+      n: z.number().optional().describe("Number of results (default 8)"),
+      type: z.string().optional().describe("Filter by doc_type: context, memory, chat, note"),
+    },
+    async ({ query, n = 8, type }) => {
+      const typeArg = type ? `--type ${type}` : "";
+      const out = runCmd(
+        `cd /opt/organizer/scripts/kb-scripts && /root/.local/bin/uv run --env-file .env python3 kb.py search ${JSON.stringify(query)} --n ${n} ${typeArg}`,
+        "/", 20000
+      );
+      return { content: [{ type: "text", text: out }] };
+    });
+
+  loggedTool("kb_add", "Add content to the knowledge base. Use at end of sessions to save key findings, decisions, or learned context.",
+    {
+      content: z.string().describe("Content to store"),
+      source: z.string().describe("Identifier for the source (e.g. 'session-2026-04-13', 'project-x-decision')"),
+      doc_type: z.string().optional().describe("Type: note (default), context, memory, chat"),
+      tags: z.string().optional().describe("Comma-separated tags"),
+    },
+    async ({ content, source, doc_type = "note", tags = "" }) => {
+      const { writeFileSync, unlinkSync } = await import("fs");
+      const tmp = `/tmp/kb_add_${Date.now()}.txt`;
+      writeFileSync(tmp, content, "utf-8");
+      const out = runCmd(
+        `cd /opt/organizer/scripts/kb-scripts && /root/.local/bin/uv run --env-file .env python3 kb.py add --file ${tmp} --source ${JSON.stringify(source)} --type ${doc_type} --tags ${JSON.stringify(tags)}`,
+        "/", 20000
+      );
+      try { unlinkSync(tmp); } catch {}
+      return { content: [{ type: "text", text: out }] };
+    });
+
+  loggedTool("kb_load_context", "Load relevant context from KB + Mem0 memories for a task. Call at the START of long sessions or complex tasks to prime your working context.",
+    {
+      task: z.string().describe("Description of the task or topic to load context for"),
+      n: z.number().optional().describe("Number of KB results (default 10)"),
+    },
+    async ({ task, n = 10 }) => {
+      const out = runCmd(
+        `cd /opt/organizer/scripts/kb-scripts && /root/.local/bin/uv run --env-file .env python3 kb.py context ${JSON.stringify(task)} --n ${n}`,
+        "/", 25000
+      );
+      return { content: [{ type: "text", text: out }] };
+    });
+
+  loggedTool("kb_graph", "Add or query entity relationships in the knowledge graph.",
+    {
+      action: z.enum(["link", "query"]).describe("'link' adds a relation, 'query' finds all relations for an entity"),
+      entity: z.string().describe("Primary entity name"),
+      relation: z.string().optional().describe("Relation type (required for link, e.g. 'uses', 'is-part-of', 'depends-on')"),
+      target: z.string().optional().describe("Target entity (required for link)"),
+      source: z.string().optional().describe("Source label for link"),
+    },
+    async ({ action, entity, relation = "", target = "", source = "" }) => {
+      let cmd;
+      if (action === "link") {
+        cmd = `cd /opt/organizer/scripts/kb-scripts && /root/.local/bin/uv run --env-file .env python3 kb.py graph-link ${JSON.stringify(entity)} ${JSON.stringify(relation)} ${JSON.stringify(target)} --source ${JSON.stringify(source)}`;
+      } else {
+        cmd = `cd /opt/organizer/scripts/kb-scripts && /root/.local/bin/uv run --env-file .env python3 kb.py graph-query ${JSON.stringify(entity)}`;
+      }
+      const out = runCmd(cmd, "/", 15000);
+      return { content: [{ type: "text", text: out }] };
+    });
+
   // ── System / infra tools ──
 
   loggedTool("sysinfo", "Get CPU, RAM, disk, and load stats for the server.",
@@ -699,8 +769,188 @@ function createMcpServer() {
   loggedTool("verify_changelog", "Verify hash-chain integrity of the changelog.", {},
     async () => ({ content: [{ type: "text", text: JSON.stringify(verifyChain(), null, 2) }] }));
 
+
+  // ── A2A Client Tools (Claude → Gemini A2A) ───────────────────
+
+  loggedTool("a2a_send", "Send a task to the Gemini A2A agent. Returns completed task with response artifact.",
+    {
+      message: z.string().describe("The message/prompt to send to Gemini"),
+      task_id: z.string().optional().describe("Optional task ID (auto-generated if omitted)"),
+      skill: z.string().optional().describe("Skill hint: general | code | task_analysis | ics_ot"),
+      model: z.string().optional().describe("Gemini model override"),
+    },
+    async ({ message, task_id, skill, model }) => {
+      const tid = task_id || randomUUID();
+      const body = {
+        jsonrpc: "2.0", id: `mcp-${Date.now()}`, method: "tasks/send",
+        params: {
+          id: tid,
+          message: { role: "user", parts: [{ type: "text", text: message }] },
+          metadata: { skill: skill || "general", ...(model ? { model } : {}) },
+        },
+      };
+      const resp = await fetch(`http://127.0.0.1:${PORT}/a2a`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-a2a-token": AUTH_TOKEN },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+      if (data.error) return { content: [{ type: "text", text: `A2A error: ${JSON.stringify(data.error)}` }] };
+      const task = data.result;
+      const artifact = task.artifacts?.[0]?.parts?.[0]?.text || "(no response)";
+      const meta = task.artifacts?.[0]?.metadata || {};
+      return { content: [{ type: "text", text: `[A2A task: ${task.id} | ${task.status.state}${meta.model ? ` | ${meta.model}` : ""}${meta.tokens ? ` | ${meta.tokens}t` : ""}]\n\n${artifact}` }] };
+    });
+
+  loggedTool("a2a_get", "Get a previously submitted A2A task by ID.",
+    { task_id: z.string() },
+    async ({ task_id }) => {
+      const body = { jsonrpc: "2.0", id: `mcp-${Date.now()}`, method: "tasks/get", params: { id: task_id } };
+      const resp = await fetch(`http://127.0.0.1:${PORT}/a2a`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-a2a-token": AUTH_TOKEN },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+      if (data.error) return { content: [{ type: "text", text: `A2A error: ${JSON.stringify(data.error)}` }] };
+      const task = data.result;
+      const artifact = task.artifacts?.[0]?.parts?.[0]?.text || "(no artifact yet)";
+      return { content: [{ type: "text", text: `Task ${task.id}: ${task.status.state}\n\n${artifact}` }] };
+    });
+
+  loggedTool("a2a_list", "List recent A2A tasks sent to Gemini.",
+    { limit: z.number().optional().describe("Max tasks to return (default 10)") },
+    async ({ limit }) => {
+      const body = { jsonrpc: "2.0", id: `mcp-${Date.now()}`, method: "tasks/list", params: { limit: limit || 10 } };
+      const resp = await fetch(`http://127.0.0.1:${PORT}/a2a`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-a2a-token": AUTH_TOKEN },
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+      if (data.error) return { content: [{ type: "text", text: `A2A error: ${JSON.stringify(data.error)}` }] };
+      const tasks = data.result.tasks;
+      if (!tasks.length) return { content: [{ type: "text", text: "No A2A tasks found." }] };
+      const lines = tasks.map(t => `${t.id.slice(0,8)}… | ${t.status.state} | ${t.status.timestamp} | ${(t.artifacts?.[0]?.parts?.[0]?.text || "").slice(0,80)}…`);
+      return { content: [{ type: "text", text: lines.join("\n") }] };
+    });
+
   return server;
 }
+
+// ── A2A Task Store ────────────────────────────────────────────
+const a2aTasks = new Map(); // taskId → task object
+const A2A_MAX_TASKS = 200;
+
+function a2aCreateTask(id, message) {
+  const task = {
+    id,
+    status: { state: "submitted", timestamp: new Date().toISOString() },
+    history: [{ role: "user", parts: message.parts, timestamp: new Date().toISOString() }],
+    artifacts: [],
+    metadata: {},
+  };
+  a2aTasks.set(id, task);
+  // Evict oldest if over limit
+  if (a2aTasks.size > A2A_MAX_TASKS) {
+    const oldest = a2aTasks.keys().next().value;
+    a2aTasks.delete(oldest);
+  }
+  return task;
+}
+
+function a2aTaskToResponse(task) {
+  return { id: task.id, status: task.status, artifacts: task.artifacts, history: task.history };
+}
+
+// ── A2A Routes ────────────────────────────────────────────────
+
+// Agent Card
+app.get("/.well-known/agent.json", (req, res) => {
+  res.json({
+    name: "Gemini on 7ay.de",
+    description: "Gemini-2.5-flash agent — general reasoning, code, task analysis, ICS/OT research support.",
+    url: "https://7ay.de/a2a",
+    version: "1.0.0",
+    capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: true },
+    defaultInputModes: ["text/plain"],
+    defaultOutputModes: ["text/plain"],
+    skills: [
+      { id: "general",       name: "General reasoning",  description: "Open-ended questions, analysis, summaries" },
+      { id: "code",          name: "Code & engineering", description: "Generate, review, debug code" },
+      { id: "task_analysis", name: "Task board analysis", description: "Reason about Anas's active task board with live DB context" },
+      { id: "ics_ot",        name: "ICS/OT research",    description: "Protocol analysis, firmware RE, testbed reasoning" },
+    ],
+  });
+});
+
+// JSON-RPC 2.0 A2A endpoint
+app.post("/a2a", express.json(), async (req, res) => {
+  if (AUTH_TOKEN && req.headers["x-a2a-token"] !== AUTH_TOKEN) {
+    return res.status(401).json({ jsonrpc: "2.0", id: req.body?.id ?? null, error: { code: -32001, message: "unauthorized" } });
+  }
+
+  const { jsonrpc, id: rpcId, method, params } = req.body || {};
+  if (jsonrpc !== "2.0") return res.status(400).json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid JSON-RPC" } });
+
+  // ── tasks/send ──
+  if (method === "tasks/send") {
+    const { id: taskId, message, metadata = {} } = params || {};
+    if (!taskId || !message) return res.json({ jsonrpc: "2.0", id: rpcId, error: { code: -32602, message: "id and message required" } });
+
+    const task = a2aCreateTask(taskId, message);
+    task.metadata = metadata;
+    task.status = { state: "working", timestamp: new Date().toISOString() };
+
+    logEvent({ agent_id: "gemini", action_type: "tool_call", action_detail: { a2a: "tasks/send", task_id: taskId, skill: metadata.skill }, outcome: "started" });
+
+    try {
+      const textParts = message.parts.filter(p => p.type === "text" || typeof p.text === "string").map(p => p.text).join("\n");
+      const model = metadata.model || undefined;
+      const result = await geminiInvoke(textParts, { timeout: 120000, model });
+
+      task.status = { state: "completed", timestamp: new Date().toISOString() };
+      task.artifacts = [{ name: "response", parts: [{ type: "text", text: result.response }], metadata: { model: result.model, tokens: result.tokens } }];
+      task.history.push({ role: "agent", parts: [{ type: "text", text: result.response }], timestamp: new Date().toISOString() });
+
+      logEvent({ agent_id: "gemini", action_type: "tool_call", action_detail: { a2a: "tasks/send", task_id: taskId, model: result.model, tokens: result.tokens }, outcome: "success" });
+      return res.json({ jsonrpc: "2.0", id: rpcId, result: a2aTaskToResponse(task) });
+    } catch (err) {
+      task.status = { state: "failed", timestamp: new Date().toISOString(), message: err.message };
+      logEvent({ agent_id: "gemini", action_type: "tool_call", action_detail: { a2a: "tasks/send", task_id: taskId, error: err.message }, outcome: "error" });
+      return res.json({ jsonrpc: "2.0", id: rpcId, result: a2aTaskToResponse(task) });
+    }
+  }
+
+  // ── tasks/get ──
+  if (method === "tasks/get") {
+    const { id: taskId } = params || {};
+    const task = a2aTasks.get(taskId);
+    if (!task) return res.json({ jsonrpc: "2.0", id: rpcId, error: { code: -32001, message: `Task not found: ${taskId}` } });
+    return res.json({ jsonrpc: "2.0", id: rpcId, result: a2aTaskToResponse(task) });
+  }
+
+  // ── tasks/cancel ──
+  if (method === "tasks/cancel") {
+    const { id: taskId } = params || {};
+    const task = a2aTasks.get(taskId);
+    if (!task) return res.json({ jsonrpc: "2.0", id: rpcId, error: { code: -32001, message: `Task not found: ${taskId}` } });
+    if (task.status.state === "working") {
+      task.status = { state: "canceled", timestamp: new Date().toISOString() };
+    }
+    return res.json({ jsonrpc: "2.0", id: rpcId, result: a2aTaskToResponse(task) });
+  }
+
+  // ── tasks/list (extension) ──
+  if (method === "tasks/list") {
+    const { limit = 20 } = params || {};
+    const all = [...a2aTasks.values()].slice(-limit).reverse();
+    return res.json({ jsonrpc: "2.0", id: rpcId, result: { tasks: all.map(a2aTaskToResponse) } });
+  }
+
+  return res.json({ jsonrpc: "2.0", id: rpcId, error: { code: -32601, message: `Method not found: ${method}` } });
+});
+
 
 app.listen(PORT, "127.0.0.1", () => {
   logEvent({ agent_id: "system", action_type: "lifecycle", action_detail: { event: "mcp_server_started", port: PORT, version: "2.2.0" }, outcome: "success" });

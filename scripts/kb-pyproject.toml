@@ -1,0 +1,11 @@
+[project]
+name = "kb-scripts"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "google-genai>=1.73.0",
+    "psycopg2-binary>=2.9.11",
+    "qdrant-client>=1.17.1",
+]
