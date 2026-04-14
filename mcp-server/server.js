@@ -642,6 +642,29 @@ print(text[:50000].strip())
       return { content: [{ type: "text", text: `Fetched ${text.length} chars from ${url}\n${out}` }] };
     });
 
+
+  loggedTool("kb_sync_check", "Check (and optionally repair) sync between Qdrant vectors and PostgreSQL FTS. Pass execute=true to auto-repair orphans.",
+    { execute: z.boolean().optional().describe("If true, delete orphaned records. Default: dry-run.") },
+    async ({ execute = false }) => {
+      const flag = execute ? "--execute" : "";
+      const out = runCmd(
+        `cd /opt/organizer/scripts/kb-scripts && /root/.local/bin/uv run --env-file .env python3 kb.py sync-check ${flag}`,
+        "/", 20000
+      );
+      return { content: [{ type: "text", text: out }] };
+    });
+
+  loggedTool("kb_vacuum", "Find and optionally remove stale duplicate chunks (same source ingested multiple times). Pass execute=true to delete old generations.",
+    { execute: z.boolean().optional().describe("If true, remove old generations. Default: dry-run.") },
+    async ({ execute = false }) => {
+      const flag = execute ? "--execute" : "";
+      const out = runCmd(
+        `cd /opt/organizer/scripts/kb-scripts && /root/.local/bin/uv run --env-file .env python3 kb.py vacuum ${flag}`,
+        "/", 20000
+      );
+      return { content: [{ type: "text", text: out }] };
+    });
+
   // ── System / infra tools ──
 
   loggedTool("sysinfo", "Get CPU, RAM, disk, and load stats for the server.",

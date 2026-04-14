@@ -232,13 +232,155 @@ def graph_query(entity: str) -> str:
         lines.append(f"  {r['from_name']} --[{r['relation']}]--> {r['to_name']}{suffix}")
     return "\n".join(lines)
 
+# ── Delete by source ─────────────────────────────────────────
+def delete_source(source: str) -> int:
+    """Remove all chunks for a source from Qdrant + PostgreSQL."""
+    qdrant = get_qdrant()
+    pg = get_pg(); cur = pg.cursor()
+    # Get IDs from PG (authoritative)
+    cur.execute("SELECT id FROM kb_docs WHERE source = %s", (source,))
+    ids = [row[0] for row in cur.fetchall()]
+    if ids:
+        qdrant.delete(collection_name=COLLECTION,
+                      points_selector=ids)
+        cur.execute("DELETE FROM kb_docs WHERE source = %s", (source,))
+    pg.commit(); pg.close()
+    return len(ids)
+
 # ── Ingest ────────────────────────────────────────────────────
-def ingest_file(path: str, source: str = None, doc_type: str = "context") -> str:
+def ingest_file(path: str, source: str = None, doc_type: str = "context",
+                replace: bool = False) -> str:
     with open(path, encoding="utf-8", errors="ignore") as f:
         content = f.read()
     src = source or os.path.basename(path)
+    deleted = 0
+    if replace:
+        deleted = delete_source(src)
     r = add_to_kb(content, source=src, doc_type=doc_type)
-    return f"Ingested {r['added']} chunks  source={src}  type={doc_type}"
+    suffix = f"  (replaced {deleted} old chunks)" if deleted else ""
+    return f"Ingested {r['added']} chunks  source={src}  type={doc_type}{suffix}"
+
+# ── Vacuum ───────────────────────────────────────────────────
+def vacuum(dry_run: bool = True) -> str:
+    """
+    Find and optionally remove stale duplicate chunks.
+    A source is 'stale' if there are multiple ingestion generations
+    — detected by the same source having chunks with very different
+    created_at timestamps (>1 hour apart).  Also removes orphaned
+    Qdrant points not present in PostgreSQL.
+    """
+    pg = get_pg(); cur = pg.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cur.execute("""
+        SELECT source, doc_type,
+               COUNT(*) AS chunks,
+               MIN(created_at) AS oldest,
+               MAX(created_at) AS newest,
+               EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at)))/3600 AS age_hours
+        FROM kb_docs
+        GROUP BY source, doc_type
+        HAVING EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at)))/3600 > 1
+        ORDER BY age_hours DESC
+    """)
+    stale = cur.fetchall()
+    pg.close()
+
+    if not stale:
+        return "KB is clean — no stale sources detected."
+
+    lines = [f"{'DRY RUN — ' if dry_run else ''}Stale sources (multiple ingestion generations):\n"]
+    total_removed = 0
+    for row in stale:
+        src, dtype = row["source"], row["doc_type"]
+        lines.append(f"  {src} ({dtype})  {row['chunks']} chunks  "
+                     f"oldest={str(row['oldest'])[:16]}  newest={str(row['newest'])[:16]}")
+        if not dry_run:
+            # Keep only chunks from the latest ingest (within 1h of newest)
+            pg2 = get_pg(); cur2 = pg2.cursor()
+            cur2.execute("""
+                SELECT id FROM kb_docs
+                WHERE source = %s
+                  AND created_at < (
+                      SELECT MAX(created_at) - INTERVAL '1 hour'
+                      FROM kb_docs WHERE source = %s
+                  )
+            """, (src, src))
+            old_ids = [r[0] for r in cur2.fetchall()]
+            if old_ids:
+                get_qdrant().delete(collection_name=COLLECTION, points_selector=old_ids)
+                cur2.execute("""
+                    DELETE FROM kb_docs
+                    WHERE source = %s
+                      AND created_at < (
+                          SELECT MAX(created_at) - INTERVAL '1 hour'
+                          FROM kb_docs WHERE source = %s
+                      )
+                """, (src, src))
+                pg2.commit(); total_removed += len(old_ids)
+            pg2.close()
+
+    if dry_run:
+        lines.append(f"\nRun with --execute to remove old generations.")
+    else:
+        lines.append(f"\nRemoved {total_removed} stale chunks.")
+    return "\n".join(lines)
+
+# ── Sync check + repair ──────────────────────────────────────
+def sync_check(repair: bool = False) -> str:
+    """
+    Verify Qdrant and PostgreSQL are in sync.
+    - Points in Qdrant but not in PG → orphaned vectors (no metadata/FTS)
+    - Rows in PG but not in Qdrant   → orphaned PG rows (no vector, won't appear in search)
+    Optionally repair: delete orphans from both stores.
+    """
+    qdrant = get_qdrant()
+    pg = get_pg(); cur = pg.cursor()
+
+    # Scroll all Qdrant IDs
+    q_ids, offset = set(), None
+    while True:
+        result, offset = qdrant.scroll(
+            collection_name=COLLECTION, limit=1000,
+            offset=offset, with_payload=False, with_vectors=False,
+        )
+        for p in result:
+            q_ids.add(str(p.id))
+        if offset is None:
+            break
+
+    # All PG IDs
+    cur.execute("SELECT id FROM kb_docs")
+    pg_ids = {row[0] for row in cur.fetchall()}
+
+    orphan_qdrant = q_ids - pg_ids   # in Qdrant, not in PG
+    orphan_pg     = pg_ids - q_ids   # in PG, not in Qdrant
+
+    lines = [
+        f"Qdrant: {len(q_ids)} points   PostgreSQL: {len(pg_ids)} rows",
+        f"Orphaned Qdrant-only: {len(orphan_qdrant)}",
+        f"Orphaned PG-only:     {len(orphan_pg)}",
+    ]
+
+    if not orphan_qdrant and not orphan_pg:
+        lines.append("✓ Stores are in sync.")
+        pg.close()
+        return "\n".join(lines)
+
+    if repair:
+        if orphan_qdrant:
+            qdrant.delete(collection_name=COLLECTION,
+                          points_selector=list(orphan_qdrant))
+            lines.append(f"Deleted {len(orphan_qdrant)} orphaned Qdrant points.")
+        if orphan_pg:
+            cur.execute("DELETE FROM kb_docs WHERE id = ANY(%s)",
+                        (list(orphan_pg),))
+            lines.append(f"Deleted {len(orphan_pg)} orphaned PG rows.")
+        pg.commit()
+        lines.append("Repair complete.")
+    else:
+        lines.append("Run with --execute to repair orphans.")
+
+    pg.close()
+    return "\n".join(lines)
 
 # ── Stats ─────────────────────────────────────────────────────
 def stats() -> str:
@@ -261,6 +403,9 @@ def stats() -> str:
     if not rows:
         lines.append("  (empty)")
     lines.append(f"Graph: {ents} entities, {rels} relations")
+    # Quick sync indicator
+    if info.points_count != sum(r[1] for r in rows):
+        lines.append(f"⚠ Qdrant/PG count mismatch — run 'kb.py sync-check'")
     return "\n".join(lines)
 
 # ── CLI ───────────────────────────────────────────────────────
@@ -268,13 +413,18 @@ def main():
     p = argparse.ArgumentParser(description="Knowledge Base CLI")
     p.add_argument("command",
         choices=["search", "add", "context", "ingest",
-                 "graph-link", "graph-query", "stats"])
+                 "graph-link", "graph-query", "stats",
+                 "vacuum", "delete-source", "sync-check"])
     p.add_argument("args", nargs="*")
     p.add_argument("--n", type=int, default=8)
     p.add_argument("--source", default="")
     p.add_argument("--type", dest="doc_type", default="note")
     p.add_argument("--tags", default="")
     p.add_argument("--file", default="")
+    p.add_argument("--replace", action="store_true",
+                   help="Delete existing chunks for this source before ingesting")
+    p.add_argument("--execute", action="store_true",
+                   help="For vacuum: actually delete (default is dry-run)")
     a = p.parse_args()
 
     try:
@@ -306,7 +456,19 @@ def main():
 
         elif cmd == "ingest":
             path = a.args[0] if a.args else ""
-            print(ingest_file(path, source=a.source or None, doc_type=a.doc_type))
+            print(ingest_file(path, source=a.source or None,
+                              doc_type=a.doc_type, replace=a.replace))
+
+        elif cmd == "vacuum":
+            print(vacuum(dry_run=not a.execute))
+
+        elif cmd == "delete-source":
+            src = " ".join(a.args) or a.source
+            if not src:
+                print("Usage: delete-source SOURCE [or --source SOURCE]")
+            else:
+                n = delete_source(src)
+                print(f"Deleted {n} chunks for source '{src}'")
 
         elif cmd == "graph-link":
             if len(a.args) >= 3:
@@ -319,6 +481,9 @@ def main():
 
         elif cmd == "stats":
             print(stats())
+
+        elif cmd == "sync-check":
+            print(sync_check(repair=a.execute))
 
     except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)
