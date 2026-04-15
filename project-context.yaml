@@ -25,9 +25,9 @@ architecture:
   overview: >
     Split-file SPA frontend (index.html shell + style.css + app.js) + Express REST API
     (server.js ~300 lines) + SQLite WAL. No build step, no bundler, no framework.
-    Vanilla JS + CSS. Three systemd services, Nginx reverse proxy.
-    Gemini AI integration via MCP server (McpServer SDK, SSE transport, token auth) 
-    with 5 subagents and Mem0 memory integration (knowledge base).
+    Vanilla JS + CSS. Three systemd services (organizer, organizer-mcp, organizer-commit), 
+    Nginx reverse proxy. Gemini AI integration via MCP server (McpServer SDK, SSE transport, 
+    token auth) with 5 subagents and Mem0 memory integration (knowledge base).
   ports:
     3000: "App server (Express + SQLite) — proxied by Nginx on /"
     3001: "commit-daemon (socat + bash, localhost-only) — proxied on /api/commit"
@@ -82,6 +82,9 @@ files:
   scripts/post-session-kb.sh: "Automated KB updates after dev sessions"
   scripts/setup-mcp-client.sh: "Utility to configure local MCP clients"
   server.js: "Express API — custom sessions, auth, task_events logging (~300 lines)"
+  terrain/: "Data folder containing S36E149.DAT"
+  mav.tlog: "Telemetry log (external artifact)"
+  eeprom.bin: "Binary artifact"
 
 database_schema:
   users:
@@ -119,23 +122,15 @@ api:
     - "GET    /api/me                        → {user} from session cookie (null if unauthenticated)"
     - "POST   /login                         → Authenticates via htpasswd, sets sid cookie"
     - "POST   /logout                        → Clears sid cookie"
-  users:
-    - "GET    /api/users                     → list all users (requires auth)"
-    - "GET    /api/users/:slug/tasks         → tasks + subtasks + blockers for board"
   tasks:
-    - "POST   /api/tasks                     → create new task"
-    - "PATCH  /api/tasks/:id                 → update task properties"
-    - "DELETE /api/tasks/:id                 → remove task"
-    - "POST   /api/tasks/:id/subtasks        → add subtask"
-    - "PATCH  /api/subtasks/:id              → toggle/rename subtask"
-    - "DELETE /api/subtasks/:id              → remove subtask"
-    - "POST   /api/tasks/:id/blockers        → add dependency"
-    - "DELETE /api/tasks/:id/blockers/:bid   → remove dependency"
-  ai:
-    - "POST   /mcp/*                         → Proxied to MCP server (3002)"
-    - "GET    /api/changelog                 → Returns JSONL audit log"
-
-services:
-  organizer.service: "Main Express app (Port 3000)"
-  organizer-mcp.service: "MCP SSE server (Port 3002)"
-  organizer-commit.service: "Auto-commit daemon (Port 3001)"
+    - "GET    /api/tasks                     → List tasks for current user"
+    - "POST   /api/tasks                     → Create new task (requires auth)"
+    - "PATCH  /api/tasks/:id                 → Update task (requires ownership)"
+    - "DELETE /api/tasks/:id                 → Delete task (requires ownership)"
+  subtasks:
+    - "POST   /api/tasks/:id/subtasks        → Add subtask"
+    - "PATCH  /api/subtasks/:id              → Toggle/rename subtask"
+    - "DELETE /api/subtasks/:id              → Remove subtask"
+  mcp:
+    - "GET    /mcp                           → SSE endpoint for MCP server"
+    - "POST   /mcp                           → Message endpoint for MCP server"
