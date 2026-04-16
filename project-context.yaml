@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2025-01-26
+# Last updated: 2025-02-12
 
 project:
   name: gamify_work_life_chores
@@ -64,6 +64,10 @@ files:
   README.md: "Main project README"
   TODO.md: "Prioritized TODO list"
   backup.sql: "Generated SQLite dump (latest backup)"
+  eeprom.bin: "Binary artifact (external)"
+  mav.parm: "Drone parameter file (external)"
+  mav.tlog: "Telemetry log (external)"
+  mav.tlog.raw: "Raw telemetry data (external)"
   mcp-server/changelog.js: "Append-only JSONL audit log with SHA-256 hash chaining"
   mcp-server/icon.png: "Frontend icon for MCP server"
   mcp-server/package.json: "NPM package definition for MCP server"
@@ -83,8 +87,6 @@ files:
   scripts/setup-mcp-client.sh: "Utility to configure local MCP clients"
   server.js: "Express API — custom sessions, auth, task_events logging (~300 lines)"
   terrain/: "Data folder containing S36E149.DAT"
-  mav.tlog: "Telemetry log (external artifact)"
-  eeprom.bin: "Binary artifact"
 
 database_schema:
   users:
@@ -92,7 +94,7 @@ database_schema:
     notes: "Board owners. slug used for board routing and session identification."
     current_users: ["anas", "pranjali"]
   tasks:
-    columns: [id, user_id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, archived, archived_at, created_at, updated_at]
+    columns: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, archived, archived_at, user_id, created_at, updated_at]
     indexes: [idx_tasks_archived, idx_tasks_domain]
     notes: "domain restricted to VALID_DOMAINS list (CTI, ECM, CSD, GRA, Personal)."
   subtasks:
@@ -115,22 +117,12 @@ subagents:
   security_audit: "Checks for vulnerabilities and security regressions"
   arch_review: "Ensures changes align with the split-file SPA/Express architecture"
   doc_sync: "Keeps project-context.yaml and README.md in sync with code"
-  cleanup: "Identifies dead code, large files, and optimization targets"
+  cleanup: "Identifies dead code, large files, and architectural drift"
 
-api:
-  auth:
-    - "GET    /api/me                        → {user} from session cookie (null if unauthenticated)"
-    - "POST   /login                         → Authenticates via htpasswd, sets sid cookie"
-    - "POST   /logout                        → Clears sid cookie"
-  tasks:
-    - "GET    /api/tasks                     → List tasks for current user"
-    - "POST   /api/tasks                     → Create new task (requires auth)"
-    - "PATCH  /api/tasks/:id                 → Update task (requires ownership)"
-    - "DELETE /api/tasks/:id                 → Delete task (requires ownership)"
-  subtasks:
-    - "POST   /api/tasks/:id/subtasks        → Add subtask"
-    - "PATCH  /api/subtasks/:id              → Toggle/rename subtask"
-    - "DELETE /api/subtasks/:id              → Remove subtask"
-  mcp:
-    - "GET    /mcp                           → SSE endpoint for MCP server"
-    - "POST   /mcp                           → Message endpoint for MCP server"
+mcp_server:
+  transport: SSE
+  port: 3002
+  auth: Token-based (MCP_AUTH_TOKEN)
+  ai_provider: Gemini 3 Flash Preview (API + CLI)
+  memory: Mem0 integration via local/remote endpoint
+  changelog: "Tamper-evident JSONL log with cryptographic chaining"
