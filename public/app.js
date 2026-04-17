@@ -127,7 +127,7 @@ function renderApp(){
 
 // ── Cards ─────────────────────────────────────────────────────
 
-function makeCardEl(t){
+function makeCardEl(t, index){
   var dm=DM[t.domain]||{c:'#71717a',l:t.domain};
   var domCls=DM[t.domain]?t.domain:'unknown';
   var blocked=isBlocked(t),done=taskDone(t),prog=taskProgress(t);
@@ -139,6 +139,7 @@ function makeCardEl(t){
   el.dataset.id=t.id;
 
   var h='';
+  if(index!==undefined) h+='<div class="card-index">'+(index<10?'0':'')+index+'</div>';
   h+='<div class="card-bar dm-'+domCls+(hasSubs?'':' card-drag-handle')+'"'+(hasSubs?'':' draggable="true" data-drag-task="'+t.id+'" title="Drag to make subtask of another task"')+' data-task-id="'+t.id+'"></div>';
   h+='<div class="card-body">';
 
@@ -214,19 +215,28 @@ function renderCards(){
   var unplanned=filtered.filter(function(t){return!t.plan_date&&!t.due_date});
   var planned=filtered.filter(function(t){return t.plan_date||t.due_date});
   var hasBoth=unplanned.length&&planned.length;
+  var counter=0;
 
   // ── Unplanned section — always at top ────────────────────────
   if(unplanned.length){
     list.appendChild(makeSectionHeader('unplanned',unplanned.length));
     list.appendChild(makeDropGap());
-    unplanned.forEach(function(t){list.appendChild(makeCardEl(t));list.appendChild(makeDropGap())});
+    unplanned.forEach(function(t){
+      counter++;
+      list.appendChild(makeCardEl(t,counter));
+      list.appendChild(makeDropGap());
+    });
   }
 
   // ── Planned section ──────────────────────────────────────────
   if(planned.length){
     if(hasBoth)list.appendChild(makeSectionHeader('planned',planned.length));
     list.appendChild(makeDropGap());
-    planned.forEach(function(t){list.appendChild(makeCardEl(t));list.appendChild(makeDropGap())});
+    planned.forEach(function(t){
+      counter++;
+      list.appendChild(makeCardEl(t,counter));
+      list.appendChild(makeDropGap());
+    });
   }
 
   bindEvents();
