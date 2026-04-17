@@ -27,7 +27,7 @@ architecture:
     (server.js ~300 lines) + SQLite WAL. No build step, no bundler, no framework.
     Vanilla JS + CSS. Three systemd services (organizer, organizer-mcp, organizer-commit), 
     Nginx reverse proxy. Gemini AI integration via MCP server (McpServer SDK, SSE transport, 
-    token auth) with 5 subagents and Mem0 memory integration (knowledge base).
+    token auth) using gemini-3-flash-preview. Integrated with Mem0 memory/knowledge base.
   ports:
     3000: "App server (Express + SQLite) — proxied by Nginx on /"
     3001: "commit-daemon (socat + bash, localhost-only) — proxied on /api/commit"
@@ -64,6 +64,8 @@ files:
   README.md: "Main project README"
   TODO.md: "Prioritized TODO list"
   backup.sql: "Generated SQLite dump (latest backup)"
+  dumpcore.sh_arducopter.91490.out: "External drone artifact (binary/core)"
+  dumpstack.sh_arducopter.91490.out: "External drone artifact (stack trace)"
   eeprom.bin: "Binary artifact (external)"
   mav.parm: "Drone parameter file (external)"
   mav.tlog: "Telemetry log (external)"
@@ -86,7 +88,7 @@ files:
   scripts/post-session-kb.sh: "Automated KB updates after dev sessions"
   scripts/setup-mcp-client.sh: "Utility to configure local MCP clients"
   server.js: "Express API — custom sessions, auth, task_events logging (~300 lines)"
-  terrain/: "Data folder containing S36E149.DAT"
+  terrain/S36E149.DAT: "Geospatial terrain data artifact (external)"
 
 database_schema:
   users:
@@ -116,13 +118,5 @@ subagents:
   code_review: "Analyzes code changes for quality and standards"
   security_audit: "Checks for vulnerabilities and security regressions"
   arch_review: "Ensures changes align with the split-file SPA/Express architecture"
-  doc_sync: "Keeps project-context.yaml and README.md in sync with code"
-  cleanup: "Identifies dead code, large files, and architectural drift"
-
-mcp_server:
-  transport: SSE
-  port: 3002
-  auth: Token-based (MCP_AUTH_TOKEN)
-  ai_provider: Gemini 3 Flash Preview (API + CLI)
-  memory: Mem0 integration via local/remote endpoint
-  changelog: "Tamper-evident JSONL log with cryptographic chaining"
+  doc_sync: "Updates project-context.yaml and README.md based on recent changes"
+  cleanup: "Maintains project hygiene and removes temporary artifacts"
