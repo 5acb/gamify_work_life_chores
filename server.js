@@ -342,16 +342,19 @@ app.post('/api/auth/register-verify-public', async (req, res) => {
 
     if (verification.verified && verification.registrationInfo) {
       const info = verification.registrationInfo;
-      console.log('Registration Info:', JSON.stringify(info, (key, value) => 
-        value instanceof Uint8Array ? Array.from(value) : value
-      ));
-      const { credentialID, credentialPublicKey, publicKey, counter } = info;
-      const finalPubKey = credentialPublicKey || publicKey;
-      
-      if (!finalPubKey) throw new Error('No public key found in registration info');
+      // Nesting fix for SimpleWebAuthn v13: publicKey/id are inside the 'credential' object
+      const cred = info.credential;
+      const finalID = cred ? cred.id : info.credentialID;
+      const finalPubKey = cred ? cred.publicKey : (info.credentialPublicKey || info.publicKey);
+      const finalCounter = cred ? cred.counter : info.counter;
+
+      if (!finalPubKey) {
+        console.error('Handshake Debug - Full Info:', JSON.stringify(info));
+        throw new Error('No public key found in registration info');
+      }
 
       db.prepare('INSERT INTO credentials (id, user_id, public_key, counter, transports) VALUES (?, ?, ?, ?, ?)')
-        .run(credentialID, user.id, Buffer.from(finalPubKey), counter, JSON.stringify(response.response.transports || []));
+        .run(finalID, user.id, Buffer.from(finalPubKey), finalCounter, JSON.stringify(response.response.transports || []));
       
       const token = signSession(slug);
       res.setHeader('Set-Cookie', `sid=${encodeURIComponent(token)}; Path=/; Max-Age=${30*24*3600}; HttpOnly; Secure; SameSite=Strict`);
@@ -404,16 +407,19 @@ app.post('/api/auth/register-verify', ensureAuth, async (req, res) => {
 
     if (verification.verified && verification.registrationInfo) {
       const info = verification.registrationInfo;
-      console.log('Standard Registration Info:', JSON.stringify(info, (key, value) => 
-        value instanceof Uint8Array ? Array.from(value) : value
-      ));
-      const { credentialID, credentialPublicKey, publicKey, counter } = info;
-      const finalPubKey = credentialPublicKey || publicKey;
-      
-      if (!finalPubKey) throw new Error('No public key found in registration info');
+      // Nesting fix for SimpleWebAuthn v13: publicKey/id are inside the 'credential' object
+      const cred = info.credential;
+      const finalID = cred ? cred.id : info.credentialID;
+      const finalPubKey = cred ? cred.publicKey : (info.credentialPublicKey || info.publicKey);
+      const finalCounter = cred ? cred.counter : info.counter;
+
+      if (!finalPubKey) {
+        console.error('Handshake Debug (Standard) - Full Info:', JSON.stringify(info));
+        throw new Error('No public key found in registration info');
+      }
 
       db.prepare('INSERT INTO credentials (id, user_id, public_key, counter, transports) VALUES (?, ?, ?, ?, ?)')
-        .run(credentialID, user.id, Buffer.from(finalPubKey), counter, JSON.stringify(req.body.response.transports || []));
+        .run(finalID, user.id, Buffer.from(finalPubKey), finalCounter, JSON.stringify(req.body.response.transports || []));
       res.json({ ok: true });
     } else {
       res.status(400).json({ error: 'verification failed' });
