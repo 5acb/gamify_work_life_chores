@@ -58,12 +58,13 @@ architecture:
     queries: "Single-query task fetching with SQLite JSON aggregation"
 
 files:
-  .gemini/settings.json: "Gemini CLI settings (for `geminiAgentInvoke`)"
+  .gemini/settings.json: "Gemini CLI settings (for `geminiAgentInvoke` cache)"
   .gitignore: "Git ignore file"
+  GEMINI.md: "AI integration documentation and prompt strategies"
   KICKSTART.md: "Project setup and initial deployment guide"
   README.md: "Main project README"
   TODO.md: "Prioritized TODO list"
-  backup.sql: "Generated SQLite dump (latest backup)"
+  backup.sql: "Generated SQLite dump (latest local backup)"
   dumpcore.sh_arducopter.91490.out: "External drone artifact (binary/core)"
   dumpstack.sh_arducopter.91490.out: "External drone artifact (stack trace)"
   eeprom.bin: "Binary artifact (external)"
@@ -72,9 +73,11 @@ files:
   mav.tlog.raw: "Raw telemetry data (external)"
   mcp-server/changelog.js: "Append-only JSONL audit log with SHA-256 hash chaining"
   mcp-server/icon.png: "Frontend icon for MCP server"
+  mcp-server/package-lock.json: "NPM lock file for MCP server"
   mcp-server/package.json: "NPM package definition for MCP server"
   mcp-server/server.js: "MCP SSE server — tool handlers, Mem0 integration, Gemini subagent dispatch"
-  mcp-server/subagents.js: "Gemini subagents: code_review, security_audit, arch_review, doc_sync, cleanup"
+  mcp-server/subagents.js: "Gemini subagents logic"
+  package-lock.json: "NPM lock file for main server"
   package.json: "NPM package definition for main server"
   project-context.yaml: "This documentation file"
   public/app.js: "Frontend JS — routing, rendering, timeline, AI chat"
@@ -87,7 +90,7 @@ files:
   scripts/kb.py: "Knowledge Base (Mem0) management script"
   scripts/post-session-kb.sh: "Automated KB updates after dev sessions"
   scripts/setup-mcp-client.sh: "Utility to configure local MCP clients"
-  server.js: "Express API — custom sessions, auth, task_events logging (~300 lines)"
+  server.js: "Express API — custom sessions, auth, task_events logging"
   terrain/S36E149.DAT: "Geospatial terrain data artifact (external)"
 
 database_schema:
@@ -98,7 +101,7 @@ database_schema:
   tasks:
     columns: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, archived, archived_at, user_id, created_at, updated_at]
     indexes: [idx_tasks_archived, idx_tasks_domain]
-    notes: "domain restricted to VALID_DOMAINS list (CTI, ECM, CSD, GRA, Personal)."
+    notes: "domain restricted to VALID_DOMAINS (CTI, ECM, CSD, GRA, Personal)."
   subtasks:
     columns: [id, task_id, label, done, sort_order, created_at]
     notes: "Checklist items linked to tasks."
@@ -115,8 +118,14 @@ database_schema:
     notes: "Audit log for all task mutations."
 
 subagents:
-  code_review: "Analyzes code changes for quality and standards"
-  security_audit: "Checks for vulnerabilities and security regressions"
-  arch_review: "Ensures changes align with the split-file SPA/Express architecture"
-  doc_sync: "Updates project-context.yaml and README.md based on recent changes"
-  cleanup: "Maintains project hygiene and removes temporary artifacts"
+  code_review: "Analyzes code changes for quality, bugs, and style"
+  security_audit: "Scans for vulnerabilities and insecure patterns"
+  arch_review: "Evaluates architectural consistency and design decisions"
+  doc_sync: "Ensures documentation remains consistent with implementation"
+  cleanup: "Identifies dead code and opportunities for refactoring"
+
+orientation_commands:
+  - "cat project-context.yaml"
+  - "sqlite3 /opt/organizer/data/organizer.db '.tables'"
+  - "systemctl status organizer* --no-pager"
+  - "tail -n 20 mcp-server/changelog.js"
