@@ -88,7 +88,7 @@ body {
   background: var(--glass);
   backdrop-filter: blur(28px);
   -webkit-backdrop-filter: blur(28px);
-  border: 3px solid transparent; /* Base for border-image */
+  border: 3px solid transparent; 
   padding: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
@@ -97,13 +97,12 @@ body {
   position: relative;
 }
 
-/* Material Gradient Borders via Pseudo-element for better control */
 .card::after {
   content: "";
   position: absolute;
   inset: -3px;
   padding: 3px;
-  background: var(--ink); /* Default fallback */
+  background: var(--ink); 
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
@@ -122,17 +121,18 @@ body {
 .card.selected::after { background: var(--honey); }
 .card.selected { box-shadow: 0 0 50px rgba(232, 176, 4, 0.2), var(--glass-shd); }
 
-/* ── The Atomic Tile (Inner data points) ── */
+/* ── The Atomic Tile (Way Smaller) ── */
 .tile {
   background: var(--glass-inner);
   border-top: 1px solid var(--bevel-light);
   border-left: 1px solid var(--bevel-light);
-  border-right: 1px solid var(--bevel-dark);
-  border-bottom: 1px solid var(--bevel-dark);
-  padding: 10px;
+  border-right: 2px solid var(--bevel-dark);
+  border-bottom: 2px solid var(--bevel-dark);
+  padding: 4px 8px; /* MINIMAL PADDING */
   display: flex; align-items: center; justify-content: center;
-  color: var(--ink); font-size: 12px; font-weight: 900;
+  color: var(--ink); font-size: 10px; font-weight: 900;
   text-transform: uppercase; letter-spacing: 1px;
+  width: fit-content; min-width: 0; height: fit-content;
 }
 
 /* ── Task Name (Direct on Glass) ── */
@@ -143,7 +143,7 @@ body {
   box-shadow: none !important;
   font-size: 20px;
   font-weight: 900;
-  padding: 30px 10px;
+  padding: 20px 10px;
   text-align: center;
   text-transform: none;
   letter-spacing: -0.5px;
@@ -152,11 +152,11 @@ body {
 }
 
 /* Internal Card Layout */
-.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; position: relative; z-index: 2; }
-.tile-domain { grid-column: 1; background: rgba(255,255,255,0.08); }
-.tile-date { grid-column: 2; opacity: 0.8; font-size: 10px; }
-.tile-urgency { grid-column: 1; }
-.tile-actions { grid-column: 2; display: flex; gap: 4px; padding: 2px; }
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; position: relative; z-index: 2; align-items: center; }
+.tile-domain { grid-column: 1; background: rgba(255,255,255,0.08); justify-self: start; }
+.tile-date { grid-column: 2; opacity: 0.8; font-size: 9px; justify-self: end; }
+.tile-urgency { grid-column: 1; justify-self: start; }
+.tile-actions { grid-column: 2; display: flex; gap: 4px; padding: 2px; justify-self: end; }
 
 /* ── Worktree Area (LHS) ── */
 .tree-container { 
@@ -172,9 +172,9 @@ body {
 
 /* ── Buttons & FAB ── */
 .cbtn {
-  flex: 1; height: 100%; display: flex; align-items: center; justify-content: center;
+  height: 24px; width: 24px; display: flex; align-items: center; justify-content: center;
   background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-  color: var(--ink); font-size: 18px; cursor: pointer;
+  color: var(--ink); font-size: 14px; cursor: pointer;
 }
 .cbtn:active { background: var(--honey); color: #000; box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); transform: translateY(1px); }
 
@@ -187,7 +187,7 @@ body {
 }
 
 .card.done { opacity: 0.2; filter: grayscale(1); }
-.u-pill { color: var(--honey); font-size: 11px; margin: 0 6px; }
+.u-pill { color: var(--honey); font-size: 10px; margin: 0 6px; }
 .u-dots { opacity: 0.4; letter-spacing: 4px; }
 .inline-edit { background: transparent; border: none; color: var(--honey); font-family: inherit; font-size: inherit; font-weight: 900; width: 100%; text-align: center; outline: none; }
 
