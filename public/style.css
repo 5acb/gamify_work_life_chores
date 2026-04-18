@@ -16,10 +16,6 @@
   --mat-bamboo: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%);
   --mat-honey: linear-gradient(135deg, #f6d365 0%, #ffb347 100%);
   --mat-ash: linear-gradient(135deg, #e6d0ce 0%, #b9935a 100%);
-
-  /* Skeuomorphic Bevels (for inner tiles only) */
-  --bevel-light: rgba(255, 255, 255, 0.1);
-  --bevel-dark: rgba(0, 0, 0, 0.3);
 }
 
 /* ── Global Geometry Reset ── */
@@ -121,14 +117,10 @@ body {
 .card.selected::after { background: var(--honey); }
 .card.selected { box-shadow: 0 0 50px rgba(232, 176, 4, 0.2), var(--glass-shd); }
 
-/* ── The Atomic Tile (Way Smaller) ── */
+/* ── The Atomic Tile (Flat Gradient & Tiny) ── */
 .tile {
-  background: var(--glass-inner);
-  border-top: 1px solid var(--bevel-light);
-  border-left: 1px solid var(--bevel-light);
-  border-right: 2px solid var(--bevel-dark);
-  border-bottom: 2px solid var(--bevel-dark);
-  padding: 4px 8px; /* MINIMAL PADDING */
+  border: 1px solid rgba(255, 255, 255, 0.15); /* FLAT BORDER */
+  padding: 4px 8px; 
   display: flex; align-items: center; justify-content: center;
   color: var(--ink); font-size: 10px; font-weight: 900;
   text-transform: uppercase; letter-spacing: 1px;
@@ -173,7 +165,7 @@ body {
 /* ── Buttons & FAB ── */
 .cbtn {
   height: 24px; width: 24px; display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
   color: var(--ink); font-size: 14px; cursor: pointer;
 }
 .cbtn:active { background: var(--honey); color: #000; box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); transform: translateY(1px); }
@@ -191,16 +183,12 @@ body {
 .u-dots { opacity: 0.4; letter-spacing: 4px; }
 .inline-edit { background: transparent; border: none; color: var(--honey); font-family: inherit; font-size: inherit; font-weight: 900; width: 100%; text-align: center; outline: none; }
 
-/* Modal */
-.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(50px); z-index: 2000; display: none; align-items: center; justify-content: center; }
-.modal-bg.show { display: flex; }
-.modal { 
-  background: linear-gradient(145deg, #1a1c1e 0%, #0a0b0d 100%);
-  border: 1px solid rgba(255,255,255,0.1);
-  padding: 60px; width: 95%; max-width: 650px;
-  box-shadow: 0 50px 150px rgba(0,0,0,1);
-}
-.modal h2 { font-size: 36px; font-weight: 900; text-transform: lowercase; letter-spacing: -2px; margin-bottom: 50px; }
+/* ── Richer Category Gradients ── */
+.dm-CTI .tile { background: linear-gradient(135deg, rgba(189, 195, 199, 0.3) 0%, rgba(44, 62, 80, 0.6) 100%); }
+.dm-ECM .tile { background: linear-gradient(135deg, rgba(92, 64, 51, 0.3) 0%, rgba(43, 29, 20, 0.6) 100%); }
+.dm-CSD .tile { background: linear-gradient(135deg, rgba(168, 224, 99, 0.3) 0%, rgba(86, 171, 47, 0.6) 100%); }
+.dm-GRA .tile { background: linear-gradient(135deg, rgba(246, 211, 101, 0.3) 0%, rgba(255, 179, 71, 0.6) 100%); }
+.dm-PER .tile { background: linear-gradient(135deg, rgba(230, 208, 206, 0.3) 0%, rgba(185, 147, 90, 0.6) 100%); }
 
 @media (max-width: 1024px) {
   .app { grid-template-columns: 1fr; }
