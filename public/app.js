@@ -168,14 +168,15 @@ function makeCardEl(t, isList){
   h+='</div>';
   h+='</div>'; // end card-grid
 
-  // Name (Strict Bottom Left)
+  // Footer Group (Name + Blocker)
+  h+='<div class="card-footer">';
+  if(blocked && !t.isSub) h+='<div class="tile tile-blocked">NEEDS: '+esc(getBlockerName(t))+'</div>';
+  if(t.isSub) h+='<div class="tile tile-blocked">↳ sub of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
   h+='<div class="tile-name">'+esc(t.name)+'</div>';
+  h+='</div>';
 
   // Domain Identifier (STRICT BOTTOM RIGHT)
   h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
-
-  if(blocked && !t.isSub) h+='<div class="tile tile-blocked">NEEDS: '+esc(getBlockerName(t))+'</div>';
-  if(t.isSub) h+='<div class="tile tile-blocked">↳ sub of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
 
   el.innerHTML=h;
 

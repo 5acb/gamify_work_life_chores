@@ -132,12 +132,17 @@ body {
 .card.selected::after { background: var(--honey); padding: 6px; }
 .card.selected { box-shadow: 0 0 80px rgba(232, 176, 4, 0.4), var(--glass-shd); border: 2px solid var(--honey) !important; }
 
-/* ── Task Name (Solid Polished Material Color) ── */
+/* ── Card Footer Group (Name + Blocker) ── */
+.card-footer {
+  position: absolute; bottom: 20px; left: 20px; width: calc(100% - 100px);
+  display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
+  z-index: 2; pointer-events: none;
+}
+.card-footer * { pointer-events: auto; }
+
 .tile-name {
-  position: absolute; bottom: 20px; left: 20px; width: calc(100% - 100px); text-align: left;
-  font-size: 22px; font-weight: 500; line-height: 1.2; letter-spacing: -0.5px; z-index: 2;
-  color: var(--ink); /* Fallback */
-  transition: all 0.3s ease;
+  font-size: 22px; font-weight: 500; line-height: 1.2; letter-spacing: -0.5px;
+  color: var(--ink); transition: all 0.3s ease;
 }
 .card.mat-teal .tile-name { color: var(--clr-teal); }
 .card.mat-cobalt .tile-name { color: var(--clr-cobalt); }
@@ -183,12 +188,11 @@ body {
 }
 .tile-domain:hover { filter: drop-shadow(0 0 10px var(--honey)) !important; }
 
-/* Blocked Tile (Positioned ABOVE name) */
+/* Blocked Tile (Part of Footer Group) */
 .tile-blocked {
-  position: absolute; bottom: 60px; left: 20px;
   font-size: 10px; font-weight: 900; letter-spacing: 1px;
   padding: 4px 12px; border-radius: var(--r-sm);
-  z-index: 2; transition: all 0.3s;
+  transition: all 0.3s;
 }
 
 /* ── Layout ── */
