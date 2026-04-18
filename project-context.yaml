@@ -38,12 +38,14 @@ architecture:
     3001: "commit-daemon (socat + bash, localhost-only) — proxied on /api/commit"
     3002: "MCP server (SSE transport, token auth) — proxied on /mcp"
   auth_flow: >
-    Custom session-based authentication using signed cookies (sid). 
-    Passwords validated against /etc/nginx/.htpasswd via `htpasswd -v -i` child process.
+    Modern passwordless-first authentication. Supports WebAuthn (Passkeys) for primary access.
+    Fallback authentication uses Argon2-hashed passwords stored in the database.
     Sessions are HMAC-signed (slug.ts.hmac) using a persistent secret in 
     /opt/organizer/data/.session_secret. 30-day expiry.
   security:
     - "Custom session verification with timing-safe HMAC checks"
+    - "WebAuthn (Passkeys) for secure, biometric authentication"
+    - "Argon2 for robust, salted password hashing in DB"
     - "CSP header: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'nonce-<val>'; img-src 'self' data:; connect-src 'self'; font-src 'self'"
     - "Audit logging: task_events table tracks all mutations"
     - "CSRF: X-Requested-With: XMLHttpRequest required on all non-GET requests"

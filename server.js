@@ -4,11 +4,22 @@ const path = require('path');
 const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
 const fs = require('fs');
+const argon2 = require('argon2');
+const { 
+  generateRegistrationOptions, 
+  verifyRegistrationResponse, 
+  generateAuthenticationOptions, 
+  verifyAuthenticationResponse 
+} = require('@simplewebauthn/server');
+
+// ---- Sanctuary RP Config ----
+const RP_ID = '7ay.de';
+const RP_NAME = '7ay.de Sanctuary';
+const ORIGIN = `https://${RP_ID}`;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_PATH = process.env.DB_PATH || '/opt/organizer/data/organizer.db';
-const HTPASSWD = process.env.HTPASSWD || '/etc/nginx/.htpasswd';
 
 // SEC-16: allowed domain values
 const VALID_DOMAINS = ['CTI', 'ECM', 'CSD', 'GRA', 'Personal'];
@@ -75,15 +86,12 @@ function getSessionUser(req) {
   return db.prepare('SELECT * FROM users WHERE slug = ?').get(slug) || null;
 }
 
-// ---- Password validation via htpasswd -v -i ----
-function checkPassword(slug, password) {
+// ---- Password validation via Argon2 ----
+async function checkPassword(slug, password) {
   try {
-    const r = spawnSync('htpasswd', ['-v', '-i', HTPASSWD, slug], {
-      input: password,
-      encoding: 'utf-8',
-      timeout: 5000,
-    });
-    return r.status === 0;
+    const user = db.prepare('SELECT password_hash FROM users WHERE slug = ?').get(slug);
+    if (!user || !user.password_hash) return false;
+    return await argon2.verify(user.password_hash, password);
   } catch { return false; }
 }
 
@@ -115,15 +123,13 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#090a0f">
 <title>organizer | gateway</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/simplewebauthn-browser/9.0.0/index.umd.min.js"></script>
 <style nonce="${nonce}">
   @import url('https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
   body{
-    font-family:'Lexend Deca',sans-serif;
-    background-color:#090a0f;
-    color:#f4f0ea;
-    height:100vh;width:100vw;
-    display:flex;align-items:center;justify-content:center;
+    font-family:'Lexend Deca',sans-serif; background-color:#090a0f; color:#f4f0ea;
+    height:100vh; width:100vw; display:flex; align-items:center; justify-content:center;
     overflow:hidden;
     background-image: 
       radial-gradient(at 0% 0%, rgba(30,36,44,0.5) 0, transparent 50%),
@@ -168,14 +174,16 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
     padding:22px;background:#e8b004;color:#000;border:none;
     font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:3px;
     cursor:pointer;transition:all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-    box-shadow:0 15px 30px rgba(232,176,4,0.2);
+    box-shadow:0 15px 30px rgba(232, 176, 4, 0.2);
   }
-  button:hover{filter:brightness(1.1);transform:translateY(-4px);box-shadow:0 25px 50px rgba(232,176,4,0.4)}
+  button:hover{filter:brightness(1.1);transform:translateY(-4px);box-shadow:0 25px 50px rgba(232, 176, 4, 0.4)}
   button:active{transform:translateY(2px);box-shadow:inset 0 4px 10px rgba(0,0,0,0.4)}
+
+  .passkey-btn{background:rgba(255,255,255,0.05);color:#f4f0ea;border:1px solid rgba(255,255,255,0.1);margin-top:-10px}
+  .passkey-btn:hover{background:rgba(255,255,255,0.1);border-color:#e8b004}
 
   .err{color:#ff8888;font-size:13px;font-weight:600;background:rgba(255,85,85,0.05);border-left:4px solid #ff8888;padding:15px;letter-spacing:0.5px}
 
-  /* Fog Animation */
   @keyframes breathe {
     0%,100% { opacity: 0.4; transform: scale(1); }
     50% { opacity: 0.6; transform: scale(1.1); }
@@ -188,19 +196,48 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
 <div class="fog"></div>
 <div class="monolith">
   <h1>organizer<span>.</span></h1>
-  <form method="POST" action="/login" style="display:flex;flex-direction:column;gap:30px">
+  <form id="loginForm" method="POST" action="/login" style="display:flex;flex-direction:column;gap:30px">
     ${error ? `<p class="err">${error}</p>` : ''}
     <div class="field">
       <label>Identity</label>
-      <input name="slug" placeholder="username" autocomplete="username" required autofocus>
+      <input id="slug" name="slug" placeholder="username" autocomplete="username" required autofocus>
     </div>
     <div class="field">
       <label>Key</label>
-      <input name="password" type="password" placeholder="••••••••" autocomplete="current-password" required>
+      <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required>
     </div>
     <button type="submit">Unlock Gateway</button>
+    <button type="button" id="passkeyBtn" class="passkey-btn">Use Passkey</button>
   </form>
 </div>
+<script nonce="${nonce}">
+  const { startAuthentication } = SimpleWebAuthnBrowser;
+  document.getElementById('passkeyBtn').onclick = async () => {
+    const slug = document.getElementById('slug').value;
+    if (!slug) return alert('Enter your identity first.');
+    try {
+      const optsResp = await fetch('/api/auth/login-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug })
+      });
+      const opts = await optsResp.json();
+      if (opts.error) throw new Error(opts.error);
+      const asseResp = await startAuthentication(opts);
+      const verifyResp = await fetch('/api/auth/login-verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, response: asseResp })
+      });
+      const verif = await verifyResp.json();
+      if (verif.ok) location.href = '/' + slug;
+      else alert('Passkey verification failed.');
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    }
+  };
+</script>
 </body>
 </html>`;
 
@@ -209,11 +246,11 @@ app.get('/login', (req, res) => {
   res.send(LOGIN_HTML(res.locals.nonce));
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', async (req, res) => {
   const { slug, password } = req.body;
   if (!slug || !password) return res.status(400).send(LOGIN_HTML(res.locals.nonce, 'Username and password required.'));
   const user = db.prepare('SELECT * FROM users WHERE slug = ?').get(slug);
-  if (!user || !checkPassword(slug, password)) {
+  if (!user || !await checkPassword(slug, password)) {
     return res.status(401).send(LOGIN_HTML(res.locals.nonce, 'Invalid username or password.'));
   }
   const token = signSession(slug);
@@ -574,6 +611,138 @@ app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
     console.error('Gemini agent error:', e.message);
     res.status(500).json({ error: 'gemini request failed' });
   }
+});
+
+// ---- WebAuthn (Passkeys) Endpoints ----
+
+function setChallenge(userId, challenge) {
+  const expiresAt = Math.floor(Date.now() / 1000) + 300; // 5 mins
+  db.prepare('INSERT OR REPLACE INTO auth_challenges (user_id, challenge, expires_at) VALUES (?, ?, ?)')
+    .run(userId, challenge, expiresAt);
+}
+
+function getChallenge(userId) {
+  const row = db.prepare('SELECT challenge FROM auth_challenges WHERE user_id = ? AND expires_at > ?')
+    .get(userId, Math.floor(Date.now() / 1000));
+  return row ? row.challenge : null;
+}
+
+app.post('/api/auth/register-options', ensureAuth, async (req, res) => {
+  const user = req.user;
+  const userCredentials = db.prepare('SELECT id FROM credentials WHERE user_id = ?').all(user.id);
+
+  const options = await generateRegistrationOptions({
+    rpName: RP_NAME,
+    rpID: RP_ID,
+    userID: String(user.id),
+    userName: user.slug,
+    attestationType: 'none',
+    excludeCredentials: userCredentials.map(cred => ({
+      id: cred.id,
+      type: 'public-key',
+    })),
+    authenticatorSelection: {
+      residentKey: 'required',
+      userVerification: 'preferred',
+    },
+  });
+
+  setChallenge(user.id, options.challenge);
+  res.json(options);
+});
+
+app.post('/api/auth/register-verify', ensureAuth, async (req, res) => {
+  const user = req.user;
+  const expectedChallenge = getChallenge(user.id);
+  if (!expectedChallenge) return res.status(400).json({ error: 'challenge expired' });
+
+  try {
+    const verification = await verifyRegistrationResponse({
+      response: req.body,
+      expectedChallenge,
+      expectedOrigin: ORIGIN,
+      expectedRPID: RP_ID,
+    });
+
+    if (verification.verified && verification.registrationInfo) {
+      const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
+      db.prepare('INSERT INTO credentials (id, user_id, public_key, counter, transports) VALUES (?, ?, ?, ?, ?)')
+        .run(credentialID, user.id, Buffer.from(credentialPublicKey), counter, JSON.stringify(req.body.response.transports || []));
+      res.json({ ok: true });
+    } else {
+      res.status(400).json({ error: 'verification failed' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/login-options', async (req, res) => {
+  const { slug } = req.body;
+  if (!slug) return res.status(400).json({ error: 'slug required' });
+  const user = db.prepare('SELECT id FROM users WHERE slug = ?').get(slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+
+  const userCredentials = db.prepare('SELECT id, transports FROM credentials WHERE user_id = ?').all(user.id);
+  const options = await generateAuthenticationOptions({
+    rpID: RP_ID,
+    allowCredentials: userCredentials.map(cred => ({
+      id: cred.id,
+      type: 'public-key',
+      transports: JSON.parse(cred.transports || '[]'),
+    })),
+    userVerification: 'preferred',
+  });
+
+  setChallenge(user.id, options.challenge);
+  res.json(options);
+});
+
+app.post('/api/auth/login-verify', async (req, res) => {
+  const { slug, response } = req.body;
+  const user = db.prepare('SELECT id FROM users WHERE slug = ?').get(slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+
+  const expectedChallenge = getChallenge(user.id);
+  if (!expectedChallenge) return res.status(400).json({ error: 'challenge expired' });
+
+  const cred = db.prepare('SELECT public_key, counter FROM credentials WHERE id = ? AND user_id = ?').get(response.id, user.id);
+  if (!cred) return res.status(400).json({ error: 'credential not found' });
+
+  try {
+    const verification = await verifyAuthenticationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: ORIGIN,
+      expectedRPID: RP_ID,
+      authenticator: {
+        credentialID: response.id,
+        credentialPublicKey: new Uint8Array(cred.public_key),
+        counter: cred.counter,
+      },
+    });
+
+    if (verification.verified) {
+      db.prepare('UPDATE credentials SET counter = ? WHERE id = ?').run(verification.authenticationInfo.newCounter, response.id);
+      const token = signSession(slug);
+      res.setHeader('Set-Cookie', `sid=${encodeURIComponent(token)}; Path=/; Max-Age=${30*24*3600}; HttpOnly; Secure; SameSite=Strict`);
+      res.json({ ok: true });
+    } else {
+      res.status(400).json({ error: 'verification failed' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.patch('/api/me/password', ensureAuth, async (req, res) => {
+  const { password } = req.body;
+  if (!password || password.length < 8) return res.status(400).json({ error: 'Password too short (min 8)' });
+  const hash = await argon2.hash(password);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.user.id);
+  res.json({ ok: true });
 });
 
 // ---- SPA ----

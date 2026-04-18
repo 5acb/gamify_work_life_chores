@@ -109,6 +109,8 @@ function renderApp(){
             +'</div>'
             +'<button class="tile hdr-btn" id="addBtn" title="New Stone">+</button>'
             +'<button class="tile ai-btn" id="aiBtn">✦ Oracle</button>'
+            +'<button class="tile hdr-btn" id="passBtn" title="Update Key">🔑</button>'
+            +'<button class="tile hdr-btn" id="regBtn" title="Register Passkey">🛡</button>'
             +'<button class="tile hdr-btn" id="logoutBtn" title="Sign Out">⏻</button>'
           +'</div>'
         +'</div>'
@@ -126,6 +128,8 @@ function renderApp(){
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
   document.getElementById('addBtn').addEventListener('click',openAddTask);
   document.getElementById('aiBtn').addEventListener('click',openAI);
+  document.getElementById('passBtn').addEventListener('click',updatePassword);
+  document.getElementById('regBtn').addEventListener('click',registerPasskey);
   document.getElementById('logoutBtn').addEventListener('click',openLogoutConfirm);
 
   document.getElementById('viewToggle').onclick = function(){
@@ -183,6 +187,44 @@ function updateStatusDots(){
   });
   h += '</div>';
   container.innerHTML = h;
+}
+
+async function updatePassword(){
+  const newPass = prompt('Enter new sanctuary key:');
+  if(!newPass) return;
+  try {
+    const res = await api('PATCH', '/api/me/password', { password: newPass });
+    if(res.ok) alert('Sanctuary key updated.');
+  } catch (err) {
+    alert('Update failed: ' + err.message);
+  }
+}
+
+async function registerPasskey(){
+  // Note: SimpleWebAuthnBrowser is globally available from the CDN in index.html
+  const { startRegistration } = SimpleWebAuthnBrowser;
+  try {
+    const optsResp = await fetch('/api/auth/register-options', { 
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' } 
+    });
+    const opts = await optsResp.json();
+    if (opts.error) throw new Error(opts.error);
+
+    const attResp = await startRegistration(opts);
+    const verifyResp = await fetch('/api/auth/register-verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      body: JSON.stringify(attResp)
+    });
+
+    const verif = await verifyResp.json();
+    if (verif.ok) alert('Passkey registered. You can now use it to unlock your sanctuary.');
+    else alert('Verification failed.');
+  } catch (err) {
+    console.error(err);
+    alert(err.message);
+  }
 }
 
 function openLogoutConfirm(){
