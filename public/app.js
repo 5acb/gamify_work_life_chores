@@ -531,11 +531,24 @@ function openCouncil(){
   var fourthPanel = overlay.querySelectorAll('.agent-panel')[3];
   if(fourthPanel){
     fourthPanel.dataset.agent = fourthAgent.id;
-    fourthPanel.querySelector('.agent-icon').textContent  = fourthAgent.icon;
-    fourthPanel.querySelector('.agent-name').textContent  = fourthAgent.label;
-    fourthPanel.querySelector('.agent-input').placeholder = 'Reply to ' + fourthAgent.label + '...';
+    fourthPanel.querySelector('.agent-icon').textContent   = fourthAgent.icon;
+    fourthPanel.querySelector('.agent-name').textContent   = fourthAgent.label;
+    fourthPanel.querySelector('.agent-input').placeholder  = 'Reply to ' + fourthAgent.label + '...';
+    fourthPanel.querySelector('.agent-input').id           = 'inp_' + fourthAgent.id;
     fourthPanel.querySelector('.agent-send').dataset.agent = fourthAgent.id;
+    fourthPanel.querySelector('.agent-send').onclick = function(){ sendToAgent(fourthAgent.id); };
+    fourthPanel.querySelector('.agent-feed').id = 'feed_' + fourthAgent.id;
+    // Clear feed from previous session
+    fourthPanel.querySelector('.agent-feed').innerHTML = '';
+    fourthPanel.classList.remove('ready','thinking');
   }
+  // Also clear all other agent feeds for fresh session
+  overlay.querySelectorAll('.agent-panel').forEach(function(p, i){
+    if(i===3) return; // already handled
+    p.querySelector('.agent-feed').innerHTML = '';
+    p.classList.remove('ready','thinking');
+  });
+  COUNCIL_AGENTS.forEach(function(a){ a.history = []; });
 
   var ctxEl = overlay.querySelector('.council-context');
   if(ctxEl) ctxEl.textContent = focusTask
