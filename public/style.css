@@ -17,13 +17,13 @@
   --mat-canyon: linear-gradient(135deg, #c15c3d 0%, #4a2c2a 100%);  /* Zion Rock (PER) */
   --mat-bamboo: linear-gradient(135deg, #7fb069 0%, #2d5a27 100%); /* Zion Green */
 
-  /* Luminous Typography Gradients (Integrated Material Colors - No Solid White) */
-  --txt-teal: linear-gradient(to bottom, #99f6e4 0%, #5E9C95 100%);
-  --txt-cobalt: linear-gradient(to bottom, #93c5fd 0%, #3b6978 100%);
-  --txt-indigo: linear-gradient(to bottom, #60a5fa 0%, #1f3b4d 100%);
-  --txt-wood: linear-gradient(to bottom, #d2b48c 0%, #3d2b1f 100%);
-  --txt-amber: linear-gradient(to bottom, #fbbf24 0%, #d67d52 100%);
-  --txt-canyon: linear-gradient(to bottom, #ff8888 0%, #c15c3d 100%);
+  /* Polished Material Text Colors (Solid, High Readability) */
+  --clr-teal: #99f6e4;
+  --clr-cobalt: #93c5fd;
+  --clr-indigo: #60a5fa;
+  --clr-wood: #d2b48c;
+  --clr-amber: #fbbf24;
+  --clr-canyon: #ff8888;
 
   /* Glass foundation */
   --glass: rgba(255, 255, 255, 0.03);
@@ -132,20 +132,19 @@ body {
 .card.selected::after { background: var(--honey); }
 .card.selected { box-shadow: 0 0 60px rgba(232, 176, 4, 0.3), var(--glass-shd); border: 1px solid var(--honey) !important; }
 
-/* ── Task Name (Luminous Material Typography) ── */
+/* ── Task Name (Solid Polished Material Color) ── */
 .tile-name {
-  position: absolute; bottom: 20px; left: 20px; width: calc(100% - 100px); text-align: left;
-  font-size: 22px; font-weight: 600; line-height: 1.2; letter-spacing: -0.5px; z-index: 2;
-  background-clip: text; -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent; background-color: var(--ink);
+  position: absolute; bottom: 20px; left: 20px; width: calc(100% - 40px); text-align: left;
+  font-size: 22px; font-weight: 500; line-height: 1.2; letter-spacing: -0.5px; z-index: 2;
+  color: var(--ink); /* Fallback */
   transition: all 0.3s ease;
 }
-/* Text Fill strictly follows card material color */
-.card.mat-teal .tile-name { background-image: var(--txt-teal); }
-.card.mat-cobalt .tile-name { background-image: var(--txt-cobalt); }
-.card.mat-indigo .tile-name { background-image: var(--txt-indigo); }
-.card.mat-wood .tile-name { background-image: var(--txt-wood); }
-.card.mat-amber .tile-name { background-image: var(--txt-amber); }
+.card.mat-teal .tile-name { color: var(--clr-teal); }
+.card.mat-cobalt .tile-name { color: var(--clr-cobalt); }
+.card.mat-indigo .tile-name { color: var(--clr-indigo); }
+.card.mat-wood .tile-name { color: var(--clr-wood); }
+.card.mat-amber .tile-name { color: var(--clr-amber); }
+.card.state-urgent .tile-name { color: var(--clr-canyon); }
 
 /* Dissolved Actions (ABSOLUTE TOP LEFT) */
 .tile-actions {
