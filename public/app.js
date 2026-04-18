@@ -1,6 +1,6 @@
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
-var DM={CTI:{c:'#4a6fa5',l:'CTI',m:'mat-stone'},ECM:{c:'#9b6a9b',l:'ECM',m:'mat-wood'},CSD:{c:'#5e9b8e',l:'CSD',m:'mat-bamboo'},GRA:{c:'#c29b4a',l:'GRA',m:'mat-amber'},Personal:{c:'#6a6a9b',l:'PER',m:'mat-canyon'}};
+var DM={CTI:{c:'#5E9C95',l:'CTI',m:'mat-teal'},ECM:{c:'#9b6a9b',l:'ECM',m:'mat-wood'},CSD:{c:'#3b6978',l:'CSD',m:'mat-cobalt'},GRA:{c:'#c29b4a',l:'GRA',m:'mat-amber'},Personal:{c:'#1f3b4d',l:'PER',m:'mat-indigo'}};
 var SPEED_L=['snap','sesh','grind'],STAKES_L=['low','high','crit'];
 var DOMAINS=Object.keys(DM);
 
@@ -90,7 +90,7 @@ function renderApp(){
           +'</div>'
         +'</div>'
         +'<div style="display:flex;justify-content:flex-end;margin-top:15px">'
-          +'<input class="search" id="search" placeholder="Search tasks..." autocomplete="off" style="max-width:200px">'
+          +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off" style="max-width:200px">'
         +'</div>'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
@@ -131,12 +131,17 @@ function makeCardEl(t, isList){
   var dp=daysFrom(t.plan_date), dd=daysFrom(t.due_date);
   var dm=DM[t.domain]||{c:'#71717a',l:t.domain,m:''};
 
+  // Functional Urgency State
+  var isUrgent = dd <= 1 || blocked;
+  var isSafe = done || dd > 3;
+  var stateCls = isUrgent ? 'state-urgent' : (isSafe ? 'state-safe' : '');
+
   var el=document.createElement('div');
-  el.className='card '+dm.m+(done?' done':'')+(blocked?' blocked':'')+(archived?' archived':'')+(state.selectedId===t.id?' selected':'');
+  el.className='card '+dm.m+' '+stateCls+(done?' done':'')+(blocked?' blocked':'')+(archived?' archived':'')+(state.selectedId===t.id?' selected':'');
   el.dataset.id=t.id;
 
   var h='';
-  // Dissolved Action Icons (absolute top left)
+  // Dissolved Action Icons (pinned to absolute top left)
   h+='<div class="tile-actions">'
     +'<button class="cbtn act-edit" data-id="'+t.id+'" title="Edit">✎</button>'
     +(archived || state.view === 'archived' 
@@ -145,20 +150,24 @@ function makeCardEl(t, isList){
   +'</div>';
 
   h+='<div class="card-grid">';
+  // Subtiles (TOP RIGHT)
   var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'---';
-  h+='<div class="tile tile-date">'+esc(dLabel)+'</div>';
+  h+='<div class="tile tile-date '+stateCls+'">'+esc(dLabel)+'</div>';
   
-  h+='<div class="tile tile-urgency">';
+  h+='<div class="tile tile-urgency '+stateCls+'">';
   if(dp<999||dd<999){
     if(dp<999) h+='<span class="u-pill">T−'+dp+'</span>';
     if(dp<999&&dd<999&&dd>dp) h+='<span class="u-dots">'+bufferDots(dp,dd)+'</span>';
     if(dd<999) h+='<span class="u-pill">T−'+dd+'</span>';
   } else h+='<span style="opacity:0.2">---</span>';
   h+='</div>';
-  h+='</div>';
+  h+='</div>'; // end card-grid
 
+  // Name (Strict Bottom Left)
   h+='<div class="tile-name">'+esc(t.name)+'</div>';
-  h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
+
+  // Domain Identifier (STRICT BOTTOM RIGHT)
+  h+='<div class="tile tile-domain '+stateCls+'">'+esc(dm.l)+'</div>';
 
   if(blocked && !t.isSub) h+='<div class="tile tile-blocked" style="position:absolute; bottom:60px; left:20px; border:none; background:rgba(255,85,85,0.05); color:#ff8888; font-size:10px">needs: '+esc(getBlockerName(t))+'</div>';
   if(t.isSub) h+='<div class="tile tile-blocked" style="position:absolute; bottom:60px; left:20px; border:none; color:rgba(255,255,255,0.2); font-size:9px">↳ sub of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
@@ -207,9 +216,11 @@ function bindGlobalActionEvents(){
     var btn = e.target.closest('.cbtn'); if(!btn) return;
     e.stopPropagation();
     var id = +btn.dataset.id;
-    if(btn.classList.contains('act-edit')) openEdit(id);
-    if(btn.classList.contains('act-archive')) api('PATCH','/api/tasks/'+id+'/archive').then(loadBoard);
-    if(btn.classList.contains('act-restore')) api('PATCH','/api/tasks/'+id+'/unarchive').then(loadBoard);
+    if(id) {
+        if(btn.classList.contains('act-edit')) openEdit(id);
+        if(btn.classList.contains('act-archive')) api('PATCH','/api/tasks/'+id+'/archive').then(loadBoard);
+        if(btn.classList.contains('act-restore')) api('PATCH','/api/tasks/'+id+'/unarchive').then(loadBoard);
+    }
   };
 }
 
@@ -295,10 +306,10 @@ function openEdit(id){
 
 function openAddTask(){
   var m=document.getElementById('modal');
-  m.innerHTML='<h2>New Stone</h2>'+taskForm(null)
+  m.innerHTML='<h2>New Task</h2>'+taskForm(null)
     +'<div class="modal-actions">'
       +'<button id="mc" class="btn-cancel">Cancel</button>'
-      +'<button class="btn-save" id="ms">Create</button>'
+      +'<button class="btn-save" id="ms">Create Stone</button>'
     +'</div>';
   showModal();
   document.getElementById('mc').onclick=closeModal;
