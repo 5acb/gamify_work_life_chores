@@ -122,12 +122,18 @@ body {
 .card.hue-marble { background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(200, 200, 200, 0.02) 50%, var(--glass) 100%); }
 .card.hue-bamboo { background: linear-gradient(135deg, rgba(127, 176, 105, 0.03) 0%, var(--glass) 100%); }
 
-/* Status Dots */
-.status-dot { height: 6px; width: 6px; border-radius: 50%; }
-.dot-canyon { background: #c15c3d; box-shadow: 0 0 10px rgba(193, 92, 61, 0.4); }
-.dot-amber { background: #e8b004; box-shadow: 0 0 10px rgba(232, 176, 4, 0.3); }
-.dot-marble { background: #b2b2b2; box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); }
-.dot-bamboo { background: #7fb069; box-shadow: 0 0 10px rgba(127, 176, 105, 0.2); }
+/* Status Tile & Indicator Line */
+.status-tile {
+  background: var(--glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.08); padding: 8px 12px;
+  border-radius: var(--r-sm); display: flex; align-items: center; gap: 3px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+.status-dot { height: 10px; width: 2px; border-radius: 1px; transition: all 0.3s ease; }
+.dot-canyon { background: #c15c3d; box-shadow: 0 0 8px rgba(193, 92, 61, 0.6); }
+.dot-amber { background: #e8b004; box-shadow: 0 0 8px rgba(232, 176, 4, 0.5); }
+.dot-marble { background: rgba(255, 255, 255, 0.2); }
+.dot-bamboo { background: #7fb069; opacity: 0.4; }
 
 .card-hue-indicator { 
   height: 10px; width: 10px; border-radius: 50%; 

@@ -112,9 +112,9 @@ function renderApp(){
             +'<button class="tile hdr-btn" id="logoutBtn" title="Sign Out">⏻</button>'
           +'</div>'
         +'</div>'
-        +'<div style="display:flex;justify-content:flex-end;margin-top:15px;flex-direction:column;align-items:flex-end;gap:10px">'
+        +'<div style="display:flex;justify-content:flex-end;margin-top:15px;align-items:center;gap:12px">'
           +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off" style="max-width:200px">'
-          +'<div id="statusDots" style="display:flex;gap:4px;padding-right:5px"></div>'
+          +'<div id="statusDots"></div>'
         +'</div>'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
@@ -172,11 +172,13 @@ function updateStatusDots(){
     dotCounts[3] += diff; // Adjust bamboo (most common)
   }
 
+  h += '<div class="status-tile">';
   types.forEach((type, idx) => {
     for(var i=0; i<dotCounts[idx]; i++) {
         h += '<div class="status-dot dot-'+type+'" title="'+type.toUpperCase()+'"></div>';
     }
   });
+  h += '</div>';
   container.innerHTML = h;
 }
 
