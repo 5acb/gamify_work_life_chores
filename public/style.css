@@ -1,25 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap');
 
 :root {
-  /* Atmospheric Sanctuary Palette */
+  /* Cinematic Atmospheric Palette */
   --obsidian: #090a0f;
   --mist: #1e242c;
-  --honey: #e8b004;
-  --ink: #f4f0ea;
+  --honey: #e8b004;         /* Reserved for Selection/Focus */
+  --ink: #f4f0ea;           /* Washi contrast */
   --faded: rgba(244, 240, 234, 0.25);
   
-  /* Material Gradient Borders */
-  --mat-stone: linear-gradient(135deg, #8e918f 0%, #2c3e50 100%);
-  --mat-wood: linear-gradient(135deg, #3d2b1f 0%, #0d0d0d 100%);
-  --mat-bamboo: linear-gradient(135deg, #7fb069 0%, #2d5a27 100%);
-  --mat-amber: linear-gradient(135deg, #d67d52 0%, #78350f 100%);
-  --mat-canyon: linear-gradient(135deg, #c15c3d 0%, #4a2c2a 100%);
+  /* Material Gradient Borders (Photo-sampled) */
+  --mat-stone: linear-gradient(135deg, #8e918f 0%, #2c3e50 100%);  /* River Pebbles */
+  --mat-wood: linear-gradient(135deg, #3d2b1f 0%, #0d0d0d 100%);   /* Dark Riverbed */
+  --mat-bamboo: linear-gradient(135deg, #7fb069 0%, #2d5a27 100%); /* Zion Green */
+  --mat-amber: linear-gradient(135deg, #d67d52 0%, #78350f 100%);  /* Burned Amber (GRA) */
+  --mat-canyon: linear-gradient(135deg, #c15c3d 0%, #4a2c2a 100%);  /* Zion Rock (PER) */
 
   /* Glass foundation */
-  --glass: rgba(255, 255, 255, 0.03);
+  --glass: rgba(255, 255, 255, 0.04);
   --glass-inner: rgba(255, 255, 255, 0.06);
   --glass-brd: rgba(255, 255, 255, 0.1);
-  --glass-shd: 0 10px 40px rgba(0, 0, 0, 0.6);
+  --glass-shd: 0 15px 40px rgba(0, 0, 0, 0.6);
   
   /* Radii */
   --r-md: 8px;
@@ -34,10 +34,7 @@ body {
   font-family: "Lexend Deca", sans-serif;
   background-color: var(--obsidian);
   color: var(--ink);
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  -webkit-font-smoothing: antialiased;
+  height: 100vh; width: 100vw; overflow: hidden; -webkit-font-smoothing: antialiased;
   background-image: 
     radial-gradient(at 0% 0%, rgba(30, 36, 44, 0.4) 0, transparent 50%),
     radial-gradient(at 100% 0%, rgba(193, 92, 61, 0.05) 0, transparent 40%),
@@ -45,11 +42,7 @@ body {
     linear-gradient(180deg, #0f1217 0%, #050608 100%);
 }
 
-.app { 
-  display: grid; 
-  grid-template-columns: 2fr 1fr; 
-  height: 100vh; width: 100vw; 
-}
+.app { display: grid; grid-template-columns: 2fr 1fr; height: 100vh; width: 100vw; }
 
 /* ── Panels ── */
 .panel-tree { display: flex; flex-direction: column; height: 100vh; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.1); overflow: hidden; }
@@ -61,14 +54,14 @@ body {
 .hdr h1 { font-size: 26px; font-weight: 800; letter-spacing: -1px; text-transform: uppercase; flex: 1; }
 
 .hdr-btn, .ai-btn { 
-  background: var(--glass); backdrop-filter: blur(10px);
+  background: var(--glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.1); color: var(--ink);
   font-size: 10px; font-weight: 800; padding: 12px 24px; cursor: pointer; 
-  text-transform: uppercase; letter-spacing: 2px;
-  border-radius: var(--r-sm);
+  text-transform: uppercase; letter-spacing: 2px; border-radius: var(--r-sm);
+  transition: all 0.2s;
 }
+.hdr-btn:hover, .ai-btn:hover { border-color: var(--honey); color: var(--honey); filter: drop-shadow(0 0 10px var(--honey)); }
 .hdr-btn:active, .ai-btn:active { box-shadow: inset 2px 2px 8px rgba(0,0,0,0.8); transform: translate(1px, 1px); }
-.ai-btn { color: var(--honey); border-color: var(--honey); }
 
 .search { 
   width: 100%; padding: 15px 20px; background: rgba(255,255,255,0.02); 
@@ -78,32 +71,16 @@ body {
 
 /* ── The Material Card ── */
 .card {
-  background: var(--glass);
-  backdrop-filter: blur(32px);
-  -webkit-backdrop-filter: blur(32px);
-  border: 3px solid transparent; 
-  padding: 15px;
-  cursor: pointer;
+  background: var(--glass); backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
+  border: 3px solid transparent; padding: 15px; cursor: pointer;
   transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-  display: flex; flex-direction: column;
-  box-shadow: var(--glass-shd);
-  position: relative;
-  height: 220px; 
-  border-radius: var(--r-md);
-  width: 100%;
-  max-width: var(--card-w);
-  overflow: hidden;
+  display: flex; flex-direction: column; box-shadow: var(--glass-shd);
+  position: relative; height: 220px; border-radius: var(--r-md); width: 100%; max-width: var(--card-w); overflow: hidden;
 }
-
 .card::after {
-  content: "";
-  position: absolute; inset: -3px; padding: 3px;
-  background: var(--ink); 
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none; z-index: 1; border-radius: var(--r-md);
+  content: ""; position: absolute; inset: -3px; padding: 3px; background: var(--ink); 
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; z-index: 1; border-radius: var(--r-md);
 }
 
 .card.mat-stone::after { background: var(--mat-stone); }
@@ -118,12 +95,9 @@ body {
 
 /* ── Task Name (STRICT BOTTOM LEFT) ── */
 .tile-name {
-  position: absolute; bottom: 20px; left: 20px;
-  width: calc(100% - 40px); text-align: left;
-  font-size: 22px; font-weight: 500; line-height: 1.2;
-  letter-spacing: -0.5px; z-index: 2;
-  background-clip: text; -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent; background-color: var(--ink);
+  position: absolute; bottom: 20px; left: 20px; width: calc(100% - 40px); text-align: left;
+  font-size: 22px; font-weight: 500; line-height: 1.2; letter-spacing: -0.5px; z-index: 2;
+  background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-color: var(--ink);
 }
 .dm-CTI .tile-name { background-image: var(--mat-stone); }
 .dm-ECM .tile-name { background-image: var(--mat-wood); }
@@ -133,8 +107,7 @@ body {
 
 /* Dissolved Actions (ABSOLUTE TOP LEFT) */
 .tile-actions {
-  position: absolute; top: 10px; left: 10px;
-  display: flex; gap: 4px; z-index: 10;
+  position: absolute; top: 10px; left: 10px; display: flex; gap: 4px; z-index: 10;
 }
 .cbtn {
   height: 20px; width: 20px; display: flex; align-items: center; justify-content: center;
@@ -145,17 +118,12 @@ body {
 .cbtn:hover { opacity: 1; color: var(--honey); filter: drop-shadow(0 0 10px var(--honey)); }
 
 /* Subtiles (TOP RIGHT) */
-.card-grid { 
-  display: flex; flex-direction: column; align-items: flex-end; 
-  gap: 6px; position: relative; z-index: 2; width: 100%;
-}
+.card-grid { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; position: relative; z-index: 2; width: 100%; }
 .tile {
   background: var(--glass-inner); border: 1px solid rgba(255, 255, 255, 0.1); 
   padding: 4px 8px; display: flex; align-items: center; justify-content: center;
-  color: var(--ink); font-size: 9px; font-weight: 800;
-  text-transform: uppercase; letter-spacing: 1.5px;
-  width: fit-content; border-radius: var(--r-sm);
-  transition: all 0.2s;
+  color: var(--ink); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;
+  width: fit-content; border-radius: var(--r-sm); transition: all 0.2s;
 }
 .tile:hover { border-color: var(--honey); color: var(--honey); filter: drop-shadow(0 0 8px var(--honey)); }
 
@@ -174,49 +142,28 @@ body {
 .cards { flex: 1; overflow-y: auto; padding: 20px 40px 240px; }
 .cards-inner { display: flex; flex-direction: column; align-items: center; gap: 30px; width: 100%; }
 
-/* Subtle Frosted FAB (Moved to Header in app.js, so this is just button base) */
-.fab {
-  position: fixed; bottom: 60px; right: 60px;
-  width: 64px; height: 64px; border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: var(--ink); font-size: 32px; font-weight: 300; cursor: pointer;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.4); z-index: 1000;
-  transition: all 0.3s;
-}
-.fab:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-3px); border-color: var(--honey); color: var(--honey); }
-.fab:active { transform: translateY(1px); box-shadow: inset 0 2px 10px rgba(0,0,0,0.5); }
-
 /* Modal */
 .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }
 .modal-bg.show { display: flex; }
 .modal { 
   background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 40px; width: 100%; max-width: 500px;
-  box-shadow: 0 40px 100px rgba(0,0,0,0.8);
-  border-radius: var(--r-lg);
-  display: flex; flex-direction: column; gap: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15); padding: 40px; width: 100%; max-width: 500px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.8); border-radius: var(--r-lg); display: flex; flex-direction: column; gap: 20px;
 }
 .modal h2 { font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: -1px; color: var(--honey); margin-bottom: 10px; text-align: center; }
 
 .field-tile {
   background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
-  padding: 15px; border-radius: var(--r-md);
-  display: flex; flex-direction: column; gap: 8px; align-items: flex-start !important;
-  width: 100% !important;
+  padding: 15px; border-radius: var(--r-md); display: flex; flex-direction: column; gap: 8px; align-items: flex-start !important; width: 100% !important;
 }
 .field-tile label { font-size: 9px; font-weight: 800; text-transform: uppercase; color: var(--faded); letter-spacing: 2px; }
-.field-tile input, .field-tile select, .field-tile textarea {
-  width: 100%; background: transparent; border: none; color: var(--ink);
-  font-size: 16px; font-family: inherit; font-weight: 500; outline: none;
-}
+.field-tile input, .field-tile select { width: 100%; background: transparent; border: none; color: var(--ink); font-size: 16px; font-family: inherit; font-weight: 500; outline: none; }
 .field-tile:focus-within { border-color: var(--honey); box-shadow: 0 0 15px rgba(232, 176, 4, 0.2); }
 
 .modal-actions { display: flex; gap: 12px; margin-top: 10px; }
-.modal-actions button { flex: 1; padding: 14px; border-radius: var(--r-md); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
-.btn-cancel { background: rgba(255,255,255,0.05); color: var(--ink); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; }
-.btn-save { background: var(--honey); color: #000; border: none; cursor: pointer; }
+.modal-actions button { flex: 1; padding: 14px; border-radius: var(--r-md); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; }
+.btn-cancel { background: rgba(255,255,255,0.05); color: var(--ink); border: 1px solid rgba(255,255,255,0.1); }
+.btn-save { background: var(--honey); color: #000; border: none; }
 .btn-save:hover { filter: brightness(1.1); box-shadow: 0 0 20px var(--honey); }
 
 .card.done { opacity: 0.2; filter: grayscale(1); }

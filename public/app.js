@@ -81,7 +81,11 @@ function renderApp(){
         +'</div>'
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">'
           +'<p style="font-size:12px;opacity:0.6">'+dateStr+'</p>'
-          +'<input class="search" id="search" placeholder="Search tasks..." autocomplete="off" style="max-width:250px">'
+          +'<div class="toggle-wrap" style="margin-bottom:0; flex:1; margin:0 20px">'
+            +'<button class="toggle-btn'+(state.view==='current'?' active':'')+'" data-view="current">active</button>'
+            +'<button class="toggle-btn'+(state.view==='archived'?' active':'')+'" data-view="archived">archived</button>'
+          +'</div>'
+          +'<input class="search" id="search" placeholder="Search tasks..." autocomplete="off" style="max-width:200px">'
         +'</div>'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
@@ -91,6 +95,12 @@ function renderApp(){
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
   document.getElementById('addBtn').addEventListener('click',openAddTask);
   document.getElementById('aiBtn').addEventListener('click',openAI);
+
+  document.querySelectorAll('[data-view]').forEach(function(b){b.addEventListener('click',function(){
+    var v=this.dataset.view;if(v===state.view)return;
+    state.view=v;
+    loadBoard();
+  })});
 
   renderCards();
   if(state.selectedId) renderTree(state.selectedId);
@@ -123,7 +133,9 @@ function makeCardEl(t, isList){
 
   h+='<div class="tile tile-actions">'
     +'<button class="cbtn" data-edit="'+t.id+'" title="Edit">✎</button>'
-    +'<button class="cbtn" data-archive="'+t.id+'" title="Archive">×</button>'
+    +(t.archived || state.view === 'archived' 
+      ? '<button class="cbtn" data-unarchive="'+t.id+'" title="Restore">↑</button>' 
+      : '<button class="cbtn" data-archive="'+t.id+'" title="Archive">↓</button>')
   +'</div>';
   h+='</div>'; // end card-grid
 
@@ -228,6 +240,7 @@ function getBlockerName(t){
 function bindActionEvents(){
   document.querySelectorAll('[data-edit]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();openEdit(+this.dataset.edit)})});
   document.querySelectorAll('[data-archive]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();api('PATCH','/api/tasks/'+this.dataset.archive+'/archive').then(loadBoard)})});
+  document.querySelectorAll('[data-unarchive]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();api('PATCH','/api/tasks/'+this.dataset.unarchive+'/unarchive').then(loadBoard)})});
 }
 
 // ── Modals ────────────────────────────────────────────────────
