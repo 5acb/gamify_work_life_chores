@@ -104,7 +104,7 @@ function renderApp(){
       +'<div class="hdr">'
         +'<div class="hdr-top">'
           +'<div class="hdr-controls">'
-            +'<div class="tile hdr-date-tile">'+dateStr+'</div>'
+            +'<div class="hdr-date-etched">'+dateStr+'</div>'
             +'<div id="viewToggle" class="tile switch-tile">'
               +'<div id="toggleKnob" class="switch-knob '+(state.view==='current'?'active':'archived')+'"></div>'
               +'<span class="switch-label '+(state.view==='current'?'on':'')+'" title="Active">↑</span>'
