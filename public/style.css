@@ -558,6 +558,11 @@ body.mode-execute .oracle-panel { display: flex; }
 .agent-panel[data-agent="domain_expert"] .agent-spinner,
 .agent-panel[data-agent="domain_expert"] .agent-ready-dot { color: #99f6e4; }
 
+.agent-panel[data-agent="plan_oracle"] .agent-name,
+.agent-panel[data-agent="plan_oracle"] .agent-icon,
+.agent-panel[data-agent="plan_oracle"] .agent-spinner,
+.agent-panel[data-agent="plan_oracle"] .agent-ready-dot { color: #fcd34d; }
+
 /* Council extraction result */
 .extract-result {
   position: absolute; inset: 0; background: rgba(9,10,15,0.97);

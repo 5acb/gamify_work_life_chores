@@ -147,9 +147,9 @@ function renderApp(){
   // Inject oracle panel
   if(!document.getElementById('oraclePanel')){
     var op=document.createElement('div');op.id='oraclePanel';op.className='oracle-panel';
-    op.innerHTML='<div class="oracle-label">▶ Oracle</div>'
+    op.innerHTML='<div class="oracle-label">▶ Execute Oracle</div>'
       +'<div class="oracle-feed" id="oracleFeed"><div class="oracle-msg from-oracle">Oracle ready. What are you working on?</div></div>'
-      +'<div class="oracle-input-row"><input class="oracle-input" id="oracleInput" placeholder="Talk to Oracle..." autocomplete="off"><button class="oracle-send" id="oracleSend">ASK</button></div>';
+      +'<div class="oracle-input-row"><input class="oracle-input" id="oracleInput" placeholder="Talk to Execute Oracle..." autocomplete="off"><button class="oracle-send" id="oracleSend">ASK</button></div>';
     document.body.appendChild(op);
     document.getElementById('oracleSend').onclick=sendOracleMsg;
     document.getElementById('oracleInput').addEventListener('keydown',function(e){if(e.key==='Enter')sendOracleMsg()});
@@ -500,7 +500,7 @@ var COUNCIL_AGENTS = [
   { id:'strategist',   icon:'◈', label:'Strategist',    history:[] },
   { id:'risk_scout',   icon:'⚑', label:'Risk Scout',    history:[] },
   { id:'psychologist', icon:'⟡', label:'Psychologist',  history:[] },
-  { id:'domain_expert',icon:'◉', label:'Domain Expert', history:[] }
+  { id:'plan_oracle',  icon:'◎', label:'Plan Oracle',   history:[] }
 ];
 var councilSessionId = null;
 var councilTranscript = [];
@@ -515,11 +515,27 @@ function openCouncil(){
   var overlay = document.getElementById('councilOverlay');
   if(!overlay){ overlay = buildCouncilOverlay(); document.body.appendChild(overlay); }
 
-  // Update domain expert label based on selected task
+  // 4th agent: Domain Expert when card focused, Plan Oracle for full sessions
   var focusTask = state.selectedId ? state.taskById[state.selectedId] : null;
-  var domainLabel = focusTask ? (DOMAIN_EXPERT_LABELS[focusTask.domain] || 'Domain Expert') : 'Domain Expert';
-  var dePanel = overlay.querySelector('[data-agent="domain_expert"] .agent-name');
-  if(dePanel) dePanel.textContent = domainLabel;
+  var fourthAgent = COUNCIL_AGENTS[3];
+  if(focusTask){
+    fourthAgent.id    = 'domain_expert';
+    fourthAgent.icon  = '◉';
+    fourthAgent.label = DOMAIN_EXPERT_LABELS[focusTask.domain] || 'Domain Expert';
+  } else {
+    fourthAgent.id    = 'plan_oracle';
+    fourthAgent.icon  = '◎';
+    fourthAgent.label = 'Plan Oracle';
+  }
+  // Update panel DOM to match
+  var fourthPanel = overlay.querySelectorAll('.agent-panel')[3];
+  if(fourthPanel){
+    fourthPanel.dataset.agent = fourthAgent.id;
+    fourthPanel.querySelector('.agent-icon').textContent  = fourthAgent.icon;
+    fourthPanel.querySelector('.agent-name').textContent  = fourthAgent.label;
+    fourthPanel.querySelector('.agent-input').placeholder = 'Reply to ' + fourthAgent.label + '...';
+    fourthPanel.querySelector('.agent-send').dataset.agent = fourthAgent.id;
+  }
 
   var ctxEl = overlay.querySelector('.council-context');
   if(ctxEl) ctxEl.textContent = focusTask
