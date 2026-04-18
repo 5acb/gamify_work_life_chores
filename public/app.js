@@ -130,7 +130,7 @@ function renderApp(){
               +'<span class="switch-label '+(state.view==='archived'?'on':'')+'" title="Archived">↓</span>'
             +'</div>'
             +'<button class="tile hdr-btn" id="addBtn" title="New Stone">+</button>'
-            +'<button class="tile ai-btn" id="aiBtn">'+(state.mode==='plan'?'✦ Oracle':'✦ Oracle')+'</button>'
+            +'<button class="tile ai-btn" id="aiBtn">'+(state.mode==='plan'?'◈ Council':'✦ Oracle')+'</button>'
             +'<button class="tile hdr-btn" id="logoutBtn" title="Sign Out">⏻</button>'
           +'</div>'
         +'</div>'
@@ -159,7 +159,10 @@ function renderApp(){
 
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
   document.getElementById('addBtn').addEventListener('click',openAddTask);
-  document.getElementById('aiBtn').addEventListener('click',openAI);
+  document.getElementById('aiBtn').addEventListener('click',function(){
+    if(state.mode==='plan') openCouncil();
+    else openAI();
+  });
   document.getElementById('logoutBtn').addEventListener('click',openLogoutConfirm);
   document.getElementById('modeToggleBtn').addEventListener('click',function(){
     state.mode = state.mode==='plan' ? 'execute' : 'plan';
@@ -487,6 +490,267 @@ function openAI(){
       document.getElementById('ms').disabled=false;
     });
   };
+}
+
+
+// ══════════════════════════════════════════════════
+// COUNCIL CHAMBER
+// ══════════════════════════════════════════════════
+var COUNCIL_AGENTS = [
+  { id:'strategist',   icon:'◈', label:'Strategist',    history:[] },
+  { id:'risk_scout',   icon:'⚑', label:'Risk Scout',    history:[] },
+  { id:'psychologist', icon:'⟡', label:'Psychologist',  history:[] },
+  { id:'domain_expert',icon:'◉', label:'Domain Expert', history:[] }
+];
+var councilSessionId = null;
+var councilTranscript = [];
+
+var DOMAIN_EXPERT_LABELS = {
+  CTI:'Threat Intel Analyst', ECM:'Enterprise Security Consultant',
+  CSD:'Drone Systems Researcher', GRA:'Academic Research Advisor', Personal:'Life Coach'
+};
+
+function openCouncil(){
+  // Create or reuse overlay
+  var overlay = document.getElementById('councilOverlay');
+  if(!overlay){ overlay = buildCouncilOverlay(); document.body.appendChild(overlay); }
+
+  // Update domain expert label based on selected task
+  var focusTask = state.selectedId ? state.taskById[state.selectedId] : null;
+  var domainLabel = focusTask ? (DOMAIN_EXPERT_LABELS[focusTask.domain] || 'Domain Expert') : 'Domain Expert';
+  var dePanel = overlay.querySelector('[data-agent="domain_expert"] .agent-name');
+  if(dePanel) dePanel.textContent = domainLabel;
+
+  var ctxEl = overlay.querySelector('.council-context');
+  if(ctxEl) ctxEl.textContent = focusTask
+    ? ('Focus: ' + focusTask.name + ' · ' + focusTask.domain)
+    : ('All Domains · ' + state.tasks.filter(t=>!t.archived).length + ' Active Tasks');
+
+  overlay.classList.add('open');
+
+  // Create plan session
+  var sid = 'ps_' + Date.now() + '_' + (focusTask ? focusTask.domain : 'all');
+  councilSessionId = sid;
+  councilTranscript = [];
+  // Reset agent histories
+  COUNCIL_AGENTS.forEach(a => { a.history = []; });
+
+  api('POST', '/api/plan-sessions', {
+    id: sid,
+    triggered: 'manual',
+    domain: focusTask ? focusTask.domain : 'all',
+    task_ids: focusTask ? [focusTask.id] : state.tasks.filter(t=>!t.archived).map(t=>t.id)
+  });
+
+  // Fire all 4 initial briefings in parallel
+  var openingMsg = focusTask
+    ? ('I am opening a council session focused on: "' + focusTask.name + '" in the ' + focusTask.domain + ' domain. Please give your initial assessment and what you want to flag.')
+    : 'I am opening a council session to review my full task state. Please give your initial assessment and the most important thing you want me to consider.';
+
+  COUNCIL_AGENTS.forEach(function(agent){
+    var panel = overlay.querySelector('[data-agent="'+agent.id+'"]');
+    setAgentThinking(panel, true);
+    callAgent(agent.id, openingMsg, focusTask).then(function(resp){
+      setAgentThinking(panel, false);
+      panel.classList.add('ready');
+      appendAgentMsg(panel, resp, 'from-agent');
+      agent.history.push({ role:'user', text: openingMsg });
+      agent.history.push({ role:'model', text: resp });
+      logCouncilEvent(agent.id, 'message', resp);
+    }).catch(function(e){
+      setAgentThinking(panel, false);
+      appendAgentMsg(panel, 'Error: ' + e.message, 'from-agent');
+    });
+  });
+}
+
+function closeCouncil(){
+  var overlay = document.getElementById('councilOverlay');
+  if(overlay) overlay.classList.remove('open');
+}
+
+function buildCouncilOverlay(){
+  var el = document.createElement('div');
+  el.id = 'councilOverlay';
+  el.className = 'council-overlay';
+
+  el.innerHTML =
+    '<div class="council-header">'
+      +'<span class="council-title">◈ Council Chamber</span>'
+      +'<span class="council-context"></span>'
+      +'<button class="council-extract" id="councilExtract">Extract & Close</button>'
+      +'<button class="council-close" id="councilClose">✕ Dismiss</button>'
+    +'</div>'
+    +'<div class="council-grid" id="councilGrid"></div>';
+
+  // Build 4 agent panels
+  var grid = el.querySelector('#councilGrid');
+  COUNCIL_AGENTS.forEach(function(agent){
+    var panel = document.createElement('div');
+    panel.className = 'agent-panel';
+    panel.dataset.agent = agent.id;
+    panel.innerHTML =
+      '<div class="agent-panel-header">'
+        +'<span class="agent-icon">'+agent.icon+'</span>'
+        +'<span class="agent-name">'+agent.label+'</span>'
+        +'<div class="agent-spinner"></div>'
+        +'<div class="agent-ready-dot"></div>'
+      +'</div>'
+      +'<div class="agent-feed" id="feed_'+agent.id+'"></div>'
+      +'<div class="agent-input-row">'
+        +'<input class="agent-input" id="inp_'+agent.id+'" placeholder="Reply to '+agent.label+'..." autocomplete="off">'
+        +'<button class="agent-send" data-agent="'+agent.id+'">↑</button>'
+      +'</div>';
+    grid.appendChild(panel);
+
+    // Bind send
+    panel.querySelector('.agent-send').onclick = function(){
+      sendToAgent(agent.id);
+    };
+    panel.querySelector('.agent-input').addEventListener('keydown', function(e){
+      if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); sendToAgent(agent.id); }
+    });
+  });
+
+  el.querySelector('#councilClose').onclick = closeCouncil;
+  el.querySelector('#councilExtract').onclick = extractAndClose;
+
+  return el;
+}
+
+function callAgent(agentId, message, focusTask){
+  var agent = COUNCIL_AGENTS.find(a => a.id === agentId);
+  return api('POST', '/api/council/invoke', {
+    agent: agentId,
+    message: message,
+    history: agent ? agent.history.slice(-6) : [],  // keep last 3 turns
+    focusTask: focusTask || (state.selectedId ? state.taskById[state.selectedId] : null)
+  }).then(function(r){ return r.response || r.error || ''; });
+}
+
+function sendToAgent(agentId){
+  var inp = document.getElementById('inp_'+agentId); if(!inp) return;
+  var msg = inp.value.trim(); if(!msg) return;
+  var agent = COUNCIL_AGENTS.find(a => a.id === agentId);
+  var panel = document.querySelector('[data-agent="'+agentId+'"]');
+  inp.value='';
+
+  appendAgentMsg(panel, msg, 'from-user');
+  logCouncilEvent('user', 'message', msg + ' [to:'+agentId+']');
+  setAgentThinking(panel, true);
+
+  callAgent(agentId, msg, null).then(function(resp){
+    setAgentThinking(panel, false);
+    appendAgentMsg(panel, resp, 'from-agent');
+    agent.history.push({ role:'user', text:msg });
+    agent.history.push({ role:'model', text:resp });
+    logCouncilEvent(agentId, 'message', resp);
+  }).catch(function(e){
+    setAgentThinking(panel, false);
+    appendAgentMsg(panel, 'Error: '+e.message, 'from-agent');
+  });
+}
+
+function appendAgentMsg(panel, text, cls){
+  var feed = panel.querySelector('.agent-feed'); if(!feed) return;
+  // Remove typing indicator if present
+  var typing = feed.querySelector('.agent-msg-typing');
+  if(typing) typing.remove();
+  var el = document.createElement('div');
+  el.className = 'agent-msg ' + cls;
+  el.textContent = text;
+  feed.appendChild(el);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function setAgentThinking(panel, thinking){
+  if(!panel) return;
+  var feed = panel.querySelector('.agent-feed');
+  if(thinking){
+    panel.classList.add('thinking');
+    panel.classList.remove('ready');
+    var typing = document.createElement('div');
+    typing.className = 'agent-msg-typing';
+    typing.innerHTML = '<span></span><span></span><span></span>';
+    feed.appendChild(typing);
+    feed.scrollTop = feed.scrollHeight;
+  } else {
+    panel.classList.remove('thinking');
+    var typing = feed.querySelector('.agent-msg-typing');
+    if(typing) typing.remove();
+  }
+}
+
+function logCouncilEvent(agent, eventType, content){
+  if(!councilSessionId) return;
+  councilTranscript.push({ agent:agent, type:eventType, content:content, ts:new Date().toISOString() });
+  api('POST', '/api/plan-sessions/'+councilSessionId+'/events', {
+    agent:agent, event_type:eventType, content:{ text:content }
+  });
+}
+
+function extractAndClose(){
+  var btn = document.getElementById('councilExtract');
+  if(btn) btn.disabled = true;
+  if(btn) btn.textContent = 'Extracting...';
+
+  var transcript = councilTranscript.map(function(e){
+    return '['+e.ts+'] ['+e.agent.toUpperCase()+'] '+e.content;
+  }).join('\n');
+
+  api('POST', '/api/council/extract', {
+    sessionId: councilSessionId,
+    transcript: transcript
+  }).then(function(r){
+    var overlay = document.getElementById('councilOverlay');
+    var grid = document.getElementById('councilGrid');
+    var ext = r.extracted || {};
+
+    var resultEl = document.createElement('div');
+    resultEl.className = 'extract-result';
+
+    var html = '<div class="extract-section"><div class="extract-label">Session Summary</div>'
+      +'<div class="extract-item">'+esc(ext.summary||'No summary generated.')+'</div></div>';
+
+    if(ext.decisions && ext.decisions.length){
+      html += '<div class="extract-section"><div class="extract-label">Decisions ('+ext.decisions.length+')</div>';
+      ext.decisions.forEach(function(d){
+        html += '<div class="extract-item"><strong>'+esc(d.type||'note')+'</strong>'
+          +(d.task?' · '+esc(d.task):'')
+          +' <span style="opacity:0.4;font-size:10px">['+esc(d.proposedBy||'')+ ']</span>'
+          +'<br><span style="opacity:0.6;font-size:11px">'+esc(d.rationale||'')+'</span></div>';
+      });
+      html += '</div>';
+    }
+
+    if(ext.risks && ext.risks.length){
+      html += '<div class="extract-section"><div class="extract-label">Risks Flagged</div>';
+      ext.risks.forEach(function(r){
+        var cls = r.severity==='high' ? 'extract-risk-high' : r.severity==='medium' ? 'extract-risk-medium' : '';
+        html += '<div class="extract-item '+cls+'">'+esc(r.task||'')+(r.task?' — ':'')+ esc(r.risk||'')+'</div>';
+      });
+      html += '</div>';
+    }
+
+    if(ext.nextActions && ext.nextActions.length){
+      html += '<div class="extract-section"><div class="extract-label">Next Actions</div>';
+      ext.nextActions.forEach(function(a){
+        html += '<div class="extract-item">→ '+esc(a)+'</div>';
+      });
+      html += '</div>';
+    }
+
+    html += '<div style="margin-top:32px;display:flex;gap:12px">'
+      +'<button class="btn-cancel" onclick="document.querySelector(\'.extract-result\').remove();if(document.getElementById(\'councilExtract\')){document.getElementById(\'councilExtract\').disabled=false;document.getElementById(\'councilExtract\').textContent=\'Extract & Close\';}">Back to Council</button>'
+      +'<button class="btn-save" onclick="closeCouncil();this.closest(\'.extract-result\').remove()">Done — Close Chamber</button>'
+      +'</div>';
+
+    resultEl.innerHTML = html;
+    overlay.appendChild(resultEl);
+  }).catch(function(e){
+    if(btn){ btn.disabled=false; btn.textContent='Extract & Close'; }
+    alert('Extraction failed: '+e.message);
+  });
 }
 
 function showModal(){document.getElementById('modalBg').classList.add('show')}

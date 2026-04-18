@@ -735,7 +735,140 @@ User question: ${question}`;
 });
 
 // SEC-11: bind to localhost only — nginx handles external traffic
+
+// ── Task context builder ─────────────────────────────────────
+function buildTaskContext(userId) {
+  const tasks = getTasksForUser(userId);
+  const events = db.prepare(
+    "SELECT action, detail, ts FROM task_events WHERE user_id=? AND ts > datetime('now','-14 days') ORDER BY ts DESC LIMIT 50"
+  ).all(userId);
+  const today = new Date().toISOString().split('T')[0];
+  const summary = tasks.map(t => {
+    const daysUntilDue = t.due_date
+      ? Math.round((new Date(t.due_date) - new Date()) / 86400000)
+      : null;
+    return {
+      id: t.id, name: t.name, domain: t.domain,
+      plan_date: t.plan_date, due_date: t.due_date,
+      daysUntilDue, speed: t.speed, stakes: t.stakes,
+      done: t.done, archived: t.archived,
+      blocked: t.needs?.length > 0,
+      blockedBy: t.needs || [],
+      subtaskCount: t.subs?.length || 0,
+      subtasksDone: t.subs?.filter(s => s.done).length || 0
+    };
+  });
+  return { tasks: summary, events, today, totalActive: tasks.filter(t => !t.archived).length };
+}
+
 // ── Plan Sessions API ──────────────────────────────────────────
+// ── Council Chamber API ─────────────────────────────────────
+const COUNCIL_PERSONAS = {
+  strategist: {
+    name: 'Strategist',
+    system: `You are a senior productivity strategist embedded in a personal task manager called the Atmospheric Sanctuary. You have access to the user's full task state and recent history.
+Your role: determine what should be prioritised and why, identify the critical path, and help the user sequence their work for maximum progress.
+Be direct. Give concrete recommendations. Reference specific tasks by name. Think in terms of dependencies, deadlines, and cognitive load.
+Keep responses concise — 3-5 sentences unless asked to elaborate.`
+  },
+  risk_scout: {
+    name: 'Risk Scout',
+    system: `You are a risk analyst embedded in a personal task manager called the Atmospheric Sanctuary. You have access to the user's full task state and recent history.
+Your role: identify what could go wrong. Spot deadline risks, dependency chains that could cascade, tasks that are underestimated, and blockers that haven't been resolved.
+Be specific and honest — name the tasks, name the risks. Don't soften concerns.
+Keep responses concise — 3-5 sentences unless asked to elaborate.`
+  },
+  psychologist: {
+    name: 'Psychologist',
+    system: `You are a cognitive psychologist embedded in a personal task manager called the Atmospheric Sanctuary. You have access to the user's full task state and recent history.
+Your role: monitor cognitive load, stress signals, and sustainable pacing. Flag when the task stack looks overwhelming. Notice patterns — tasks that keep slipping, domains being neglected, urgency clusters building up.
+Speak plainly. Be warm but honest.
+Keep responses concise — 3-5 sentences unless asked to elaborate.`
+  },
+  domain_expert: {
+    name: 'Domain Expert',
+    system: `You are a domain specialist embedded in a personal task manager called the Atmospheric Sanctuary. Your expertise adapts to the domain in focus.
+For CTI tasks: you are a Cybersecurity Threat Intelligence analyst — you know MITRE ATT&CK, intelligence requirements, dark web analysis, structured analytic techniques.
+For CSD tasks: you are a Drone/Embedded Systems Security researcher — you know MAVLink, ArduPilot, firmware RE, attack surface analysis.
+For ECM tasks: you are an Enterprise Security Management consultant — you know governance frameworks, risk management, incident response, compliance.
+For GRA tasks: you are an Academic Research Advisor — you know the Dragos/ICS security landscape, academic writing, research methodology, publication strategy.
+For Personal tasks: you are a Life and Productivity Coach — practical, grounded, non-judgmental.
+Adapt your voice to the domain in focus. Be specific and knowledgeable.
+Keep responses concise — 3-5 sentences unless asked to elaborate.`
+  }
+};
+
+app.post('/api/council/invoke', ensureAuth, async (req, res) => {
+  const { agent, message, history = [], taskContext, focusTask } = req.body;
+  if (!agent || !COUNCIL_PERSONAS[agent]) return res.status(400).json({ error: 'unknown agent' });
+  if (!message) return res.status(400).json({ error: 'message required' });
+
+  const persona = COUNCIL_PERSONAS[agent];
+  const ctx = taskContext || buildTaskContext(req.user.id);
+
+  const focusBlock = focusTask ? ('\n\nFOCUS TASK:\n' + JSON.stringify(focusTask, null, 2)) : '';
+  const contextBlock = 'CURRENT DATE: ' + ctx.today
+    + '\nTOTAL ACTIVE TASKS: ' + ctx.totalActive
+    + '\n\nTASK STATE:\n' + JSON.stringify(ctx.tasks, null, 2)
+    + '\n\nRECENT EVENTS (last 14 days):\n' + JSON.stringify(ctx.events, null, 2)
+    + focusBlock;
+  const systemPrompt = persona.system + '\n\nCONTEXT:\n' + contextBlock;
+
+  try {
+    const response = await geminiInvoke(message, systemPrompt, history);
+    res.json({ response, agent, agentName: persona.name });
+  } catch (e) {
+    console.error('Council invoke error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/council/extract', ensureAuth, async (req, res) => {
+  const { sessionId, transcript } = req.body;
+  if (!sessionId || !transcript) return res.status(400).json({ error: 'sessionId and transcript required' });
+
+  const extractPrompt = `You are a session analyst. Below is a planning council session transcript between a user and four AI agents (Strategist, Risk Scout, Psychologist, Domain Expert).
+
+Extract the key decisions, commitments, risks flagged, and next actions discussed. Return ONLY valid JSON in this exact format:
+{
+  "decisions": [{"type": "prioritise|defer|drop|split|update_deadline|create_task", "task": "task name or null", "rationale": "brief reason", "proposedBy": "agent name"}],
+  "risks": [{"task": "task name", "risk": "description", "severity": "low|medium|high"}],
+  "psychLoad": {"level": "low|medium|high", "notes": "brief observation"},
+  "nextActions": ["action 1", "action 2"],
+  "summary": "2-3 sentence plain language summary of what was decided"
+}
+
+TRANSCRIPT:
+${transcript.slice(0, 8000)}`;
+
+  try {
+    const raw = await geminiInvoke(extractPrompt);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    let extracted;
+    try { extracted = JSON.parse(clean); }
+    catch { extracted = { summary: raw, decisions: [], risks: [], nextActions: [] }; }
+
+    // Save decisions to DB
+    if (sessionId) {
+      for (const d of (extracted.decisions || [])) {
+        db.prepare(`INSERT INTO session_decisions (session_id,ts,decision_type,task_id,proposed_by,rationale)
+          VALUES (?,datetime('now'),?,NULL,?,?)`
+        ).run(sessionId, d.type || 'note', d.proposedBy || 'council', d.rationale || '');
+      }
+      // Save full extraction as a session event
+      db.prepare(`INSERT INTO session_events (session_id,ts,agent,event_type,content)
+        VALUES (?,datetime('now'),'system','extraction',?)`
+      ).run(sessionId, JSON.stringify(extracted));
+      // Close the session
+      db.prepare("UPDATE plan_sessions SET ended_at=datetime('now') WHERE id=?").run(sessionId);
+    }
+    res.json({ ok: true, extracted });
+  } catch (e) {
+    console.error('Extract error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/api/plan-sessions', ensureAuth, (req, res) => {
   const { id, triggered, domain, task_ids, task_snapshot } = req.body;
   const sessionId = id || `ps_${Date.now()}_${domain||'all'}`;
