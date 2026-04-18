@@ -1,6 +1,6 @@
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
-var DM={CTI:{c:'#5E9C95',l:'CTI',m:'mat-teal'},ECM:{c:'#9b6a9b',l:'ECM',m:'mat-wood'},CSD:{c:'#3b6978',l:'CSD',m:'mat-cobalt'},GRA:{c:'#c29b4a',l:'GRA',m:'mat-amber'},Personal:{c:'#1f3b4d',l:'PER',m:'mat-indigo'}};
+var DM={CTI:{c:'#5E9C95',l:'CTI',m:'mat-teal'},ECM:{c:'#9b6a9b',l:'ECM',m:'mat-wood'},CSD:{c:'#3b6978',l:'CSD',m:'mat-cobalt'},GRA:{c:'#6b4e71',l:'GRA',m:'mat-purple'},Personal:{c:'#1f3b4d',l:'PER',m:'mat-indigo'}};
 var SPEED_L=['snap','sesh','grind'],STAKES_L=['low','high','crit'];
 var DOMAINS=Object.keys(DM);
 

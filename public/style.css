@@ -13,7 +13,7 @@
   --mat-cobalt: linear-gradient(135deg, #3b6978 0%, #204051 100%); /* Ruri (Cobalt) */
   --mat-indigo: linear-gradient(135deg, #1f3b4d 0%, #0d1b2a 100%); /* Aizome (Indigo) */
   --mat-wood: linear-gradient(135deg, #5d4037 0%, #2b1d1d 100%);   /* Earth (ECM) */
-  --mat-amber: linear-gradient(135deg, #f57c00 0%, #824b00 100%);  /* Sunlit Amber (GRA) */
+  --mat-purple: linear-gradient(135deg, #6b4e71 0%, #3a243e 100%); /* Murasaki (GRA) */
   --mat-canyon: linear-gradient(135deg, #c15c3d 0%, #4a2c2a 100%);  /* Zion Rock (PER) */
   --mat-bamboo: linear-gradient(135deg, #7fb069 0%, #2d5a27 100%); /* Zion Green */
 
@@ -22,7 +22,7 @@
   --clr-cobalt: #93c5fd;
   --clr-indigo: #60a5fa;
   --clr-wood: #d7ccc8;
-  --clr-amber: #ffb74d;     /* Warmer Amber (GRA) - distinct from Honey */
+  --clr-purple: #e9d5ff;    /* Lavender (GRA) */
   --clr-canyon: #ff8888;
 
   /* Glass foundation */
@@ -125,7 +125,7 @@ body {
 .card.mat-cobalt::after { background: var(--mat-cobalt); }
 .card.mat-indigo::after { background: var(--mat-indigo); }
 .card.mat-wood::after { background: var(--mat-wood); }
-.card.mat-amber::after { background: var(--mat-amber); }
+.card.mat-purple::after { background: var(--mat-purple); }
 
 /* Selection & Hover Focus */
 .card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.06); border-color: rgba(232,176,4,0.3); box-shadow: 0 0 30px rgba(232, 176, 4, 0.2), var(--glass-shd); }
@@ -148,7 +148,7 @@ body {
 .card.mat-cobalt .tile-name { color: var(--clr-cobalt); }
 .card.mat-indigo .tile-name { color: var(--clr-indigo); }
 .card.mat-wood .tile-name { color: var(--clr-wood); }
-.card.mat-amber .tile-name { color: var(--clr-amber); }
+.card.mat-purple .tile-name { color: var(--clr-purple); }
 
 /* Dissolved Actions (ABSOLUTE TOP LEFT) */
 .tile-actions {
@@ -178,7 +178,7 @@ body {
 .card.mat-cobalt .tile { background: var(--mat-cobalt); }
 .card.mat-indigo .tile { background: var(--mat-indigo); }
 .card.mat-wood .tile { background: var(--mat-wood); }
-.card.mat-amber .tile { background: var(--mat-amber); }
+.card.mat-purple .tile { background: var(--mat-purple); }
 
 /* Domain Identifier (STRICT BOTTOM RIGHT) */
 .tile-domain {
