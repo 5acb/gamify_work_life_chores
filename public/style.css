@@ -73,11 +73,12 @@ body {
 .hdr-date-tile { flex: 1; justify-content: flex-start; padding: 12px 24px; font-size: 11px; opacity: 0.6; font-weight: 800; text-transform: uppercase; }
 
 /* Toggle Switch Tile */
-.switch-tile { position: relative; width: 160px; padding: 0 !important; cursor: pointer; overflow: hidden; }
+.switch-tile { position: relative; width: 200px; padding: 0 !important; cursor: pointer; overflow: hidden; }
 .switch-knob {
   position: absolute; top: 0; bottom: 0; width: 50%;
-  background: var(--honey); transition: left 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-  z-index: 0; opacity: 0.8;
+  background: rgba(232, 176, 4, 0.45); border: 1px solid rgba(232, 176, 4, 0.2);
+  transition: left 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  z-index: 0;
 }
 .switch-knob.active { left: 0; }
 .switch-knob.archived { left: 50%; }
@@ -134,8 +135,8 @@ body {
 
 /* Selection & Hover Focus */
 .card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.06); border-color: rgba(232,176,4,0.3); box-shadow: 0 0 30px rgba(232, 176, 4, 0.2), var(--glass-shd); }
-.card.selected::after { background: var(--honey); padding: 6px; }
-.card.selected { box-shadow: 0 0 80px rgba(232, 176, 4, 0.4), var(--glass-shd); border: 2px solid var(--honey) !important; }
+.card.selected::after { background: var(--honey); padding: 3px; }
+.card.selected { box-shadow: 0 0 80px rgba(232, 176, 4, 0.4), var(--glass-shd); border: 1px solid var(--honey) !important; }
 
 /* ── Card Footer Group (Name + Blocker) ── */
 .card-footer {
