@@ -484,12 +484,18 @@ app.post('/api/auth/login-verify', async (req, res) => {
       authenticator: {
         credentialID: response.id,
         credentialPublicKey: new Uint8Array(cred.public_key),
-        counter: cred.counter,
+        counter: cred.counter || 0,
       },
     });
 
+    console.log('Login Verification Result:', JSON.stringify(verification, (k,v) => v instanceof Uint8Array ? Array.from(v) : v));
+
     if (verification.verified) {
-      db.prepare('UPDATE credentials SET counter = ? WHERE id = ?').run(verification.authenticationInfo.newCounter, response.id);
+      // Update counter if provided (it might be in authenticationInfo or nested)
+      const info = verification.authenticationInfo;
+      const newCounter = info ? info.newCounter : (verification.counter !== undefined ? verification.counter : cred.counter);
+      
+      db.prepare('UPDATE credentials SET counter = ? WHERE id = ?').run(newCounter, response.id);
       const token = signSession(slug);
       res.setHeader('Set-Cookie', `sid=${encodeURIComponent(token)}; Path=/; Max-Age=${30*24*3600}; HttpOnly; Secure; SameSite=Strict`);
       res.json({ ok: true });
