@@ -493,6 +493,19 @@ function openAI(){
 }
 
 
+
+// ── Minimal markdown renderer ────────────────────────────────
+function renderMd(text){
+  if(!text) return '';
+  return text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g,'<em>$1</em>')
+    .replace(/`([^`]+)`/g,'<code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:3px;font-size:0.92em">$1</code>')
+    .replace(/^#{1,3}\s+(.+)$/gm,'<span style="font-weight:900;letter-spacing:1px;text-transform:uppercase;font-size:0.85em;opacity:0.6">$1</span>')
+    .replace(/\n/g,'<br>');
+}
+
 // ══════════════════════════════════════════════════
 // COUNCIL CHAMBER — single chat, 5-agent switcher
 // ══════════════════════════════════════════════════
@@ -687,8 +700,10 @@ function renderFeed(overlay, agentId){
   var conv = councilState.conversations[agentId] || [];
   conv.forEach(function(m){
     var el = document.createElement('div');
-    el.className = 'agent-msg ' + (m.role === 'user' ? 'from-user' : 'from-agent');
-    el.textContent = m.text;
+    var cls = m.role === 'user' ? 'from-user' : 'from-agent';
+    el.className = 'agent-msg ' + cls;
+    if(cls === 'from-agent') el.innerHTML = renderMd(m.text);
+    else el.textContent = m.text;
     feed.appendChild(el);
   });
   feed.scrollTop = feed.scrollHeight;
@@ -699,7 +714,8 @@ function appendMsg(overlay, text, cls){
   if(!feed) return;
   var el = document.createElement('div');
   el.className = 'agent-msg ' + cls;
-  el.textContent = text;
+  if(cls === 'from-agent') el.innerHTML = renderMd(text);
+  else el.textContent = text;
   feed.appendChild(el);
   feed.scrollTop = feed.scrollHeight;
 }
