@@ -98,7 +98,9 @@ app.use(express.urlencoded({ extended: false }));
 
 // SEC-17: security headers
 app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'");
+  const nonce = crypto.randomBytes(16).toString('base64');
+  res.locals.nonce = nonce;
+  res.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'nonce-${nonce}'; img-src 'self' data: https://www.transparenttextures.com; connect-src 'self'; font-src 'self'`);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -106,14 +108,14 @@ app.use((req, res, next) => {
 });
 
 // ---- Login / Logout (public — before auth middleware) ----
-const LOGIN_HTML = (error = '') => `<!DOCTYPE html>
+const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#090a0f">
 <title>organizer | gateway</title>
-<style>
+<style nonce="${nonce}">
   @import url('https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -204,15 +206,15 @@ const LOGIN_HTML = (error = '') => `<!DOCTYPE html>
 
 app.get('/login', (req, res) => {
   if (getSessionUser(req)) return res.redirect('/');
-  res.send(LOGIN_HTML());
+  res.send(LOGIN_HTML(res.locals.nonce));
 });
 
 app.post('/login', (req, res) => {
   const { slug, password } = req.body;
-  if (!slug || !password) return res.status(400).send(LOGIN_HTML('Username and password required.'));
+  if (!slug || !password) return res.status(400).send(LOGIN_HTML(res.locals.nonce, 'Username and password required.'));
   const user = db.prepare('SELECT * FROM users WHERE slug = ?').get(slug);
   if (!user || !checkPassword(slug, password)) {
-    return res.status(401).send(LOGIN_HTML('Invalid username or password.'));
+    return res.status(401).send(LOGIN_HTML(res.locals.nonce, 'Invalid username or password.'));
   }
   const token = signSession(slug);
   res.setHeader('Set-Cookie', `sid=${encodeURIComponent(token)}; Path=/; Max-Age=${30*24*3600}; HttpOnly; Secure; SameSite=Strict`);
@@ -569,7 +571,12 @@ app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
 // ---- SPA ----
 app.get('/:slug', ensureAuth, (req, res) => {
   if (req.params.slug.startsWith('api')) return res.status(404).end();
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  const filePath = path.join(__dirname, 'public', 'index.html');
+  fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) return res.status(500).end();
+    const html = data.replace(/<style>/g, `<style nonce="${res.locals.nonce}">`);
+    res.send(html);
+  });
 });
 
 // SEC-11: bind to localhost only — nginx handles external traffic
