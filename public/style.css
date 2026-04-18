@@ -365,18 +365,7 @@ body.mode-execute {
     radial-gradient(at 50% 100%, rgba(232,176,4,0.04) 0, transparent 50%),
     linear-gradient(180deg, #eee9e0 0%, #f4f0ea 100%);
 }
-body.mode-execute .app { grid-template-columns: 48px 1fr; transition: grid-template-columns 0.4s; }
-body.mode-execute .panel-tree { border-right-color: rgba(0,0,0,0.07); background: rgba(0,0,0,0.02); overflow: hidden; }
-body.mode-execute .tree-container { display: none; }
-body.mode-execute .user-identity { display: none; }
-body.mode-execute .panel-tree::after {
-  content: ""; display: block; position: absolute; inset: 0;
-  background: repeating-linear-gradient(to bottom,
-    #5E9C95 0%, #5E9C95 20%, #3b6978 20%, #3b6978 40%,
-    #1f3b4d 40%, #1f3b4d 60%, #5d4037 60%, #5d4037 80%,
-    #6b4e71 80%, #6b4e71 100%);
-  opacity: 0.35;
-}
+/* Execute mode: same layout as plan, only colours change */
 body.mode-execute .panel-list { background: rgba(0,0,0,0.03); }
 body.mode-execute .hdr-date-etched { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.06); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1); color: var(--obsidian); opacity: 0.6; }
 body.mode-execute .card { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.07); box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
@@ -401,16 +390,16 @@ body.mode-execute .hdr-icon--council { color: var(--honey); }
 body.mode-execute .search { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); color: var(--obsidian); }
 body.mode-execute .cbtn { color: var(--obsidian); }
 body.mode-execute .tile-domain { color: rgba(9,10,15,0.65) !important; }
-body.mode-execute .cards { padding-bottom: 260px; }
+
 
 /* Oracle panel */
 .oracle-panel {
-  display: none; position: fixed; bottom: 0; left: 48px; right: 0; height: 220px;
+  display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 220px;
   background: rgba(244,240,234,0.98); border-top: 1px solid rgba(0,0,0,0.1);
   backdrop-filter: blur(20px); z-index: 500; flex-direction: column;
   box-shadow: 0 -4px 30px rgba(0,0,0,0.07);
 }
-body.mode-execute .oracle-panel { display: flex; }
+/* Oracle panel shown only when .oracle-open is added via JS */
 .oracle-label { padding: 10px 24px 4px; font-size: 9px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase; color: rgba(9,10,15,0.3); }
 .oracle-feed { flex: 1; overflow-y: auto; padding: 8px 24px 4px; font-size: 12.5px; line-height: 1.75; color: var(--obsidian); }
 .oracle-feed .oracle-msg { margin-bottom: 8px; }
