@@ -152,6 +152,7 @@ function makeCardEl(t, isList){
       ? '<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>' 
       : '<button class="cbtn act-archive" data-id="'+t.id+'" title="Archive / Done">×</button>')
     +'<button class="cbtn act-edit" data-id="'+t.id+'" title="Edit">✎</button>'
+    +'<button class="cbtn act-drag" data-id="'+t.id+'" title="Drag to reorder" style="cursor:grab">⠿</button>'
   +'</div>';
 
   h+='<div class="card-grid">';
@@ -212,7 +213,16 @@ function renderCards(){
   list.innerHTML='';
   filtered.forEach(function(t){ list.appendChild(makeCardEl(t, true)) });
 
-  Sortable.create(list, { animation: 300, ghostClass: 'sortable-ghost' });
+  Sortable.create(list, { 
+    animation: 300, 
+    ghostClass: 'sortable-ghost',
+    handle: '.act-drag',
+    onEnd: function() {
+        var ids = Array.from(list.querySelectorAll('.card')).map(el => +el.dataset.id);
+        // Persist local order for UI state
+        api('PUT','/api/users/'+state.slug+'/ui-state',{order:ids});
+    }
+  });
   bindGlobalActionEvents();
 }
 
