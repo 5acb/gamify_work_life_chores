@@ -122,20 +122,20 @@ function renderApp(){
     +'<div class="panel-list">'
       +'<div class="hdr">'
         +'<div class="hdr-row1">'
-          +'<button class="mode-toggle-btn" id="modeToggleBtn">'+(state.mode==='plan'?'◈ PLAN':'▶ EXECUTE')+'</button>'
           +'<div class="hdr-date-etched">'+dateStr+'</div>'
-          +'<button class="tile hdr-btn" id="logoutBtn" title="Sign Out">⏻</button>'
-        +'</div>'
-        +'<div class="hdr-row2">'
-          +'<div id="viewToggle" class="tile switch-tile">'
-            +'<div id="toggleKnob" class="switch-knob '+(state.view==='current'?'active':'archived')+'"></div>'
-            +'<span class="switch-label '+(state.view==='current'?'on':'')+'" title="Active">↑</span>'
-            +'<span class="switch-label '+(state.view==='archived'?'on':'')+'" title="Archived">↓</span>'
+          +'<div class="hdr-icon-cluster">'
+            +'<button class="hdr-icon '+(state.mode==='plan'?'hdr-icon--plan':'hdr-icon--execute')+'" id="modeToggleBtn" title="'+(state.mode==='plan'?'Plan Mode — click for Execute':'Execute Mode — click for Plan')+'">'+(state.mode==='plan'?'◈':'▷')+'</button>'
+            +'<div class="hdr-icon-sep"></div>'
+            +'<button class="hdr-icon '+(state.view==='current'?'hdr-icon--active':'hdr-icon--archived')+'" id="viewToggleBtn" title="'+(state.view==='current'?'Showing Active':'Showing Archived')+'">'+(state.view==='current'?'↑':'↓')+'</button>'
+            +'<div class="hdr-icon-sep"></div>'
+            +'<button class="hdr-icon hdr-icon--council" id="aiBtn" title="'+(state.mode==='plan'?'Open Council':'Open Oracle')+'">'+(state.mode==='plan'?'⊛':'✦')+'</button>'
+            +'<div class="hdr-icon-sep"></div>'
+            +'<button class="hdr-icon hdr-icon--add" id="addBtn" title="New Task">＋</button>'
+            +'<div class="hdr-icon-sep"></div>'
+            +'<button class="hdr-icon hdr-icon--logout" id="logoutBtn" title="Sign Out">⏻</button>'
           +'</div>'
-          +'<button class="tile hdr-btn" id="addBtn" title="New Stone">+</button>'
-          +'<button class="tile ai-btn" id="aiBtn">'+(state.mode==='plan'?'◈ Council':'✦ Oracle')+'</button>'
         +'</div>'
-        +'<div style="display:flex;flex-direction:column;margin-top:12px;gap:10px;width:100%">'
+        +'<div style="display:flex;flex-direction:column;margin-top:10px;gap:10px;width:100%">'
           +'<div style="display:flex;justify-content:flex-end">'
             +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off" style="width:100%;max-width:400px">'
           +'</div>'
@@ -179,7 +179,7 @@ function renderApp(){
     document.getElementById('modeToggleBtn').textContent = state.mode==='plan'?'◈ PLAN':'▶ EXECUTE';
   });
 
-  document.getElementById('viewToggle').onclick = function(){
+  document.getElementById('viewToggleBtn').onclick = function(){
     state.view = state.view === 'current' ? 'archived' : 'current';
     loadBoard();
   };
@@ -255,7 +255,7 @@ function openLogoutConfirm(){
     +'<p style="text-align:center;opacity:0.6;font-size:14px;margin-bottom:30px">Your session will be ended and you will return to the gateway.</p>'
     +'<div class="modal-actions">'
       +'<button id="mc" class="btn-cancel">Stay Focused</button>'
-      +'<button id="ms" class="btn-save" style="background:#ff8888;color:#000">Sign Out</button>'
+      +'<button id="ms" class="btn-danger">Sign Out</button>'
     +'</div>';
   showModal();
   document.getElementById('mc').onclick=closeModal;

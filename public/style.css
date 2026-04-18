@@ -73,50 +73,50 @@ body {
 .error-notification.show { opacity: 1; }
 
 /* ── Header ── */
-.hdr { padding: 20px 20px 14px; flex-shrink: 0; }
+.hdr { padding: 16px 16px 12px; flex-shrink: 0; }
 
-/* Row 1: mode toggle | date (flex) | logout */
 .hdr-row1 {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
 }
 .hdr-date-etched {
-  flex: 1; padding: 9px 14px; font-size: 10px; opacity: 0.45; font-weight: 800;
+  flex: 1; padding: 10px 14px; font-size: 10px; opacity: 0.4; font-weight: 800;
   text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.03);
   box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5); border-radius: var(--r-sm);
   letter-spacing: 1.5px;
 }
 
-/* Row 2: view switch | add | council/oracle */
-.hdr-row2 {
-  display: flex; align-items: center; gap: 8px;
+/* Icon cluster — glass pill containing all header controls */
+.hdr-icon-cluster {
+  display: flex; align-items: center; flex-shrink: 0;
+  background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.06);
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.4);
+  border-radius: 100px; overflow: hidden;
+}
+.hdr-icon {
+  background: transparent; border: none; cursor: pointer;
+  color: rgba(255,255,255,0.35); font-size: 14px; line-height: 1;
+  padding: 9px 12px; transition: all 0.2s; font-family: inherit;
+  display: flex; align-items: center; justify-content: center;
+}
+.hdr-icon:hover { color: var(--ink); background: rgba(255,255,255,0.05); }
+.hdr-icon-sep {
+  width: 1px; height: 18px; background: rgba(255,255,255,0.06); flex-shrink: 0;
 }
 
-/* Toggle Switch Tile */
-.switch-tile { position: relative; width: 120px; padding: 0 !important; cursor: pointer; overflow: hidden; flex-shrink: 0; }
-.switch-knob {
-  position: absolute; top: 0; bottom: 0; width: 50%;
-  background: rgba(232, 176, 4, 0.45); border: 1px solid rgba(232, 176, 4, 0.2);
-  transition: left 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-  z-index: 0;
-}
-.switch-knob.active { left: 0; }
-.switch-knob.archived { left: 50%; }
-.switch-label { 
-  flex: 1; height: 100%; display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 900; z-index: 1; transition: color 0.2s; color: rgba(255,255,255,0.3);
-}
-.switch-label.on { color: #000; }
+/* Icon states */
+.hdr-icon--plan    { color: var(--honey); }
+.hdr-icon--execute { color: var(--honey); }
+.hdr-icon--active  { color: rgba(255,255,255,0.5); }
+.hdr-icon--archived{ color: rgba(255,255,255,0.3); }
+.hdr-icon--council { color: var(--honey); }
+.hdr-icon--add     { color: rgba(255,255,255,0.4); font-size: 16px; }
+.hdr-icon--logout  { color: rgba(255,255,255,0.25); }
+.hdr-icon--logout:hover { color: #E11D48; background: rgba(225,29,72,0.08); }
 
-.hdr-btn, .ai-btn { 
-  background: var(--glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.1); color: var(--ink);
-  font-size: 10px; font-weight: 800; padding: 9px 16px; cursor: pointer; 
-  text-transform: uppercase; letter-spacing: 1.5px; border-radius: var(--r-sm);
-  transition: all 0.2s; white-space: nowrap; flex-shrink: 0;
-}
-.hdr-btn:hover, .ai-btn:hover { border-color: var(--honey); color: var(--honey); filter: drop-shadow(0 0 10px var(--honey)); }
-.hdr-btn:active, .ai-btn:active { box-shadow: inset 2px 2px 88px rgba(0,0,0,0.8); transform: translate(1px, 1px); }
+/* switch-tile removed — replaced by hdr-icon-cluster */
+
+/* hdr-btn/ai-btn removed — replaced by hdr-icon-cluster */
 
 .search { 
   width: 100%; padding: 10px 15px; background: rgba(255,255,255,0.02); 
@@ -340,8 +340,8 @@ body {
 .card-hue-indicator:hover .card-hue-indicator-tooltip { display: block; }
 
 /* ── Btn Danger (destructive modal actions) ── */
-.btn-danger { background: transparent; color: #E11D48; border: 1px solid rgba(225,29,72,0.4); }
-.btn-danger:hover { border-color: #E11D48; box-shadow: 0 0 12px rgba(225,29,72,0.3); }
+.btn-danger { background: transparent; color: #E11D48; border: 1px solid rgba(225,29,72,0.35); font-weight: 800; }
+.btn-danger:hover { border-color: rgba(225,29,72,0.7); background: rgba(225,29,72,0.06); }
 
 /* ── plan_date nudge ── */
 .field-tile.plan-nudge { border-color: rgba(212,131,10,0.45); background: rgba(212,131,10,0.04); }
@@ -357,13 +357,7 @@ body {
 .card.archived[data-age="7"] { opacity: 0.07; filter: saturate(0) brightness(0.6); }
 
 /* ── Mode Toggle Button ── */
-.mode-toggle-btn {
-  background: rgba(232,176,4,0.1); border: 1px solid rgba(232,176,4,0.3);
-  color: var(--honey); font-size: 10px; font-weight: 800; letter-spacing: 1.5px;
-  text-transform: uppercase; padding: 9px 14px; cursor: pointer; border-radius: var(--r-sm);
-  font-family: inherit; transition: all 0.2s; white-space: nowrap; flex-shrink: 0;
-}
-.mode-toggle-btn:hover { background: rgba(232,176,4,0.2); box-shadow: 0 0 16px rgba(232,176,4,0.2); }
+/* mode-toggle-btn removed — replaced by hdr-icon-cluster */
 
 /* ── Execute Mode (Washi / Light) ── */
 body.mode-execute {
@@ -402,7 +396,12 @@ body.mode-execute .card.mat-cobalt .tile-name { color: #1e4f6b; }
 body.mode-execute .card.mat-indigo .tile-name { color: #1a3a6b; }
 body.mode-execute .card.mat-wood .tile-name { color: #5d3a2a; }
 body.mode-execute .card.mat-purple .tile-name { color: #4a2e5a; }
-body.mode-execute .hdr-btn, body.mode-execute .ai-btn { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.12); color: var(--obsidian); }
+body.mode-execute .hdr-icon-cluster { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.1); }
+body.mode-execute .hdr-icon { color: rgba(9,10,15,0.3); }
+body.mode-execute .hdr-icon:hover { color: var(--obsidian); background: rgba(0,0,0,0.05); }
+body.mode-execute .hdr-icon--plan, body.mode-execute .hdr-icon--execute,
+body.mode-execute .hdr-icon--council { color: var(--honey); }
+body.mode-execute .hdr-icon-sep { background: rgba(0,0,0,0.08); }
 body.mode-execute .search { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); color: var(--obsidian); }
 body.mode-execute .cbtn { color: var(--obsidian); }
 body.mode-execute .tile-domain { color: rgba(9,10,15,0.65) !important; }
