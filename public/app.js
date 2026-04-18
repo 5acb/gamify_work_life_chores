@@ -1,6 +1,6 @@
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
-var DM={CTI:{c:'#4a6fa5',l:'CTI',m:'mat-stone'},ECM:{c:'#9b6a9b',l:'ECM',m:'mat-wood'},CSD:{c:'#5e9b8e',l:'CSD',m:'mat-bamboo'},GRA:{c:'#c29b4a',l:'GRA',m:'mat-honey'},Personal:{c:'#6a6a9b',l:'PER',m:'mat-canyon'}};
+var DM={CTI:{c:'#4a6fa5',l:'CTI',m:'mat-stone'},ECM:{c:'#9b6a9b',l:'ECM',m:'mat-wood'},CSD:{c:'#5e9b8e',l:'CSD',m:'mat-bamboo'},GRA:{c:'#c29b4a',l:'GRA',m:'mat-amber'},Personal:{c:'#6a6a9b',l:'PER',m:'mat-canyon'}};
 var SPEED_L=['snap','sesh','grind'],STAKES_L=['low','high','crit'];
 var DOMAINS=Object.keys(DM);
 
@@ -81,11 +81,14 @@ function renderApp(){
         +'</div>'
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">'
           +'<p style="font-size:12px;opacity:0.6">'+dateStr+'</p>'
-          +'<div class="toggle-wrap" style="margin-bottom:0; flex:1; margin:0 20px">'
-            +'<button class="toggle-btn'+(state.view==='current'?' active':'')+'" data-view="current">active</button>'
-            +'<button class="toggle-btn'+(state.view==='archived'?' active':'')+'" data-view="archived">archived</button>'
+          +'<div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.05); padding:4px; border-radius:30px; border:1px solid rgba(255,255,255,0.1)">'
+             +'<div id="toggleSwitch" style="position:relative; width:120px; height:24px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:0 10px; font-size:10px; font-weight:800; text-transform:uppercase">'
+                +'<div id="toggleKnob" style="position:absolute; top:0; left:'+(state.view==='current'?'0':'50%')+'; width:50%; height:100%; background:var(--honey); border-radius:30px; transition:left 0.3s ease; z-index:0"></div>'
+                +'<span style="z-index:1; color:'+(state.view==='current'?'#000':'var(--ink)')+'">Active</span>'
+                +'<span style="z-index:1; color:'+(state.view==='archived'?'#000':'var(--ink)')+'">Archived</span>'
+             +'</div>'
           +'</div>'
-          +'<input class="search" id="search" placeholder="Search tasks..." autocomplete="off" style="max-width:200px">'
+          +'<input class="search" id="search" placeholder="Search tasks..." autocomplete="off" style="max-width:180px">'
         +'</div>'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
@@ -97,11 +100,10 @@ function renderApp(){
   document.getElementById('aiBtn').addEventListener('click',openAI);
   document.getElementById('logoutBtn').addEventListener('click',openLogoutConfirm);
 
-  document.querySelectorAll('[data-view]').forEach(function(b){b.addEventListener('click',function(){
-    var v=this.dataset.view;if(v===state.view)return;
-    state.view=v;
+  document.getElementById('toggleSwitch').onclick = function(){
+    state.view = state.view === 'current' ? 'archived' : 'current';
     loadBoard();
-  })});
+  };
 
   renderCards();
   if(state.selectedId) renderTree(state.selectedId);
@@ -123,15 +125,24 @@ function openLogoutConfirm(){
 // ── Cards ─────────────────────────────────────────────────────
 
 function makeCardEl(t, isList){
-  var blocked=isBlocked(t), done=!!t.done;
+  var blocked=isBlocked(t), done=!!t.done, archived=!!t.archived;
   var dp=daysFrom(t.plan_date), dd=daysFrom(t.due_date);
   var dm=DM[t.domain]||{c:'#71717a',l:t.domain,m:''};
 
   var el=document.createElement('div');
-  el.className='card '+dm.m+(done?' done':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
+  el.className='card '+dm.m+(done?' done':'')+(blocked?' blocked':'')+(archived?' archived':'')+(state.selectedId===t.id?' selected':'');
   el.dataset.id=t.id;
 
-  var h='<div class="card-grid">';
+  var h='';
+  // Dissolved Action Icons (pinned to absolute top left)
+  h+='<div class="tile-actions">'
+    +'<button class="cbtn" data-edit="'+t.id+'" title="Edit">✎</button>'
+    +(archived || state.view === 'archived' 
+      ? '<button class="cbtn" data-unarchive="'+t.id+'" title="Restore">↑</button>' 
+      : '<button class="cbtn" data-archive="'+t.id+'" title="Archive">×</button>')
+  +'</div>';
+
+  h+='<div class="card-grid">';
   // Subtiles (Right Aligned Top Cluster)
   h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
   var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'---';
@@ -144,13 +155,6 @@ function makeCardEl(t, isList){
     if(dd<999) h+='<span class="u-pill">T−'+dd+'</span>';
   } else h+='<span style="opacity:0.2">---</span>';
   h+='</div>';
-
-  h+='<div class="tile tile-actions">'
-    +'<button class="cbtn" data-edit="'+t.id+'" title="Edit">✎</button>'
-    +(t.archived || state.view === 'archived' 
-      ? '<button class="cbtn" data-unarchive="'+t.id+'" title="Restore">↑</button>' 
-      : '<button class="cbtn" data-archive="'+t.id+'" title="Archive">↓</button>')
-  +'</div>';
   h+='</div>'; // end card-grid
 
   // Name (Strict Bottom Left)
@@ -313,7 +317,7 @@ function openAddTask(){
       done:+document.getElementById('f-done').value
     };
     if(!d.name)return;
-    api('POST','/api/users/'+state.slug+'/tasks',d).then(function(){closeModal();loadBoard()});
+    api('POST','/api/users/'+state.slug+'/tasks',d).then(function(){closeBoard();loadBoard()}); // NOTE: fix closedBoard typo
   };
 }
 

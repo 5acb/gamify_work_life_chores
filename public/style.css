@@ -64,21 +64,22 @@ body {
 .hdr-btn:active, .ai-btn:active { box-shadow: inset 2px 2px 8px rgba(0,0,0,0.8); transform: translate(1px, 1px); }
 
 .search { 
-  width: 100%; padding: 15px 20px; background: rgba(255,255,255,0.02); 
+  width: 100%; padding: 10px 15px; background: rgba(255,255,255,0.02); 
   border: 1px solid rgba(255,255,255,0.1); color: var(--ink);
-  outline: none; font-size: 16px; font-weight: 600; border-radius: var(--r-md);
+  outline: none; font-size: 14px; font-weight: 600; border-radius: var(--r-md);
 }
 
 /* ── The Material Card ── */
 .card {
   background: var(--glass); backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
-  border: 3px solid transparent; padding: 15px; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.05); 
+  padding: 15px; cursor: pointer;
   transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
   display: flex; flex-direction: column; box-shadow: var(--glass-shd);
   position: relative; height: 220px; border-radius: var(--r-md); width: 100%; max-width: var(--card-w); overflow: hidden;
 }
 .card::after {
-  content: ""; position: absolute; inset: -3px; padding: 3px; background: var(--ink); 
+  content: ""; position: absolute; inset: -1px; padding: 1px; background: var(--ink); 
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; z-index: 1; border-radius: var(--r-md);
 }
@@ -89,7 +90,7 @@ body {
 .card.mat-amber::after { background: var(--mat-amber); }
 .card.mat-canyon::after { background: var(--mat-canyon); }
 
-.card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.06); border-color: rgba(232,176,4,0.3); }
+.card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.06); border-color: rgba(232,176,4,0.3); box-shadow: 0 0 20px rgba(232, 176, 4, 0.1), var(--glass-shd); }
 .card.selected::after { background: var(--honey); }
 .card.selected { box-shadow: 0 0 60px rgba(232, 176, 4, 0.3), var(--glass-shd); border: 1px solid var(--honey) !important; }
 
@@ -97,22 +98,23 @@ body {
 .tile-name {
   position: absolute; bottom: 20px; left: 20px; width: calc(100% - 40px); text-align: left;
   font-size: 22px; font-weight: 500; line-height: 1.2; letter-spacing: -0.5px; z-index: 2;
-  background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-color: var(--ink);
+  background-clip: text; -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; background-color: var(--ink);
 }
 .dm-CTI .tile-name { background-image: var(--mat-stone); }
 .dm-ECM .tile-name { background-image: var(--mat-wood); }
 .dm-CSD .tile-name { background-image: var(--mat-bamboo); }
 .dm-GRA .tile-name { background-image: var(--mat-amber); }
-.dm-PER .tile-name { background-image: var(--mat-canyon); }
+.dm-Personal .tile-name { background-image: var(--mat-canyon); }
 
 /* Dissolved Actions (ABSOLUTE TOP LEFT) */
 .tile-actions {
-  position: absolute; top: 10px; left: 10px; display: flex; gap: 4px; z-index: 10;
+  position: absolute; top: 5px; left: 5px; display: flex; gap: 4px; z-index: 10;
 }
 .cbtn {
-  height: 20px; width: 20px; display: flex; align-items: center; justify-content: center;
+  height: 24px; width: 24px; display: flex; align-items: center; justify-content: center;
   background: transparent !important; border: none !important;
-  color: var(--ink); opacity: 0.1; font-size: 14px; cursor: pointer;
+  color: var(--ink); opacity: 0.15; font-size: 16px; cursor: pointer;
   transition: all 0.3s ease; box-shadow: none !important;
 }
 .cbtn:hover { opacity: 1; color: var(--honey); filter: drop-shadow(0 0 10px var(--honey)); }
@@ -148,7 +150,7 @@ body {
 .modal { 
   background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px);
   border: 1px solid rgba(255, 255, 255, 0.15); padding: 40px; width: 100%; max-width: 500px;
-  box-shadow: 0 40px 100px rgba(0,0,0,0.8); border-radius: var(--r-lg); display: flex; flex-direction: column; gap: 20px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.8); border-radius: 24px; display: flex; flex-direction: column; gap: 20px;
 }
 .modal h2 { font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: -1px; color: var(--honey); margin-bottom: 10px; text-align: center; }
 
@@ -166,7 +168,10 @@ body {
 .btn-save { background: var(--honey); color: #000; border: none; }
 .btn-save:hover { filter: brightness(1.1); box-shadow: 0 0 20px var(--honey); }
 
-.card.done { opacity: 0.2; filter: grayscale(1); }
+.card.done { opacity: 0.3; filter: grayscale(0.5); }
+.card.archived { opacity: 0.8; filter: saturate(0.8) brightness(0.9); border-style: dashed; }
+.card.archived::after { border-style: dashed; opacity: 0.5; }
+
 .u-pill { color: var(--honey); font-size: 10px; margin: 0 6px; }
 .u-dots { opacity: 0.4; letter-spacing: 4px; }
 .inline-edit { background: transparent; border: none; color: var(--honey); font-family: inherit; font-size: inherit; font-weight: 900; width: 100%; text-align: left; outline: none; }
