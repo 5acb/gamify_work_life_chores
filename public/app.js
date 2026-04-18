@@ -112,8 +112,9 @@ function renderApp(){
             +'<button class="tile hdr-btn" id="logoutBtn" title="Sign Out">⏻</button>'
           +'</div>'
         +'</div>'
-        +'<div style="display:flex;justify-content:flex-end;margin-top:15px">'
+        +'<div style="display:flex;justify-content:flex-end;margin-top:15px;flex-direction:column;align-items:flex-end;gap:10px">'
           +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off" style="max-width:200px">'
+          +'<div id="statusDots" style="display:flex;gap:4px;padding-right:5px"></div>'
         +'</div>'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
@@ -131,7 +132,46 @@ function renderApp(){
   };
 
   renderCards();
+  updateStatusDots();
   if(state.selectedId) renderTree(state.selectedId);
+}
+
+function updateStatusDots(){
+  var container = document.getElementById('statusDots'); if(!container) return;
+  var activeTasks = state.tasks.filter(t => !t.archived);
+  if(!activeTasks.length) { container.innerHTML = ''; return; }
+
+  var counts = {canyon:0, amber:0, marble:0, bamboo:0};
+  activeTasks.forEach(t => {
+    var dp=daysFrom(t.plan_date), dd=daysFrom(t.due_date);
+    if(dd <= 1) counts.canyon++;
+    else if(dd <= 3) counts.amber++;
+    else if(dd <= 7 || (dd < 999 && dp < 999 && dd - dp < 3)) counts.marble++;
+    else counts.bamboo++;
+  });
+
+  var total = activeTasks.length;
+  var dots = 20;
+  var h = '';
+  
+  // Calculate how many dots for each color
+  var types = ['canyon', 'amber', 'marble', 'bamboo'];
+  var dotCounts = types.map(type => Math.round((counts[type]/total) * dots));
+  
+  // Adjust to exactly 20 dots due to rounding errors
+  var currentTotal = dotCounts.reduce((a,b)=>a+b, 0);
+  // Distribute difference into the largest group or bamboo
+  if(currentTotal !== dots) {
+    var diff = dots - currentTotal;
+    dotCounts[3] += diff; // Adjust bamboo (most common)
+  }
+
+  types.forEach((type, idx) => {
+    for(var i=0; i<dotCounts[idx]; i++) {
+        h += '<div class="status-dot dot-'+type+'" title="'+type.toUpperCase()+'"></div>';
+    }
+  });
+  container.innerHTML = h;
 }
 
 function openLogoutConfirm(){
@@ -163,7 +203,8 @@ function makeCardEl(t, isList){
   if(!archived){
     if(dd <= 1) hueCls = 'hue-canyon';
     else if(dd <= 3) hueCls = 'hue-amber';
-    else if(dd <= 7 || (dd < 999 && dp < 999 && dd - dp < 3)) hueCls = 'hue-iridescent';
+    else if(dd <= 7 || (dd < 999 && dp < 999 && dd - dp < 3)) hueCls = 'hue-marble';
+    else hueCls = 'hue-bamboo';
   }
 
   var el=document.createElement('div');
@@ -249,6 +290,7 @@ function renderCards(){
     }
   });
   bindGlobalActionEvents();
+  updateStatusDots();
 }
 
 function bindGlobalActionEvents(){
