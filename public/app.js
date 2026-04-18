@@ -112,9 +112,9 @@ function renderApp(){
             +'<button class="tile hdr-btn" id="logoutBtn" title="Sign Out">⏻</button>'
           +'</div>'
         +'</div>'
-        +'<div style="display:flex;flex-direction:column;margin-top:20px;gap:12px;width:100%">'
+        +'<div style="display:flex;flex-direction:column;margin-top:30px;gap:20px;width:100%">'
           +'<div style="display:flex;justify-content:flex-end">'
-            +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off" style="width:100%;max-width:300px">'
+            +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off" style="width:100%;max-width:400px">'
           +'</div>'
           +'<div id="statusDots" style="width:100%"></div>'
         +'</div>'
@@ -156,6 +156,7 @@ function updateStatusDots(){
   activeTasks.forEach(t => {
     var h = getTaskHue(t);
     if(h) counts[h]++;
+    else counts.bamboo++;
   });
 
   var total = activeTasks.length;
@@ -218,7 +219,7 @@ function makeCardEl(t, isList){
 
   var h='';
   // Dissolved Action Icons (absolute top left)
-  h+='<div class="tile-actions" style="position:absolute; top:5px; left:5px; display:flex; gap:6px; z-index:10; align-items:center">'
+  h+='<div class="tile-actions" style="position:absolute; top:10px; left:10px; display:flex; gap:8px; z-index:10; align-items:center">'
     +(archived || state.view === 'archived' 
       ? '<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>' 
       : '<button class="cbtn act-archive" data-id="'+t.id+'" title="Archive / Done">×</button>')
@@ -252,18 +253,6 @@ function makeCardEl(t, isList){
   h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
 
   el.innerHTML=h;
-
-  // Inline Date
-  el.querySelector('.tile-date').onclick=function(e){
-    e.stopPropagation();
-    var tile=this;
-    var current=t.due_date||new Date().toISOString().split('T')[0];
-    tile.innerHTML='<input type="date" class="inline-edit" value="'+current+'">';
-    var inp=tile.querySelector('input');
-    inp.focus();
-    inp.onchange=function(){ api('PATCH','/api/tasks/'+t.id,{due_date:this.value}).then(loadBoard); };
-    inp.onblur=function(){ if(!this.value) loadBoard(); };
-  };
 
   el.onclick=function(e){
     if(e.target.closest('.cbtn, input')) return;

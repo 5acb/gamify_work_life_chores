@@ -124,9 +124,9 @@ body {
 /* Status Tile & Indicator Line */
 .status-tile {
   background: var(--glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,0.08); padding: 8px 16px;
+  border: 1px solid rgba(255,255,255,0.08); padding: 10px 16px;
   border-radius: var(--r-sm); display: flex; align-items: center; justify-content: space-between;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 100%;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 100%; box-sizing: border-box;
 }
 .status-dot { height: 12px; width: 4px; border-radius: 1px; transition: all 0.3s ease; }
 .dot-canyon { background: #c15c3d; box-shadow: 0 0 8px rgba(193, 92, 61, 0.6); }
@@ -136,8 +136,9 @@ body {
 
 .card-hue-indicator { 
   height: 12px; width: 12px; border-radius: 50%; 
-  margin-left: 4px; border: 3.5px solid transparent; background: transparent;
+  border: 3px solid transparent; background: transparent;
   flex-shrink: 0; box-sizing: border-box;
+  margin-top: 1px; /* Precision adjustment */
 }
 .card-hue-indicator.dot-canyon { border-color: #c15c3d; filter: drop-shadow(0 0 5px #c15c3d); }
 .card-hue-indicator.dot-amber { border-color: #e8b004; filter: drop-shadow(0 0 5px #e8b004); }
@@ -183,7 +184,7 @@ body {
 /* Selection & Hover Focus */
 .card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.06); border-color: rgba(232,176,4,0.3); box-shadow: 0 0 30px rgba(232, 176, 4, 0.2), var(--glass-shd); }
 .card.selected::after { background: var(--honey); padding: 3px; }
-.card.selected { box-shadow: 0 0 80px rgba(232, 176, 4, 0.4), var(--glass-shd); border: 1px solid var(--honey) !important; }
+.card.selected { box-shadow: 0 0 80px rgba(232, 176, 4, 0.4), var(--glass-shd); border: 2px solid var(--honey) !important; }
 
 /* ── Card Footer Group (Name + Blocker) ── */
 .card-footer {
@@ -205,14 +206,14 @@ body {
 
 /* Dissolved Actions (ABSOLUTE TOP LEFT) */
 .tile-actions {
-  position: absolute; top: 5px !important; left: 5px !important;
-  display: flex; gap: 4px; z-index: 100 !important;
+  position: absolute; top: 10px !important; left: 10px !important;
+  display: flex; gap: 8px; z-index: 100 !important; align-items: center; height: 24px;
 }
 .cbtn {
   height: 24px; width: 24px; display: flex; align-items: center; justify-content: center;
   background: transparent !important; border: none !important;
   color: var(--ink); opacity: 0.15; font-size: 16px; cursor: pointer;
-  transition: all 0.3s ease; box-shadow: none !important;
+  transition: all 0.3s ease; box-shadow: none !important; line-height: 1;
 }
 .cbtn:hover { opacity: 1; color: var(--honey); filter: drop-shadow(0 0 10px var(--honey)) !important; }
 
