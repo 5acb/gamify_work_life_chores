@@ -1,8 +1,11 @@
 # gamify_work_life_chores
 
-A personal productivity system with task dependency tracking, subtask breakdown, progress visualization, and multi-user boards. Designed to reduce task anxiety through gamification principles — unlock mechanics, progress bars, urgency-based color coding, and incremental subtask completion.
+A personal productivity system with task dependency tracking, subtask breakdown, progress visualization, and multi-user boards. Evolved into an **Atmospheric Sanctuary**—a 2:1 split-pane interface that fuses skeuomorphic glass aesthetics with a functional oceanic palette to reduce task anxiety.
 
 Live at [7ay.de](https://7ay.de) (cookie session auth — sign-in page at `/login`).
+
+## The Journey
+For a detailed narrative of the design evolution, state unification, and layout precision adjustments, see [**JOURNEY.md**](JOURNEY.md).
 
 ## Why This Exists
 
@@ -36,33 +39,27 @@ Browser ──HTTPS──▶ Nginx (443)
                          /opt/organizer/data/organizer.db
 ```
 
-Split-file SPA frontend (index.html shell + style.css + app.js) with a REST API backend. No build step, no bundler, no framework — vanilla JS + Express + better-sqlite3. Gemini AI integration for task analysis.
+Split-file SPA frontend (index.html shell + style.css + app.js) with a REST API backend. No build step, no bundler, no framework — vanilla JS + Express + better-sqlite3. Uses `Sortable.js` for drag-to-reorder persistence. Gemini AI integration for task analysis.
 
 ## Features
 
+### Atmospheric Sanctuary UI
+- **2:1 Split Pane** — LHS (Worktree/Focus) and RHS (Task List).
+- **Glass Aesthetics** — Backdrop blurs, semi-transparent tiles, and high-end material gradients.
+- **Instrumental Header** — Consolidated "Command Cluster" with a full-width **Sanctuary Indicator Line** showing temporal distribution.
+- **Donut Indicators** — Glowing hollow rings in action clusters providing "temporal frequency" (Canyon Red, Warm Amber, Marble Grey).
+
 ### Task Management
-- **Multi-user boards** — each person gets their own board at `/:slug`, auto-routed by basic auth username
-- **Task cards** with domain color coding, speed/stakes indicators, plan/due dates, T-minus countdown pills
-- **Buffer visualization** — dots between T-plan and T-due show days of slack; red→orange→tan→grey urgency scale
-- **Subtasks** with checkboxes, inline add/delete, progress bars
-- **Dependency tracking** — tasks can be blocked by other tasks; subtasks remain interactive even when parent is blocked
-- **Archive system** — current/archived segment toggle; completed tasks can be archived and recovered
+- **Persistent Reordering** — RHS cards can be dragged via a dedicated `⠿` handle; order persists via `ui-state` API.
+- **Unified Terminal State** — "Done is Archived." Marking a task as done moves it to the background with a desaturated "hint" state.
+- **Material Typography** — Task names use solid, luminous colors (Teal, Cobalt, Indigo, Murasaki) for perfect legibility.
+- **Dynamic Urgency Hues** — Subtle background glows (Canyon, Amber, Marble) signal approaching deadlines without visual noise.
+- **Smart Blocker Logic** — Cards automatically summarize prerequisites (e.g., "NEEDS: 3 PREREQS") and group them in a flexible footer to prevent text overlap.
 
 ### UX
-- **Auto-expand** — T-0/T-1/T-2 tasks expand automatically so next actions are always visible
-- **Blocker messaging** — "Completion blocked by: X" or "All prep done — waiting on: X" depending on subtask state
-- **Search** — real-time filter across task names, domains, and subtask labels
-- **Edit modal** — bottom sheet for modifying all task fields (mobile thumb-friendly)
-- **Dark mode** — designed for dark mode first; warm urgency colors (red/orange/tan) vs cool domain colors (blue/purple/teal)
-
-### Infrastructure
-- **SQLite persistence** with WAL mode for concurrent reads
-- **Auto-backup** every 7 minutes — `sqlite3 .dump` to text SQL, auto-committed to git
-- **MCP integration** — Claude can read/write the database directly from chat via server-side tooling
-- **Per-user UI state** — expanded card state persists per user
-- **Task audit log** — every state change (done/archived/created) logged in `task_events` with timestamp, used to give Gemini scheduling context
-- **Session cookies** — HMAC-SHA256 signed, 30-day expiry, `Secure; HttpOnly; SameSite=Strict`
-- **HSTS + TLS 1.3** — enforced at nginx layer; no TLS 1.2
+- **Search** — Real-time filter across task names and domains.
+- **Edit modal** — Glass-styled modal for modifying all task fields.
+- **Dark mode** — Designed for dark mode first; atmospheric deep blues and obsidian tones.
 
 ## Data Model
 
@@ -74,64 +71,8 @@ See [`schema.sql`](schema.sql) for the full schema.
 | `tasks` | Main items: domain, dates, plan_label, due_label, speed, stakes, sort_order, done, archived, user_id |
 | `subtasks` | Checklist items under each task |
 | `blockers` | Dependency edges (task A blocked by task B), many-to-many |
-| `ui_state` | Per-user UI preferences (expanded cards etc.) |
+| `ui_state` | Per-user UI preferences (order, expanded cards etc.) |
 | `task_events` | Audit log: task lifecycle events (created, done, undone, archived, unarchived) |
-
-### Dimensions
-
-**Domain** — the life area: `CTI`, `ECM`, `CSD`, `GRA`, `Personal`. Cool-toned colors (blue, purple, teal, sky, periwinkle) via 5px left border + outlined chip. Deliberately separated from urgency colors.
-
-**Speed** (0-2) — how long once you start: `snap` (under 30 min), `sesh` (few hours), `grind` (multi-day). Grey pill, neutral.
-
-**Stakes** (0-2) — consequence of missing: `low` (grade padding), `high` (real impact), `crit` (degree/legal/cascading). Warm escalating pill: grey → orange → red.
-
-**Buffer** — dots between T-plan and T-due pills. 0 dots = no slack. Max 7 dots displayed. Color matches urgency scale.
-
-## API
-
-### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/me` | Returns the authenticated user from session cookie (null if unauthenticated) |
-| POST | `/login` | Authenticate with username + password (form), sets `sid` cookie |
-| GET | `/logout` | Clear session cookie, redirect to `/login` |
-
-### Users
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/users` | List all users |
-| GET | `/api/users/:slug/tasks` | Get tasks (`?view=archived` for archived) |
-| POST | `/api/users/:slug/tasks` | Create task (body: domain, name, dates, speed, stakes, needs[], subs[]) |
-| GET | `/api/users/:slug/ui-state` | Get UI state |
-| PUT | `/api/users/:slug/ui-state` | Save UI state |
-
-### Tasks
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| PATCH | `/api/tasks/:id` | Update task fields |
-| PATCH | `/api/tasks/:id/toggle` | Toggle done |
-| PATCH | `/api/tasks/:id/archive` | Archive task |
-| PATCH | `/api/tasks/:id/unarchive` | Unarchive task |
-| DELETE | `/api/tasks/:id` | Delete task |
-
-### Subtasks
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/tasks/:id/subtasks` | Add subtask (body: `{label}`) |
-| PATCH | `/api/subtasks/:id` | Update subtask label |
-| PATCH | `/api/subtasks/:id/toggle` | Toggle subtask done |
-| DELETE | `/api/subtasks/:id` | Delete subtask |
-
-### Blockers
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/blockers` | Add dependency (body: `{task_id, blocked_by}`) |
-| DELETE | `/api/blockers` | Remove dependency |
-
-### Gemini
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/agent/gemini` | Ask Gemini about tasks (body: `{question, user?}`) |
 
 ## Running Locally
 
@@ -145,35 +86,13 @@ PORT=3000 DB_PATH=./data/organizer.db node server.js
 
 Visit `http://localhost:3000` (without nginx, no auto-redirect — go to `http://localhost:3000/you` directly).
 
-## File Structure
-
-```
-├── server.js          # Express API + auth + CSRF + CSP + Gemini endpoint (~360 lines)
-├── schema.sql         # Database schema (no seed data)
-├── package.json       # express, better-sqlite3
-├── TODO.md            # Prioritized TODO with security/arch/cleanup audit results
-├── project-context.yaml # Full project context for AI agents
-├── public/
-│   ├── index.html     # HTML shell (ARIA landmarks, CDN imports, noscript)
-│   ├── style.css      # All CSS (dark theme, split-panel, timeline, mobile)
-│   └── app.js         # All frontend JS (routing, cards, timeline, tree, modals, AI)
-│   └── changelog.html # Changelog viewer (MCP event log)
-├── scripts/
-│   └── backup.sh      # SQLite dump → backup file
-└── .gitignore         # Excludes node_modules, data/, *.db, backup.sql
-```
-
 ## Design Decisions
 
-**No framework.** The entire frontend is one HTML file with inline CSS and vanilla JS. This is intentional — no build step, no node_modules for the frontend, instant deploys, zero tooling friction. The app is small enough that a framework would add complexity without benefit.
+**No framework.** Vanilla JS + CSS variables allowed for absolute control over layout precision and "donut" alignments without fighting a virtual DOM or complex state managers.
 
-**SQLite over Postgres.** Single-user app on a single server. SQLite with WAL mode handles concurrent reads cleanly. Backup is a single file dump. No connection management, no separate process.
+**Warm vs cool color separation.** Domain indicators use cool material tones (Murasaki Purple, Asagi Teal). Urgency uses hot temporal tones (Canyon Red, Warm Amber). This creates two independent visual channels.
 
-**Warm vs cool color separation.** Urgency indicators use only warm tones (red → orange → tan → grey) because human peripheral vision detects warm colors faster. Domain indicators use only cool tones (blue, purple, teal). Two independent visual channels that don't interfere — you can scan by either dimension.
-
-**Buffer dots, not numbers.** The visual weight of dots communicates slack faster than reading "3 days buffer." Zero dots between two red pills is immediately alarming. Seven grey dots is visually calm. No reading required.
-
-**Subtasks always interactive on blocked tasks.** A task being "blocked" means it can't be marked complete, not that you can't prep. This matches reality — you can open OSCAR and research courses before talking to your advisor. The blocker is on the final step, not the prep work.
+**Sanctuary Indicator Line.** Replaced loose points with a proportional line to create a sense of the sanctuary's "total temporal weight."
 
 ## License
 
