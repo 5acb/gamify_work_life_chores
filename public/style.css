@@ -16,6 +16,11 @@
   /* UI Units */
   --pad: 12px;
   --gap: 8px;
+
+  /* Skeuomorphic Depth */
+  --bevel-light: rgba(255, 255, 255, 0.15);
+  --bevel-dark: rgba(0, 0, 0, 0.4);
+  --depth-shd: 8px 12px 20px rgba(0, 0, 0, 0.5);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
@@ -39,10 +44,13 @@ body {
 
 /* ── The Atomic Tile ── */
 .tile {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-top: 1px solid var(--bevel-light);
+  border-left: 1px solid var(--bevel-light);
+  border-right: 2px solid var(--bevel-dark);
+  border-bottom: 2px solid var(--bevel-dark);
   padding: var(--pad);
   display: flex;
   align-items: center;
@@ -50,22 +58,25 @@ body {
   color: var(--ink);
   font-size: 13px;
   font-weight: 600;
-  transition: all 0.2s;
+  box-shadow: var(--depth-shd);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ── Header Cluster ── */
 .hdr { padding: 40px 60px; flex-shrink: 0; }
 .hdr-top { display: flex; align-items: stretch; gap: var(--gap); margin-bottom: var(--gap); }
 .hdr h1 { font-size: 24px; font-weight: 900; letter-spacing: -1px; text-transform: uppercase; flex: 1; justify-content: flex-start; }
-.hdr-back { font-size: 20px; text-decoration: none; width: 60px; }
-.hdr-btn, .ai-btn { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; cursor: pointer; border: 1px solid rgba(255,255,255,0.2); }
+.hdr-back { font-size: 20px; text-decoration: none; width: 60px; cursor: pointer; }
+.hdr-back:active, .hdr-btn:active, .ai-btn:active { box-shadow: inset 2px 2px 5px rgba(0,0,0,0.8); transform: translate(1px, 1px); }
+
+.hdr-btn, .ai-btn { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; cursor: pointer; }
 .ai-btn { color: var(--honey); border-color: var(--honey); }
 
-.toggle-wrap { display: flex; gap: 2px; }
-.toggle-btn { font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; padding: 10px 20px; opacity: 0.5; border: none; }
-.toggle-btn.active { opacity: 1; background: rgba(255,255,255,0.1); }
+.toggle-wrap { display: flex; gap: 4px; }
+.toggle-btn { font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; padding: 10px 20px; border: none; }
+.toggle-btn.active { background: rgba(255,255,255,0.08); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5); }
 
-.search { flex: 1; outline: none; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); }
+.search { flex: 1; outline: none; background: rgba(255,255,255,0.02); box-shadow: inset 2px 2px 6px rgba(0,0,0,0.4); }
 
 /* ── Scroll area ── */
 .cards { 
@@ -73,7 +84,7 @@ body {
 }
 .cards-inner { 
   max-width: 1000px; margin: 0 auto; 
-  display: flex; flex-direction: column; gap: 40px; 
+  display: flex; flex-direction: column; gap: 48px; 
 }
 
 /* ── The Card Cluster ── */
@@ -81,63 +92,89 @@ body {
   display: grid;
   grid-template-columns: 80px 1fr 150px;
   grid-template-rows: auto auto auto;
-  gap: 2px; /* Rigid modular spacing */
+  gap: 4px; /* Slightly wider modular spacing to emphasize bevels */
   cursor: pointer;
   transition: transform 0.2s;
 }
-.card-cluster:hover { transform: translateX(5px); }
 
 /* Tile Placement in Cluster */
-.tile-domain { grid-column: 1; grid-row: 1 / span 3; font-weight: 900; font-size: 18px; letter-spacing: 1px; writing-mode: vertical-lr; transform: rotate(180deg); }
-.tile-urgency { grid-column: 2; grid-row: 1; justify-content: flex-start; height: 40px; }
-.tile-name { grid-column: 2; grid-row: 2; justify-content: flex-start; font-size: 18px; font-weight: 800; padding: 20px; }
-.tile-blocked { grid-column: 2; grid-row: 3; justify-content: flex-start; color: #ff8888; font-style: italic; font-size: 11px; }
-.tile-date { grid-column: 3; grid-row: 1; }
-.tile-actions { grid-column: 3; grid-row: 2 / span 2; flex-direction: column; gap: 8px; }
+.tile-domain { 
+  grid-column: 1; grid-row: 1 / span 3; font-weight: 900; font-size: 20px; letter-spacing: 2px; 
+  writing-mode: vertical-lr; transform: rotate(180deg); cursor: pointer;
+}
+.tile-domain:hover { color: var(--honey); border-color: var(--honey); }
 
-/* THE HONEY HIGHLIGHT (Modular Glow) */
+.tile-urgency { grid-column: 2; grid-row: 1; justify-content: flex-start; height: 44px; }
+.tile-name { grid-column: 2; grid-row: 2; justify-content: flex-start; font-size: 18px; font-weight: 800; padding: 24px; }
+.tile-blocked { grid-column: 2; grid-row: 3; justify-content: flex-start; color: #ff8888; font-style: italic; font-size: 11px; }
+.tile-date { grid-column: 3; grid-row: 1; cursor: pointer; font-size: 11px; }
+.tile-date:hover { color: var(--honey); border-color: var(--honey); }
+.tile-actions { grid-column: 3; grid-row: 2 / span 2; flex-direction: column; gap: 10px; }
+
+/* THE HONEY HIGHLIGHT (Tactile Elevation) */
 .card-cluster.selected .tile {
   border-color: var(--honey);
-  box-shadow: 0 0 15px rgba(232, 176, 4, 0.2);
+  box-shadow: 0 0 25px rgba(232, 176, 4, 0.25), var(--depth-shd);
+  transform: translateY(-2px);
   z-index: 5;
 }
 
 /* ── Domain Gradients (Atomic Tint) ── */
-/* Gradients applied to tiles based on parent cluster class */
-.dm-CTI .tile { background: linear-gradient(135deg, rgba(74, 111, 165, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
-.dm-ECM .tile { background: linear-gradient(135deg, rgba(155, 106, 155, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
-.dm-CSD .tile { background: linear-gradient(135deg, rgba(94, 155, 142, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
-.dm-GRA .tile { background: linear-gradient(135deg, rgba(194, 155, 74, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
-.dm-Personal .tile { background: linear-gradient(135deg, rgba(106, 106, 155, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
+.dm-CTI .tile { background: linear-gradient(135deg, rgba(74, 111, 165, 0.2) 0%, rgba(0,0,0,0.5) 100%); }
+.dm-ECM .tile { background: linear-gradient(135deg, rgba(155, 106, 155, 0.2) 0%, rgba(0,0,0,0.5) 100%); }
+.dm-CSD .tile { background: linear-gradient(135deg, rgba(94, 155, 142, 0.2) 0%, rgba(0,0,0,0.5) 100%); }
+.dm-GRA .tile { background: linear-gradient(135deg, rgba(194, 155, 74, 0.2) 0%, rgba(0,0,0,0.5) 100%); }
+.dm-Personal .tile { background: linear-gradient(135deg, rgba(106, 106, 155, 0.2) 0%, rgba(0,0,0,0.5) 100%); }
 
-.card-cluster.done { opacity: 0.3; filter: grayscale(1); }
+.card-cluster.done { opacity: 0.25; filter: grayscale(1); }
 
-/* Common Elements */
-.u-pill { color: var(--honey); margin: 0 5px; }
-.u-dots { opacity: 0.3; letter-spacing: 2px; }
-
+/* Skeuomorphic Switches (Buttons) */
 .cbtn {
-  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.06); 
+  border-top: 1px solid var(--bevel-light);
+  border-left: 1px solid var(--bevel-light);
+  border-right: 2px solid var(--bevel-dark);
+  border-bottom: 2px solid var(--bevel-dark);
+  box-shadow: 3px 3px 6px rgba(0,0,0,0.5);
   color: var(--ink); font-size: 9px; font-weight: 800; text-transform: uppercase;
-  padding: 8px 12px; cursor: pointer; width: 100%;
+  padding: 10px 12px; cursor: pointer; width: 100%;
+  transition: all 0.1s;
 }
-.cbtn:hover { background: var(--ink); color: #000; }
+.cbtn:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+.cbtn:active { 
+  box-shadow: inset 2px 2px 5px rgba(0,0,0,0.8); 
+  transform: translate(1px, 1px); 
+  border-top: 1px solid var(--bevel-dark);
+  border-left: 1px solid var(--bevel-dark);
+  border-right: 1px solid var(--bevel-light);
+  border-bottom: 1px solid var(--bevel-light);
+}
 
-/* ── FAB ── */
+/* ── FAB (Giant Glass Switch) ── */
 .fab {
-  position: fixed; bottom: 40px; right: 40px;
-  width: 80px; height: 80px; font-size: 40px;
+  position: fixed; bottom: 50px; right: 50px;
+  width: 90px; height: 90px; font-size: 44px;
   background: var(--honey); color: #000; border: none; cursor: pointer;
-  box-shadow: 0 15px 45px rgba(232, 176, 4, 0.4);
-  z-index: 100;
+  box-shadow: 10px 15px 35px rgba(0,0,0,0.6);
+}
+.fab:active { box-shadow: inset 5px 5px 15px rgba(0,0,0,0.5); transform: translate(3px, 3px); }
+
+/* Inline Inputs */
+.inline-edit {
+  background: transparent; border: none; color: var(--honey); font-family: inherit; font-size: inherit; font-weight: 900; width: 100%; text-align: center; outline: none;
 }
 
 /* ── Modal ── */
-.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(30px); z-index: 2000; display: none; align-items: center; justify-content: center; }
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(40px); z-index: 2000; display: none; align-items: center; justify-content: center; }
 .modal-bg.show { display: flex; }
 .modal { 
-  background: rgba(255, 255, 255, 0.05); border: 2px solid rgba(255,255,255,0.1);
-  padding: 60px; width: 95%; max-width: 600px;
+  background: rgba(255, 255, 255, 0.04); 
+  border-top: 1px solid var(--bevel-light);
+  border-left: 1px solid var(--bevel-light);
+  border-right: 2px solid var(--bevel-dark);
+  border-bottom: 2px solid var(--bevel-dark);
+  padding: 60px; width: 95%; max-width: 650px;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.8);
 }
 .modal h2 { font-size: 24px; font-weight: 900; text-transform: uppercase; margin-bottom: 40px; }
 

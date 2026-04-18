@@ -115,7 +115,9 @@ function makeCardEl(t, index){
   el.dataset.id=t.id;
 
   var h='';
+  // Tactile Domain Switcher (cycles on click)
   h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
+  
   if(dp<999||dd<999){
     h+='<div class="tile tile-urgency">';
     if(dp<999) h+='<span class="u-pill">T−'+dp+'</span>';
@@ -126,11 +128,12 @@ function makeCardEl(t, index){
 
   h+='<div class="tile tile-name">'+esc(t.name)+'</div>';
 
-  if(t.isSub) h+='<div class="tile tile-blocked" style="color:var(--faded-silver);font-size:10px">↳ subtask of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
+  if(t.isSub) h+='<div class="tile tile-blocked" style="color:rgba(255,255,255,0.4);font-size:10px">↳ subtask of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
   else if(blocked) h+='<div class="tile tile-blocked">needs: '+esc(getBlockerName(t))+'</div>';
 
-  var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'';
-  if(dLabel) h+='<div class="tile tile-date">'+esc(dLabel)+'</div>';
+  // Tactile Date Switcher
+  var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'---';
+  h+='<div class="tile tile-date">'+esc(dLabel)+'</div>';
   
   h+='<div class="tile tile-actions">'
     +'<button class="cbtn" data-edit="'+t.id+'">edit</button>'
@@ -139,8 +142,28 @@ function makeCardEl(t, index){
 
   el.innerHTML=h;
 
+  // Domain Cycling Logic
+  el.querySelector('.tile-domain').onclick=function(e){
+    e.stopPropagation();
+    var idx=DOMAINS.indexOf(t.domain);
+    var next=DOMAINS[(idx+1)%DOMAINS.length];
+    api('PATCH','/api/tasks/'+t.id,{domain:next}).then(loadBoard);
+  };
+
+  // Inline Date Logic
+  el.querySelector('.tile-date').onclick=function(e){
+    e.stopPropagation();
+    var tile=this;
+    var current=t.due_date||new Date().toISOString().split('T')[0];
+    tile.innerHTML='<input type="date" class="inline-edit" value="'+current+'">';
+    var inp=tile.querySelector('input');
+    inp.focus();
+    inp.onchange=function(){ api('PATCH','/api/tasks/'+t.id,{due_date:this.value}).then(loadBoard); };
+    inp.onblur=function(){ if(!this.value) loadBoard(); };
+  };
+
   el.onclick=function(e){
-    if(e.target.closest('button')) return;
+    if(e.target.closest('button, input')) return;
     if(state.selectedId===t.id) openEdit(t.id);
     else {
       state.selectedId=t.id;
