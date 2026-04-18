@@ -144,7 +144,6 @@ body {
 .card.mat-indigo .tile-name { color: var(--clr-indigo); }
 .card.mat-wood .tile-name { color: var(--clr-wood); }
 .card.mat-amber .tile-name { color: var(--clr-amber); }
-.card.state-urgent .tile-name { color: var(--clr-canyon); }
 
 /* Dissolved Actions (ABSOLUTE TOP LEFT) */
 .tile-actions {
