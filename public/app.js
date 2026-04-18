@@ -152,11 +152,11 @@ function updateStatusDots(){
   var activeTasks = state.tasks.filter(t => !t.archived);
   if(!activeTasks.length) { container.innerHTML = ''; return; }
 
-  var counts = {canyon:0, amber:0, marble:0, bamboo:0};
+  var counts = {canyon:0, amber:0, marble:0, dim:0};
   activeTasks.forEach(t => {
     var h = getTaskHue(t);
     if(h) counts[h]++;
-    else counts.bamboo++;
+    else counts.dim++;
   });
 
   var total = activeTasks.length;
@@ -164,15 +164,15 @@ function updateStatusDots(){
   var h = '';
   
   // Calculate how many dots for each color
-  var types = ['canyon', 'amber', 'marble', 'bamboo'];
+  var types = ['canyon', 'amber', 'marble', 'dim'];
   var dotCounts = types.map(type => Math.round((counts[type]/total) * dots));
   
   // Adjust to exactly 20 dots due to rounding errors
   var currentTotal = dotCounts.reduce((a,b)=>a+b, 0);
-  // Distribute difference into the largest group or bamboo
+  // Distribute difference into the largest group or dim
   if(currentTotal !== dots) {
     var diff = dots - currentTotal;
-    dotCounts[3] += diff; // Adjust bamboo (most common)
+    dotCounts[3] += diff; // Adjust dim (most common)
   }
 
   h += '<div class="status-tile">';

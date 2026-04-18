@@ -58,9 +58,9 @@ SOURCE="session-${DATE}-${PROJECT}-${SESSION_ID}"
 # SSH to server and add to KB
 TMP=$(mktemp)
 echo "$CONTENT" > "$TMP"
-scp -q "$TMP" "root@7ay.de:/tmp/kb_hook_${SESSION_ID}.txt" 2>/dev/null
-ssh -o BatchMode=yes -o ConnectTimeout=5 root@7ay.de \
-  "export PATH=\$PATH:\$HOME/.local/bin && cd /opt/organizer/scripts/kb-scripts && uv run --env-file .env python3 kb.py add --file /tmp/kb_hook_${SESSION_ID}.txt --source '${SOURCE}' --type chat 2>/dev/null && rm -f /tmp/kb_hook_${SESSION_ID}.txt" \
+scp -q "$TMP" "deploy@7ay.de:/tmp/kb_hook_${SESSION_ID}.txt" 2>/dev/null
+ssh -o BatchMode=yes -o ConnectTimeout=5 deploy@7ay.de \
+  "export PATH=\$PATH:\$HOME/.local/bin && cd /opt/organizer/repo/scripts && uv run --env-file .env python3 kb.py add --file /tmp/kb_hook_${SESSION_ID}.txt --source '${SOURCE}' --type chat 2>/dev/null && rm -f /tmp/kb_hook_${SESSION_ID}.txt" \
   2>/dev/null || true
 
 rm -f "$TMP"

@@ -58,6 +58,7 @@ architecture:
 files:
   JOURNEY.md: "Narrative chronicle of the Sanctuary UI evolution"
   README.md: "Main project README"
+  DESIGN.md: "Foundational Design Laws for the Sanctuary"
   project-context.yaml: "This documentation file"
   public/app.js: "Frontend JS — routing, Sanctuary rendering, reordering logic, AI chat"
   public/style.css: "Atmospheric Sanctuary styles — glass, material gradients, donuts"
@@ -66,13 +67,22 @@ files:
 database_schema:
   users:
     columns: [id, name, slug, created_at]
-    notes: "Board owners. slug used for board routing."
+    notes: "Board owners."
   tasks:
     columns: [id, domain, name, plan_date, due_date, speed, stakes, sort_order, done, archived, user_id]
     notes: "domain: CTI, ECM, CSD, GRA, Personal. 'Done is Archived' terminal state."
+  subtasks:
+    columns: [id, task_id, label, done, sort_order]
+    notes: "Checklist items. Still exist in DB but UI now promotes them to tasks."
+  blockers:
+    columns: [task_id, blocked_by]
+    notes: "DAG for dependency tracking."
   ui_state:
     columns: [key, value]
-    notes: "Per-user preferences. Used for RHS task order persistence."
+    notes: "Per-user preferences. order key used for RHS task order persistence."
+  task_events:
+    columns: [id, task_id, user_id, action, detail, ts]
+    notes: "Audit log for Gemini agent context."
 
 orientation_commands:
   - "cat project-context.yaml"

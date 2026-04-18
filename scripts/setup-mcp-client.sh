@@ -12,7 +12,11 @@
 
 set -euo pipefail
 
-MCP_TOKEN="${MCP_TOKEN:-7f9d45a0ac60924936bfdd2c078678fb07f5d8951a58110015b77a336ab0e07a}"
+if [[ -z "${MCP_TOKEN:-}" ]]; then
+  echo "[!] MCP_TOKEN environment variable is required."
+  echo "    Get it from your sanctuary administrator."
+  exit 1
+fi
 MCP_URL="https://7ay.de/mcp/sse?token=${MCP_TOKEN}"
 HOOKS_DIR="$HOME/.claude/hooks"
 HOOK_DEST="$HOOKS_DIR/post-session-kb.sh"
@@ -65,7 +69,7 @@ PY
   echo "[✓] Stop hook: $HOOK_DEST"
   if [[ -z "${SSH_KEY:-}" ]]; then
     echo ""
-    echo "  Hook needs SSH to root@7ay.de. Add your pubkey there, then optionally:"
+    echo "  Hook needs SSH to deploy@7ay.de. Add your pubkey there, then optionally:"
     echo "  SSH_KEY=~/.ssh/id_ed25519 bash setup-mcp-client.sh"
   fi
 fi
