@@ -308,7 +308,7 @@ app.post('/api/auth/register-options-public', async (req, res) => {
   const options = await generateRegistrationOptions({
     rpName: RP_NAME,
     rpID: RP_ID,
-    userID: Buffer.from(String(user.id)),
+    userID: Uint8Array.from(String(user.id), c => c.charCodeAt(0)),
     userName: user.slug,
     attestationType: 'none',
     authenticatorSelection: {
@@ -352,7 +352,7 @@ app.post('/api/auth/register-verify-public', async (req, res) => {
       res.status(400).json({ error: 'verification failed' });
     }
   } catch (err) {
-    console.error(err);
+    console.error('Registration Verify Error:', err);
     res.status(400).json({ error: err.message });
   }
 });
@@ -364,7 +364,7 @@ app.post('/api/auth/register-options', ensureAuth, async (req, res) => {
   const options = await generateRegistrationOptions({
     rpName: RP_NAME,
     rpID: RP_ID,
-    userID: Buffer.from(String(user.id)),
+    userID: Uint8Array.from(String(user.id), c => c.charCodeAt(0)),
     userName: user.slug,
     attestationType: 'none',
     excludeCredentials: userCredentials.map(cred => ({
@@ -403,7 +403,7 @@ app.post('/api/auth/register-verify', ensureAuth, async (req, res) => {
       res.status(400).json({ error: 'verification failed' });
     }
   } catch (err) {
-    console.error(err);
+    console.error('Standard Registration Verify Error:', err);
     res.status(400).json({ error: err.message });
   }
 });
