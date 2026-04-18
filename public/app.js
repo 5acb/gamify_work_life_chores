@@ -172,7 +172,7 @@ function makeCardEl(t, isList){
   h+='<div class="tile-name">'+esc(t.name)+'</div>';
 
   // Domain Identifier (STRICT BOTTOM RIGHT)
-  h+='<div class="tile tile-domain '+stateCls+'">'+esc(dm.l)+'</div>';
+  h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
 
   if(blocked && !t.isSub) h+='<div class="tile tile-blocked" style="position:absolute; bottom:60px; left:20px; border:none; background:rgba(255,85,85,0.05); color:#ff8888; font-size:10px">needs: '+esc(getBlockerName(t))+'</div>';
   if(t.isSub) h+='<div class="tile tile-blocked" style="position:absolute; bottom:60px; left:20px; border:none; color:rgba(255,255,255,0.2); font-size:9px">↳ sub of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
