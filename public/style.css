@@ -183,6 +183,14 @@ body {
 }
 .tile-domain:hover { filter: drop-shadow(0 0 10px var(--honey)) !important; }
 
+/* Blocked Tile (Positioned ABOVE name) */
+.tile-blocked {
+  position: absolute; bottom: 60px; left: 20px;
+  font-size: 10px; font-weight: 900; letter-spacing: 1px;
+  padding: 4px 12px; border-radius: var(--r-sm);
+  z-index: 2; transition: all 0.3s;
+}
+
 /* ── Layout ── */
 .tree-container { flex: 1; overflow: auto; padding: 80px; display: flex; flex-direction: column; align-items: center; gap: 100px; }
 .tree-section { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; }

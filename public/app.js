@@ -174,8 +174,8 @@ function makeCardEl(t, isList){
   // Domain Identifier (STRICT BOTTOM RIGHT)
   h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
 
-  if(blocked && !t.isSub) h+='<div class="tile tile-blocked" style="position:absolute; bottom:60px; left:20px; border:none; background:rgba(255,85,85,0.05); color:#ff8888; font-size:10px">needs: '+esc(getBlockerName(t))+'</div>';
-  if(t.isSub) h+='<div class="tile tile-blocked" style="position:absolute; bottom:60px; left:20px; border:none; color:rgba(255,255,255,0.2); font-size:9px">↳ sub of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
+  if(blocked && !t.isSub) h+='<div class="tile tile-blocked">NEEDS: '+esc(getBlockerName(t))+'</div>';
+  if(t.isSub) h+='<div class="tile tile-blocked">↳ sub of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
 
   el.innerHTML=h;
 
@@ -268,9 +268,10 @@ function renderTree(id){
 }
 
 function getBlockerName(t){
-  for(var k=0;k<(t.needs||[]).length;k++){
-    var d=state.taskById[t.needs[k]];if(d&&!d.done)return d.name;
-  }return'';
+  var active = (t.needs||[]).map(function(id){return state.taskById[id]}).filter(function(d){return d && !d.done && !d.archived});
+  if(!active.length) return '';
+  if(active.length === 1) return active[0].name.toUpperCase();
+  return active.length + ' PREREQS';
 }
 
 function taskForm(t){
