@@ -1,6 +1,6 @@
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
-var DM={CTI:{c:'#4a6fa5',l:'CTI',m:'mat-stone'},ECM:{c:'#9b6a9b',l:'ECM',m:'mat-wood'},CSD:{c:'#5e9b8e',l:'CSD',m:'mat-bamboo'},GRA:{c:'#c29b4a',l:'GRA',m:'mat-honey'},Personal:{c:'#6a6a9b',l:'PER',m:'mat-ash'}};
+var DM={CTI:{c:'#4a6fa5',l:'CTI',m:'mat-stone'},ECM:{c:'#9b6a9b',l:'ECM',m:'mat-wood'},CSD:{c:'#5e9b8e',l:'CSD',m:'mat-bamboo'},GRA:{c:'#c29b4a',l:'GRA',m:'mat-honey'},Personal:{c:'#6a6a9b',l:'PER',m:'mat-canyon'}};
 var SPEED_L=['snap','sesh','grind'],STAKES_L=['low','high','crit'];
 var DOMAINS=Object.keys(DM);
 
@@ -116,15 +116,11 @@ function makeCardEl(t, isList){
   el.dataset.id=t.id;
 
   var h='<div class="card-grid">';
-  // Row 1: Domain | Date
+  // Subtiles (Right Aligned Top Cluster)
   h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
   var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'---';
   h+='<div class="tile tile-date">'+esc(dLabel)+'</div>';
   
-  // Row 2: Name (Direct Text - No tile class)
-  h+='<div class="tile-name">'+esc(t.name)+'</div>';
-  
-  // Row 3: Urgency | Actions
   h+='<div class="tile tile-urgency">';
   if(dp<999||dd<999){
     if(dp<999) h+='<span class="u-pill">T−'+dp+'</span>';
@@ -135,13 +131,15 @@ function makeCardEl(t, isList){
 
   h+='<div class="tile tile-actions">'
     +'<button class="cbtn" data-edit="'+t.id+'" title="Edit">✎</button>'
-    +'<button class="cbtn" data-archive="'+t.id+'" title="Archive">⌧</button>'
+    +'<button class="cbtn" data-archive="'+t.id+'" title="Archive">×</button>'
   +'</div>';
+  h+='</div>'; // end card-grid
 
-  if(blocked && !t.isSub) h+='<div class="tile tile-blocked" style="grid-column:1/span 2; grid-row:4">needs: '+esc(getBlockerName(t))+'</div>';
-  if(t.isSub) h+='<div class="tile tile-blocked" style="grid-column:1/span 2; grid-row:4; color:rgba(255,255,255,0.4); font-size:10px">↳ sub of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
+  // Name (Strict Bottom Left)
+  h+='<div class="tile-name">'+esc(t.name)+'</div>';
 
-  h+='</div>'; // grid
+  if(blocked && !t.isSub) h+='<div class="tile tile-blocked" style="position:absolute; bottom:60px; left:20px; border:none; background:rgba(255,85,85,0.05); color:#ff8888; font-size:10px">needs: '+esc(getBlockerName(t))+'</div>';
+  if(t.isSub) h+='<div class="tile tile-blocked" style="position:absolute; bottom:60px; left:20px; border:none; color:rgba(255,255,255,0.2); font-size:9px">↳ sub of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
 
   el.innerHTML=h;
 
@@ -195,7 +193,7 @@ function renderTree(id){
 
   container.innerHTML='';
 
-  // 1. Find Blockers (Tasks this task needs)
+  // 1. Find Blockers
   var blockers = (task.needs||[]).map(nid => state.taskById[nid]).filter(Boolean);
   if(blockers.length){
     var s1=document.createElement('div'); s1.className='tree-section';
@@ -208,13 +206,13 @@ function renderTree(id){
   var s2=document.createElement('div'); s2.className='tree-section';
   s2.innerHTML='<div class="tree-label">Active Focus</div>';
   var focusCard = makeCardEl(task, false);
-  focusCard.style.transform = 'scale(1.2)';
+  focusCard.style.transform = 'scale(1.1)';
   s2.appendChild(focusCard);
   container.appendChild(s2);
 
-  // 3. Find Dependents (Tasks that need this task)
+  // 3. Find Dependents
   var dependents = state.tasks.filter(t => (t.needs||[]).includes(task.id));
-  var subtasks = (task.subs||[]).map(s => ({id:'s'+s.id, name:s.label, domain:task.domain, done:s.done, isSub:true}));
+  var subtasks = (task.subs||[]).map(s => ({id:'s'+s.id, name:s.label, domain:task.domain, done:s.done, isSub:true, parentId: task.id}));
   
   if(dependents.length || subtasks.length){
     var s3=document.createElement('div'); s3.className='tree-section';
@@ -222,7 +220,7 @@ function renderTree(id){
     dependents.forEach(t => s3.appendChild(makeCardEl(t, false)));
     subtasks.forEach(t => {
         var el=makeCardEl(t, false);
-        el.style.opacity = '0.6';
+        el.style.opacity = '0.5';
         s3.appendChild(el);
     });
     container.appendChild(s3);
