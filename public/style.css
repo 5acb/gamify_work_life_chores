@@ -8,7 +8,7 @@
   /* Atomic Glass foundation */
   --glass: rgba(255, 255, 255, 0.03);
   --glass-inner: rgba(255, 255, 255, 0.06);
-  --glass-shd: 0 15px 45px rgba(0, 0, 0, 0.6);
+  --glass-shd: 0 12px 40px rgba(0, 0, 0, 0.4);
   
   /* Material Gradient Borders & Text Glows */
   --mat-stone: linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%);
@@ -16,10 +16,15 @@
   --mat-bamboo: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%);
   --mat-honey: linear-gradient(135deg, #f6d365 0%, #ffb347 100%);
   --mat-ash: linear-gradient(135deg, #e6d0ce 0%, #b9935a 100%);
+
+  /* Subtle Softness Radii */
+  --r-lg: 24px;
+  --r-md: 12px;
+  --r-sm: 4px;
 }
 
-/* ── Global Geometry Reset ── */
-* { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
+/* ── Global Reset ── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   /* Rounder, broad geometric sans-serif */
@@ -66,18 +71,20 @@ body {
   border: 1px solid rgba(255,255,255,0.1); color: var(--ink);
   font-size: 11px; font-weight: 800; padding: 12px 24px; cursor: pointer; 
   text-transform: uppercase; letter-spacing: 2px;
+  border-radius: var(--r-sm);
 }
 .hdr-btn:active, .ai-btn:active { box-shadow: inset 2px 2px 8px rgba(0,0,0,0.8); transform: translate(1px, 1px); }
 .ai-btn { color: var(--honey); border-color: var(--honey); }
 
 .toggle-wrap { display: flex; gap: 4px; margin-bottom: 20px; }
-.toggle-btn { font-size: 11px; font-weight: 800; padding: 12px 20px; border: none; background: transparent; opacity: 0.3; cursor: pointer; text-transform: uppercase; }
+.toggle-btn { font-size: 11px; font-weight: 800; padding: 12px 20px; border: none; background: transparent; opacity: 0.3; cursor: pointer; text-transform: uppercase; border-radius: var(--r-sm); }
 .toggle-btn.active { opacity: 1; background: var(--glass-inner); }
 
 .search { 
   width: 100%; padding: 15px 20px; background: rgba(255,255,255,0.02); 
   border: 1px solid rgba(255,255,255,0.1); color: var(--ink);
   outline: none; font-size: 16px; font-weight: 800;
+  border-radius: var(--r-md);
 }
 
 /* ── The Material Card ── */
@@ -93,6 +100,7 @@ body {
   box-shadow: var(--glass-shd);
   position: relative;
   height: 200px; /* Fixed height for symmetry */
+  border-radius: var(--r-md);
 }
 
 .card::after {
@@ -107,6 +115,7 @@ body {
   mask-composite: exclude;
   pointer-events: none;
   z-index: 1;
+  border-radius: var(--r-md);
 }
 
 .card.mat-stone::after { background: var(--mat-stone); }
@@ -117,7 +126,7 @@ body {
 
 .card:hover { transform: translateY(-5px); }
 .card.selected::after { background: var(--honey); }
-.card.selected { box-shadow: 0 0 50px rgba(232, 176, 4, 0.2), var(--glass-shd); }
+.card.selected { box-shadow: 0 0 50px rgba(232, 176, 4, 0.15), var(--glass-shd); }
 
 /* ── The Atomic Tile (Flat Gradient & Tiny) ── */
 .tile {
@@ -127,6 +136,7 @@ body {
   color: var(--ink); font-size: 9px; font-weight: 800;
   text-transform: uppercase; letter-spacing: 1px;
   width: fit-content; min-width: 0; height: fit-content;
+  border-radius: var(--r-sm);
 }
 
 /* ── Task Name (Bottom Left Alignment) ── */
@@ -184,6 +194,7 @@ body {
   height: 24px; width: 24px; display: flex; align-items: center; justify-content: center;
   background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
   color: var(--ink); font-size: 14px; cursor: pointer;
+  border-radius: var(--r-sm);
 }
 .cbtn:active { background: var(--honey); color: #000; box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); transform: translateY(1px); }
 
@@ -193,12 +204,13 @@ body {
   background: var(--honey); color: #000; border: none; 
   font-size: 44px; font-weight: 900; cursor: pointer;
   box-shadow: 0 20px 60px rgba(0,0,0,0.8); z-index: 1000;
+  border-radius: var(--r-lg);
 }
 
 .card.done { opacity: 0.2; filter: grayscale(1); }
 .u-pill { color: var(--honey); font-size: 10px; margin: 0 6px; }
 .u-dots { opacity: 0.4; letter-spacing: 4px; }
-.inline-edit { background: transparent; border: none; color: var(--honey); font-family: inherit; font-size: inherit; font-weight: 900; width: 100%; text-align: center; outline: none; }
+.inline-edit { background: transparent; border: none; color: var(--honey); font-family: inherit; font-size: inherit; font-weight: 900; width: 100%; text-align: center; outline: none; border-radius: var(--r-sm); }
 
 /* ── Richer Category Gradients for Subtiles ── */
 .dm-CTI .tile { background: linear-gradient(135deg, rgba(189, 195, 199, 0.3) 0%, rgba(44, 62, 80, 0.6) 100%); }
@@ -206,6 +218,18 @@ body {
 .dm-CSD .tile { background: linear-gradient(135deg, rgba(168, 224, 99, 0.3) 0%, rgba(86, 171, 47, 0.6) 100%); }
 .dm-GRA .tile { background: linear-gradient(135deg, rgba(246, 211, 101, 0.3) 0%, rgba(255, 179, 71, 0.6) 100%); }
 .dm-PER .tile { background: linear-gradient(135deg, rgba(230, 208, 206, 0.3) 0%, rgba(185, 147, 90, 0.6) 100%); }
+
+/* Modal */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(50px); z-index: 2000; display: none; align-items: center; justify-content: center; }
+.modal-bg.show { display: flex; }
+.modal { 
+  background: linear-gradient(145deg, #1a1c1e 0%, #0a0b0d 100%);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 60px; width: 95%; max-width: 650px;
+  box-shadow: 0 50px 150px rgba(0,0,0,1);
+  border-radius: var(--r-lg);
+}
+.modal h2 { font-size: 36px; font-weight: 900; text-transform: lowercase; letter-spacing: -2px; margin-bottom: 50px; }
 
 @media (max-width: 1024px) {
   .app { grid-template-columns: 1fr; }
