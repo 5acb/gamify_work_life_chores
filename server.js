@@ -72,6 +72,7 @@ function verifySession(token) {
   if (parts.length !== 3) return null;
   const [slug, ts, hmac] = parts;
   const expected = crypto.createHmac('sha256', SESSION_SECRET).update(slug + ':' + ts).digest('hex');
+  if (!hmac || !expected || hmac.length !== expected.length) return null;
   if (!crypto.timingSafeEqual(Buffer.from(hmac, 'hex'), Buffer.from(expected, 'hex'))) return null;
   // 30-day expiry
   const age = Date.now() - parseInt(ts, 36);
@@ -84,15 +85,6 @@ function getSessionUser(req) {
   const slug = verifySession(token);
   if (!slug) return null;
   return db.prepare('SELECT * FROM users WHERE slug = ?').get(slug) || null;
-}
-
-// ---- Password validation via Argon2 ----
-async function checkPassword(slug, password) {
-  try {
-    const user = db.prepare('SELECT password_hash FROM users WHERE slug = ?').get(slug);
-    if (!user || !user.password_hash) return false;
-    return await argon2.verify(user.password_hash, password);
-  } catch { return false; }
 }
 
 // ---- task_events helper ----
@@ -196,45 +188,75 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
 <div class="fog"></div>
 <div class="monolith">
   <h1>organizer<span>.</span></h1>
-  <form id="loginForm" method="POST" action="/login" style="display:flex;flex-direction:column;gap:30px">
-    ${error ? `<p class="err">${error}</p>` : ''}
+  <form id="loginForm" style="display:flex;flex-direction:column;gap:30px">
+    <div id="errorBox"></div>
     <div class="field">
       <label>Identity</label>
       <input id="slug" name="slug" placeholder="username" autocomplete="username" required autofocus>
     </div>
-    <div class="field">
-      <label>Key</label>
-      <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required>
-    </div>
-    <button type="submit">Unlock Gateway</button>
-    <button type="button" id="passkeyBtn" class="passkey-btn">Use Passkey</button>
+    <button type="submit" id="unlockBtn">Unlock Sanctuary</button>
   </form>
 </div>
 <script nonce="${nonce}">
-  const { startAuthentication } = SimpleWebAuthnBrowser;
-  document.getElementById('passkeyBtn').onclick = async () => {
-    const slug = document.getElementById('slug').value;
-    if (!slug) return alert('Enter your identity first.');
+  const { startAuthentication, startRegistration } = SimpleWebAuthnBrowser;
+  const form = document.getElementById('loginForm');
+  const slugInput = document.getElementById('slug');
+  const errorBox = document.getElementById('errorBox');
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    const slug = slugInput.value.trim();
+    if (!slug) return;
+    errorBox.innerHTML = '';
+
     try {
+      // 1. Check if user exists and has passkeys
       const optsResp = await fetch('/api/auth/login-options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug })
       });
       const opts = await optsResp.json();
-      if (opts.error) throw new Error(opts.error);
-      const asseResp = await startAuthentication(opts);
-      const verifyResp = await fetch('/api/auth/login-verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug, response: asseResp })
-      });
-      const verif = await verifyResp.json();
-      if (verif.ok) location.href = '/' + slug;
-      else alert('Passkey verification failed.');
+
+      if (optsResp.status === 404) {
+        errorBox.innerHTML = '<p class="err">Identity not found in sanctuary.</p>';
+        return;
+      }
+
+      if (opts.allowCredentials && opts.allowCredentials.length > 0) {
+        // AUTHENTICATION FLOW
+        const asseResp = await startAuthentication(opts);
+        const verifyResp = await fetch('/api/auth/login-verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, response: asseResp })
+        });
+        const verif = await verifyResp.json();
+        if (verif.ok) location.href = '/' + slug;
+        else errorBox.innerHTML = '<p class="err">Verification failed.</p>';
+      } else {
+        // REGISTRATION FLOW (Trust on first use for existing user without passkey)
+        if (confirm('No passkey found for this identity. Register this device?')) {
+          const regOptsResp = await fetch('/api/auth/register-options-public', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug })
+          });
+          const regOpts = await regOptsResp.json();
+          const attResp = await startRegistration(regOpts);
+          const verifyResp = await fetch('/api/auth/register-verify-public', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ slug, response: attResp })
+          });
+          const verif = await verifyResp.json();
+          if (verif.ok) location.href = '/' + slug;
+          else errorBox.innerHTML = '<p class="err">Registration failed.</p>';
+        }
+      }
     } catch (err) {
       console.error(err);
-      alert(err.message);
+      errorBox.innerHTML = '<p class="err">' + err.message + '</p>';
     }
   };
 </script>
@@ -246,64 +268,230 @@ app.get('/login', (req, res) => {
   res.send(LOGIN_HTML(res.locals.nonce));
 });
 
-app.post('/login', async (req, res) => {
-  const { slug, password } = req.body;
-  if (!slug || !password) return res.status(400).send(LOGIN_HTML(res.locals.nonce, 'Username and password required.'));
-  const user = db.prepare('SELECT * FROM users WHERE slug = ?').get(slug);
-  if (!user || !await checkPassword(slug, password)) {
-    return res.status(401).send(LOGIN_HTML(res.locals.nonce, 'Invalid username or password.'));
-  }
-  const token = signSession(slug);
-  res.setHeader('Set-Cookie', `sid=${encodeURIComponent(token)}; Path=/; Max-Age=${30*24*3600}; HttpOnly; Secure; SameSite=Strict`);
-  res.redirect('/');
-});
-
 app.get('/logout', (req, res) => {
-  res.setHeader('Set-Cookie', 'sid=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict');
+  res.clearCookie('sid');
   res.redirect('/login');
 });
 
-// ---- Middleware ----
-
-// ARCH-3: single auth middleware — validates session cookie
-// Returns 401 JSON for /api/* paths, redirects to /login for everything else
-function ensureAuth(req, res, next) {
+// ---- Auth Middleware ----
+const ensureAuth = (req, res, next) => {
   const user = getSessionUser(req);
   if (!user) {
-    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'unauthorized' });
+    if (req.xhr || req.path.startsWith('/api')) return res.status(401).json({ error: 'unauthorized' });
     return res.redirect('/login');
   }
   req.user = user;
   next();
+};
+
+// ---- WebAuthn (Passkeys) Endpoints ----
+
+function setChallenge(userId, challenge) {
+  const expiresAt = Math.floor(Date.now() / 1000) + 300; // 5 mins
+  db.prepare('INSERT OR REPLACE INTO auth_challenges (user_id, challenge, expires_at) VALUES (?, ?, ?)')
+    .run(userId, challenge, expiresAt);
 }
 
-// SEC-5: CSRF — SameSite=Strict cookie prevents cross-origin requests from sending the cookie.
-// X-Requested-With check retained as defence-in-depth for older clients.
-function csrfCheck(req, res, next) {
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-    if (req.path !== '/login' && req.headers['x-requested-with'] !== 'XMLHttpRequest') {
-      return res.status(403).json({ error: 'csrf check failed' });
+function getChallenge(userId) {
+  const row = db.prepare('SELECT challenge FROM auth_challenges WHERE user_id = ? AND expires_at > ?')
+    .get(userId, Math.floor(Date.now() / 1000));
+  return row ? row.challenge : null;
+}
+
+// Public registration options (for existing users with 0 passkeys)
+app.post('/api/auth/register-options-public', async (req, res) => {
+  const { slug } = req.body;
+  const user = db.prepare('SELECT id, slug FROM users WHERE slug = ?').get(slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+  
+  const count = db.prepare('SELECT count(*) as count FROM credentials WHERE user_id = ?').get(user.id).count;
+  if (count > 0) return res.status(403).json({ error: 'passkeys already registered, use login flow' });
+
+  const options = await generateRegistrationOptions({
+    rpName: RP_NAME,
+    rpID: RP_ID,
+    userID: String(user.id),
+    userName: user.slug,
+    attestationType: 'none',
+    authenticatorSelection: {
+      residentKey: 'required',
+      userVerification: 'preferred',
+    },
+  });
+
+  setChallenge(user.id, options.challenge);
+  res.json(options);
+});
+
+app.post('/api/auth/register-verify-public', async (req, res) => {
+  const { slug, response } = req.body;
+  const user = db.prepare('SELECT id, slug FROM users WHERE slug = ?').get(slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+
+  const count = db.prepare('SELECT count(*) as count FROM credentials WHERE user_id = ?').get(user.id).count;
+  if (count > 0) return res.status(403).json({ error: 'forbidden' });
+
+  const expectedChallenge = getChallenge(user.id);
+  if (!expectedChallenge) return res.status(400).json({ error: 'challenge expired' });
+
+  try {
+    const verification = await verifyRegistrationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: ORIGIN,
+      expectedRPID: RP_ID,
+    });
+
+    if (verification.verified && verification.registrationInfo) {
+      const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
+      db.prepare('INSERT INTO credentials (id, user_id, public_key, counter, transports) VALUES (?, ?, ?, ?, ?)')
+        .run(credentialID, user.id, Buffer.from(credentialPublicKey), counter, JSON.stringify(response.response.transports || []));
+      
+      const token = signSession(slug);
+      res.setHeader('Set-Cookie', `sid=${encodeURIComponent(token)}; Path=/; Max-Age=${30*24*3600}; HttpOnly; Secure; SameSite=Strict`);
+      res.json({ ok: true });
+    } else {
+      res.status(400).json({ error: 'verification failed' });
     }
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err.message });
   }
-  next();
-}
-app.use(csrfCheck);
+});
 
-app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+app.post('/api/auth/register-options', ensureAuth, async (req, res) => {
+  const user = req.user;
+  const userCredentials = db.prepare('SELECT id FROM credentials WHERE user_id = ?').all(user.id);
 
-// ---- Helpers ----
+  const options = await generateRegistrationOptions({
+    rpName: RP_NAME,
+    rpID: RP_ID,
+    userID: String(user.id),
+    userName: user.slug,
+    attestationType: 'none',
+    excludeCredentials: userCredentials.map(cred => ({
+      id: cred.id,
+      type: 'public-key',
+    })),
+    authenticatorSelection: {
+      residentKey: 'required',
+      userVerification: 'preferred',
+    },
+  });
 
-// ARCH-2 + CLEAN-2: single query with SQLite JSON aggregation — used by both tasks route and Gemini agent
-function getTasksForUser(userId, archived) {
+  setChallenge(user.id, options.challenge);
+  res.json(options);
+});
+
+app.post('/api/auth/register-verify', ensureAuth, async (req, res) => {
+  const user = req.user;
+  const expectedChallenge = getChallenge(user.id);
+  if (!expectedChallenge) return res.status(400).json({ error: 'challenge expired' });
+
+  try {
+    const verification = await verifyRegistrationResponse({
+      response: req.body,
+      expectedChallenge,
+      expectedOrigin: ORIGIN,
+      expectedRPID: RP_ID,
+    });
+
+    if (verification.verified && verification.registrationInfo) {
+      const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
+      db.prepare('INSERT INTO credentials (id, user_id, public_key, counter, transports) VALUES (?, ?, ?, ?, ?)')
+        .run(credentialID, user.id, Buffer.from(credentialPublicKey), counter, JSON.stringify(req.body.response.transports || []));
+      res.json({ ok: true });
+    } else {
+      res.status(400).json({ error: 'verification failed' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/login-options', async (req, res) => {
+  const { slug } = req.body;
+  if (!slug) return res.status(400).json({ error: 'slug required' });
+  const user = db.prepare('SELECT id FROM users WHERE slug = ?').get(slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+
+  const userCredentials = db.prepare('SELECT id, transports FROM credentials WHERE user_id = ?').all(user.id);
+  const options = await generateAuthenticationOptions({
+    rpID: RP_ID,
+    allowCredentials: userCredentials.map(cred => ({
+      id: cred.id,
+      type: 'public-key',
+      transports: JSON.parse(cred.transports || '[]'),
+    })),
+    userVerification: 'preferred',
+  });
+
+  setChallenge(user.id, options.challenge);
+  res.json(options);
+});
+
+app.post('/api/auth/login-verify', async (req, res) => {
+  const { slug, response } = req.body;
+  const user = db.prepare('SELECT id FROM users WHERE slug = ?').get(slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+
+  const expectedChallenge = getChallenge(user.id);
+  if (!expectedChallenge) return res.status(400).json({ error: 'challenge expired' });
+
+  const cred = db.prepare('SELECT public_key, counter FROM credentials WHERE id = ? AND user_id = ?').get(response.id, user.id);
+  if (!cred) return res.status(400).json({ error: 'credential not found' });
+
+  try {
+    const verification = await verifyAuthenticationResponse({
+      response,
+      expectedChallenge,
+      expectedOrigin: ORIGIN,
+      expectedRPID: RP_ID,
+      authenticator: {
+        credentialID: response.id,
+        credentialPublicKey: new Uint8Array(cred.public_key),
+        counter: cred.counter,
+      },
+    });
+
+    if (verification.verified) {
+      db.prepare('UPDATE credentials SET counter = ? WHERE id = ?').run(verification.authenticationInfo.newCounter, response.id);
+      const token = signSession(slug);
+      res.setHeader('Set-Cookie', `sid=${encodeURIComponent(token)}; Path=/; Max-Age=${30*24*3600}; HttpOnly; Secure; SameSite=Strict`);
+      res.json({ ok: true });
+    } else {
+      res.status(400).json({ error: 'verification failed' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ---- SPA ----
+app.get('/:slug', ensureAuth, (req, res) => {
+  if (req.params.slug.startsWith('api')) return res.status(404).end();
+  const filePath = path.join(__dirname, 'public', 'index.html');
+  fs.readFile(filePath, 'utf8', (err, data) => {
+    if (err) return res.status(500).end();
+    const html = data.replace(/<style>/g, `<style nonce="${res.locals.nonce}">`);
+    res.send(html);
+  });
+});
+
+// ---- API: Tasks helper ----
+function getTasksForUser(userId, archived = false) {
   const archVal = archived ? 1 : 0;
   const rows = db.prepare(`
-    SELECT
-      t.*,
-      COALESCE(json_group_array(
-        CASE WHEN s.id IS NOT NULL
-          THEN json_object('id',s.id,'label',s.label,'done',s.done,'sort_order',s.sort_order,'task_id',s.task_id)
-        END
-      ) FILTER (WHERE s.id IS NOT NULL), '[]') AS subs_json,
+    SELECT t.*, 
+      COALESCE(
+        json_group_array(
+          CASE 
+            WHEN s.id IS NOT NULL 
+            THEN json_object('id',s.id,'label',s.label,'done',s.done,'sort_order',s.sort_order,'task_id',s.task_id)
+          END
+        ) FILTER (WHERE s.id IS NOT NULL), '[]') AS subs_json,
       COALESCE(json_group_array(b.blocked_by) FILTER (WHERE b.blocked_by IS NOT NULL), '[]') AS needs_json
     FROM tasks t
     LEFT JOIN subtasks s ON s.task_id = t.id
@@ -342,16 +530,22 @@ app.get('/', ensureAuth, (req, res) => {
   res.redirect('/' + req.user.slug);
 });
 
-// ---- API: Who am I ----
-app.get('/api/me', (req, res) => {
-  const user = getSessionUser(req);
-  if (!user) return res.json({ user: null });
-  res.json({ user: { id: user.id, name: user.name, slug: user.slug, created_at: user.created_at } });
-});
-
 // ---- API: Users ----
 app.get('/api/users', ensureAuth, (req, res) => {
   res.json({ users: db.prepare('SELECT id, name, slug FROM users ORDER BY id').all() });
+});
+
+// ---- UI State ----
+app.get('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
+  if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
+  const row = db.prepare('SELECT value FROM ui_state WHERE key = ?').get(req.user.id + ':state');
+  res.json(row ? JSON.parse(row.value) : {});
+});
+
+app.put('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
+  if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
+  db.prepare('INSERT OR REPLACE INTO ui_state (key, value) VALUES (?, ?)').run(req.user.id + ':state', JSON.stringify(req.body));
+  res.json({ ok: true });
 });
 
 // ---- API: Tasks (user-scoped) ----
@@ -506,254 +700,35 @@ app.delete('/api/blockers', ensureAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// ---- API: UI State (per user) ----
-app.get('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
-  if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
-  const rows = db.prepare('SELECT * FROM ui_state WHERE key GLOB ?').all(req.user.slug + ':*');
-  const state = {};
-  for (const r of rows) state[r.key.replace(req.user.slug + ':', '')] = JSON.parse(r.value);
-  res.json(state);
-});
-
-app.put('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
-  if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
-  const ins = db.prepare('INSERT OR REPLACE INTO ui_state (key, value) VALUES (?, ?)');
-  for (const [k, v] of Object.entries(req.body)) ins.run(req.user.slug + ':' + k, JSON.stringify(v));
-  res.json({ ok: true });
-});
-
-// ---- Agent: Gemini task analysis ----
-// SEC-18: Rate limit: 5 requests per minute per user for Gemini endpoint
-const geminiLimiter = {};
-function checkGeminiRate(userId) {
-  const now = Date.now(), window = 60000, max = 5;
-  if (!geminiLimiter[userId]) geminiLimiter[userId] = [];
-  geminiLimiter[userId] = geminiLimiter[userId].filter(t => now - t < window);
-  if (geminiLimiter[userId].length >= max) return false;
-  geminiLimiter[userId].push(now);
-  return true;
-}
-
+// ---- Agent Proxy ----
 app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
-  if (!checkGeminiRate(req.user.id)) return res.status(429).json({ error: 'rate limit exceeded, try again in a minute' });
-  const { question, slug: qSlug } = req.body;
-  if (!question?.trim()) return res.status(400).json({ error: 'question required' });
-  // SEC-13: limit question length
+  const { question } = req.body;
+  if (!question) return res.status(400).json({ error: 'question required' });
   if (question.length > 2000) return res.status(400).json({ error: 'question too long' });
-  if (qSlug && qSlug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
 
   const user = req.user;
-  const today = new Date().toISOString().split('T')[0];
-  // CLEAN-2: reuse getTasksForUser — single source of truth for task data
-  const tasks = getTasksForUser(user.id, false);
-  const blockers = db.prepare(`
-    SELECT b.task_id, t1.name task_name, b.blocked_by, t2.name blocked_by_name
-    FROM blockers b
-    JOIN tasks t1 ON t1.id = b.task_id
-    JOIN tasks t2 ON t2.id = b.blocked_by
-    WHERE t1.user_id = ?
-  `).all(user.id);
+  const tasks = getTasksForUser(user.id);
+  const events = db.prepare('SELECT * FROM task_events WHERE user_id = ? AND ts > datetime(\'now\', \'-30 days\') ORDER BY ts DESC LIMIT 100').all(user.id);
 
-  // Recent task lifecycle events for scheduling context
-  const recentEvents = db.prepare(`
-    SELECT te.action, te.ts, t.name, t.domain
-    FROM task_events te JOIN tasks t ON t.id = te.task_id
-    WHERE te.user_id = ? AND te.ts >= datetime('now', '-30 days')
-    ORDER BY te.ts DESC LIMIT 40
-  `).all(user.id);
+  const prompt = `You are a scheduling assistant for ${user.name}.
+Current tasks: ${JSON.stringify(tasks)}
+Recent events: ${JSON.stringify(events)}
+User question: ${question}`;
 
-  const speed = ['snap', 'sesh', 'grind'];
-  const stakes = ['low', 'high', 'crit'];
-  const taskLines = tasks.map(t =>
-    `[${t.id}] ${t.domain} | ${t.name} | ${speed[t.speed]} | ${stakes[t.stakes]} | ${t.done ? 'done' : 'pending'} | ${t.plan_date || '?'} → ${t.due_date || '?'}`
-  ).join('\n');
-  const blockerLines = blockers.map(b => `"${b.task_name}" needs "${b.blocked_by_name}"`).join('\n') || 'none';
-  const subLines = tasks.flatMap(t => t.subs.map(s => `  [task ${t.id}] ${s.done ? '✓' : '○'} ${s.label}`)).join('\n') || 'none';
-  const eventLines = recentEvents.map(e => `${e.ts.slice(0,10)} [${e.domain}] "${e.name}" → ${e.action}`).join('\n') || 'none';
-
-  const prompt = [
-    `You are a productivity assistant for ${user.name}. Today is ${today}.`,
-    `Speed: snap=quick, sesh=medium, grind=long. Stakes: low/high/crit.`,
-    `\nCurrent tasks:\n${taskLines}`,
-    `\nDependencies:\n${blockerLines}`,
-    `\nSubtasks:\n${subLines}`,
-    `\nRecent activity (last 30 days):\n${eventLines}`,
-    `\nAnswer concisely and practically: ${question.trim()}`,
-  ].join('\n');
-
-  // SEC-6: run gemini-ask.sh directly as deploy user — no sudo needed
-  // ARCH-4: async spawn with exit code check + stderr capture
   try {
-    const raw = await new Promise((resolve, reject) => {
-      const child = spawn('/opt/organizer/scripts/gemini-ask.sh', []);
-      let stdout = '', stderr = '';
-      const timer = setTimeout(() => {
-        child.kill();
-        reject(new Error('gemini-ask.sh timed out after 90s'));
-      }, 90000);
-      child.stdout.on('data', (chunk) => { stdout += chunk; });
-      child.stderr.on('data', (chunk) => { stderr += chunk; });
-      child.on('error', (err) => { clearTimeout(timer); reject(err); });
-      child.on('close', (code) => {
-        clearTimeout(timer);
-        if (code !== 0) reject(new Error(`gemini-ask.sh exited ${code}: ${(stderr || stdout).slice(0, 200)}`));
-        else resolve(stdout);
-      });
-      child.stdin.write(prompt);
-      child.stdin.end();
+    const spawnRes = spawnSync('/opt/organizer/repo/scripts/gemini-ask.sh', [prompt], {
+      encoding: 'utf-8',
+      timeout: 90000,
     });
-    const start = raw.indexOf('{');
-    const parsed = start >= 0 ? JSON.parse(raw.slice(start)) : {};
-    const model = Object.keys(parsed.stats?.models || {})[0] || null;
-    res.json({ answer: parsed.response || raw, model });
+    if (spawnRes.status !== 0) {
+      console.error('Gemini error:', spawnRes.stderr);
+      return res.status(500).json({ error: 'Oracle unreachable' });
+    }
+    res.json({ answer: spawnRes.stdout.trim() });
   } catch (e) {
-    // SEC-12: generic error message, don't leak internals
     console.error('Gemini agent error:', e.message);
     res.status(500).json({ error: 'gemini request failed' });
   }
-});
-
-// ---- WebAuthn (Passkeys) Endpoints ----
-
-function setChallenge(userId, challenge) {
-  const expiresAt = Math.floor(Date.now() / 1000) + 300; // 5 mins
-  db.prepare('INSERT OR REPLACE INTO auth_challenges (user_id, challenge, expires_at) VALUES (?, ?, ?)')
-    .run(userId, challenge, expiresAt);
-}
-
-function getChallenge(userId) {
-  const row = db.prepare('SELECT challenge FROM auth_challenges WHERE user_id = ? AND expires_at > ?')
-    .get(userId, Math.floor(Date.now() / 1000));
-  return row ? row.challenge : null;
-}
-
-app.post('/api/auth/register-options', ensureAuth, async (req, res) => {
-  const user = req.user;
-  const userCredentials = db.prepare('SELECT id FROM credentials WHERE user_id = ?').all(user.id);
-
-  const options = await generateRegistrationOptions({
-    rpName: RP_NAME,
-    rpID: RP_ID,
-    userID: String(user.id),
-    userName: user.slug,
-    attestationType: 'none',
-    excludeCredentials: userCredentials.map(cred => ({
-      id: cred.id,
-      type: 'public-key',
-    })),
-    authenticatorSelection: {
-      residentKey: 'required',
-      userVerification: 'preferred',
-    },
-  });
-
-  setChallenge(user.id, options.challenge);
-  res.json(options);
-});
-
-app.post('/api/auth/register-verify', ensureAuth, async (req, res) => {
-  const user = req.user;
-  const expectedChallenge = getChallenge(user.id);
-  if (!expectedChallenge) return res.status(400).json({ error: 'challenge expired' });
-
-  try {
-    const verification = await verifyRegistrationResponse({
-      response: req.body,
-      expectedChallenge,
-      expectedOrigin: ORIGIN,
-      expectedRPID: RP_ID,
-    });
-
-    if (verification.verified && verification.registrationInfo) {
-      const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
-      db.prepare('INSERT INTO credentials (id, user_id, public_key, counter, transports) VALUES (?, ?, ?, ?, ?)')
-        .run(credentialID, user.id, Buffer.from(credentialPublicKey), counter, JSON.stringify(req.body.response.transports || []));
-      res.json({ ok: true });
-    } else {
-      res.status(400).json({ error: 'verification failed' });
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(400).json({ error: err.message });
-  }
-});
-
-app.post('/api/auth/login-options', async (req, res) => {
-  const { slug } = req.body;
-  if (!slug) return res.status(400).json({ error: 'slug required' });
-  const user = db.prepare('SELECT id FROM users WHERE slug = ?').get(slug);
-  if (!user) return res.status(404).json({ error: 'user not found' });
-
-  const userCredentials = db.prepare('SELECT id, transports FROM credentials WHERE user_id = ?').all(user.id);
-  const options = await generateAuthenticationOptions({
-    rpID: RP_ID,
-    allowCredentials: userCredentials.map(cred => ({
-      id: cred.id,
-      type: 'public-key',
-      transports: JSON.parse(cred.transports || '[]'),
-    })),
-    userVerification: 'preferred',
-  });
-
-  setChallenge(user.id, options.challenge);
-  res.json(options);
-});
-
-app.post('/api/auth/login-verify', async (req, res) => {
-  const { slug, response } = req.body;
-  const user = db.prepare('SELECT id FROM users WHERE slug = ?').get(slug);
-  if (!user) return res.status(404).json({ error: 'user not found' });
-
-  const expectedChallenge = getChallenge(user.id);
-  if (!expectedChallenge) return res.status(400).json({ error: 'challenge expired' });
-
-  const cred = db.prepare('SELECT public_key, counter FROM credentials WHERE id = ? AND user_id = ?').get(response.id, user.id);
-  if (!cred) return res.status(400).json({ error: 'credential not found' });
-
-  try {
-    const verification = await verifyAuthenticationResponse({
-      response,
-      expectedChallenge,
-      expectedOrigin: ORIGIN,
-      expectedRPID: RP_ID,
-      authenticator: {
-        credentialID: response.id,
-        credentialPublicKey: new Uint8Array(cred.public_key),
-        counter: cred.counter,
-      },
-    });
-
-    if (verification.verified) {
-      db.prepare('UPDATE credentials SET counter = ? WHERE id = ?').run(verification.authenticationInfo.newCounter, response.id);
-      const token = signSession(slug);
-      res.setHeader('Set-Cookie', `sid=${encodeURIComponent(token)}; Path=/; Max-Age=${30*24*3600}; HttpOnly; Secure; SameSite=Strict`);
-      res.json({ ok: true });
-    } else {
-      res.status(400).json({ error: 'verification failed' });
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(400).json({ error: err.message });
-  }
-});
-
-app.patch('/api/me/password', ensureAuth, async (req, res) => {
-  const { password } = req.body;
-  if (!password || password.length < 8) return res.status(400).json({ error: 'Password too short (min 8)' });
-  const hash = await argon2.hash(password);
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.user.id);
-  res.json({ ok: true });
-});
-
-// ---- SPA ----
-app.get('/:slug', ensureAuth, (req, res) => {
-  if (req.params.slug.startsWith('api')) return res.status(404).end();
-  const filePath = path.join(__dirname, 'public', 'index.html');
-  fs.readFile(filePath, 'utf8', (err, data) => {
-    if (err) return res.status(500).end();
-    const html = data.replace(/<style>/g, `<style nonce="${res.locals.nonce}">`);
-    res.send(html);
-  });
 });
 
 // SEC-11: bind to localhost only — nginx handles external traffic
