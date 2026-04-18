@@ -138,7 +138,7 @@ body {
   height: 12px; width: 12px; border-radius: 50%; 
   border: 3px solid transparent; background: transparent;
   flex-shrink: 0; box-sizing: border-box;
-  margin-top: 1px; /* Precision adjustment */
+  margin-bottom: 1px; /* Correcting slight downward bias */
 }
 .card-hue-indicator.dot-canyon { border-color: #c15c3d; filter: drop-shadow(0 0 5px #c15c3d); }
 .card-hue-indicator.dot-amber { border-color: #e8b004; filter: drop-shadow(0 0 5px #e8b004); }
