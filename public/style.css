@@ -75,44 +75,46 @@ body {
 /* ── Header ── */
 .hdr { padding: 16px 16px 12px; flex-shrink: 0; }
 
+/* Row 1: date tile full width */
 .hdr-row1 {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; margin-bottom: 8px;
 }
 .hdr-date-etched {
-  flex: 1; padding: 10px 14px; font-size: 10px; opacity: 0.4; font-weight: 800;
+  width: 100%; padding: 10px 14px; font-size: 10px; opacity: 0.4; font-weight: 800;
   text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.03);
   box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5); border-radius: var(--r-sm);
   letter-spacing: 1.5px;
 }
 
-/* Icon cluster — glass pill containing all header controls */
+/* Row 2: icon cluster — etched pill, same language as card action cluster */
+.hdr-row2-icons {
+  display: flex; align-items: center;
+}
 .hdr-icon-cluster {
-  display: flex; align-items: center; flex-shrink: 0;
-  background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.06);
-  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.4);
-  border-radius: 100px; overflow: hidden;
+  display: flex; align-items: center; gap: 0; flex-shrink: 0;
+  background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.03);
+  box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5);
+  border-radius: 100px; padding: 0 4px;
 }
 .hdr-icon {
   background: transparent; border: none; cursor: pointer;
-  color: rgba(255,255,255,0.35); font-size: 14px; line-height: 1;
-  padding: 9px 12px; transition: all 0.2s; font-family: inherit;
-  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.3); font-size: 14px; line-height: 1;
+  padding: 8px 11px; transition: all 0.2s; font-family: inherit;
+  display: flex; align-items: center; justify-content: center; border-radius: 100px;
 }
-.hdr-icon:hover { color: var(--ink); background: rgba(255,255,255,0.05); }
-.hdr-icon-sep {
-  width: 1px; height: 18px; background: rgba(255,255,255,0.06); flex-shrink: 0;
-}
+.hdr-icon:hover { color: var(--ink); background: rgba(255,255,255,0.04); }
+.hdr-icon:active { transform: scale(0.92); }
 
 /* Icon states */
 .hdr-icon--plan    { color: var(--honey); }
 .hdr-icon--execute { color: var(--honey); }
-.hdr-icon--active  { color: rgba(255,255,255,0.5); }
-.hdr-icon--archived{ color: rgba(255,255,255,0.3); }
+.hdr-icon--active  { color: rgba(255,255,255,0.45); }
+.hdr-icon--archived{ color: rgba(255,255,255,0.25); }
 .hdr-icon--council { color: var(--honey); }
-.hdr-icon--add     { color: rgba(255,255,255,0.4); font-size: 16px; }
-.hdr-icon--logout  { color: rgba(255,255,255,0.25); }
-.hdr-icon--logout:hover { color: #E11D48; background: rgba(225,29,72,0.08); }
+.hdr-icon--add     { color: rgba(255,255,255,0.35); font-size: 16px; }
+.hdr-icon--logout  { color: rgba(255,255,255,0.2); }
+.hdr-icon--logout:hover { color: var(--amber); background: rgba(193,92,61,0.08); }
 
 /* switch-tile removed — replaced by hdr-icon-cluster */
 
@@ -340,8 +342,8 @@ body {
 .card-hue-indicator:hover .card-hue-indicator-tooltip { display: block; }
 
 /* ── Btn Danger (destructive modal actions) ── */
-.btn-danger { background: transparent; color: #E11D48; border: 1px solid rgba(225,29,72,0.35); font-weight: 800; }
-.btn-danger:hover { border-color: rgba(225,29,72,0.7); background: rgba(225,29,72,0.06); }
+.btn-danger { background: transparent; color: #c15c3d; border: 1px solid rgba(193,92,61,0.35); font-weight: 800; }
+.btn-danger:hover { border-color: rgba(193,92,61,0.7); background: rgba(193,92,61,0.06); }
 
 /* ── plan_date nudge ── */
 .field-tile.plan-nudge { border-color: rgba(212,131,10,0.45); background: rgba(212,131,10,0.04); }
@@ -396,12 +398,11 @@ body.mode-execute .card.mat-cobalt .tile-name { color: #1e4f6b; }
 body.mode-execute .card.mat-indigo .tile-name { color: #1a3a6b; }
 body.mode-execute .card.mat-wood .tile-name { color: #5d3a2a; }
 body.mode-execute .card.mat-purple .tile-name { color: #4a2e5a; }
-body.mode-execute .hdr-icon-cluster { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.1); }
+body.mode-execute .hdr-icon-cluster { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.08); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.12); }
 body.mode-execute .hdr-icon { color: rgba(9,10,15,0.3); }
-body.mode-execute .hdr-icon:hover { color: var(--obsidian); background: rgba(0,0,0,0.05); }
+body.mode-execute .hdr-icon:hover { color: var(--obsidian); background: rgba(0,0,0,0.04); }
 body.mode-execute .hdr-icon--plan, body.mode-execute .hdr-icon--execute,
 body.mode-execute .hdr-icon--council { color: var(--honey); }
-body.mode-execute .hdr-icon-sep { background: rgba(0,0,0,0.08); }
 body.mode-execute .search { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); color: var(--obsidian); }
 body.mode-execute .cbtn { color: var(--obsidian); }
 body.mode-execute .tile-domain { color: rgba(9,10,15,0.65) !important; }
@@ -494,25 +495,31 @@ body.mode-execute .oracle-panel { display: flex; }
 /* ── Council: agent symbol row ── */
 .council-agent-row {
   flex-shrink: 0; display: flex; align-items: center;
-  padding: 0 24px; gap: 8px;
+  padding: 10px 20px; gap: 6px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
-  background: rgba(0,0,0,0.2);
+  background: rgba(0,0,0,0.15);
 }
+/* Each agent = individual etched tile, like card subtiles */
 .council-agent-tile {
   flex: 1; display: flex; flex-direction: column; align-items: center;
-  gap: 5px; padding: 12px 4px; cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s; opacity: 0.35;
+  gap: 4px; padding: 8px 6px; cursor: pointer;
+  background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.03);
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.4);
+  border-radius: var(--r-sm); transition: all 0.2s; opacity: 0.35;
 }
-.council-agent-tile:hover { opacity: 0.7; }
-.council-agent-tile.active { opacity: 1; }
-.council-agent-tile .cat-icon { font-size: 18px; line-height: 1; }
+.council-agent-tile:hover { opacity: 0.7; background: rgba(255,255,255,0.03); }
+.council-agent-tile.active {
+  opacity: 1; border-color: currentColor;
+  background: rgba(0,0,0,0.25);
+  box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5), 0 0 8px rgba(255,255,255,0.04);
+}
+.council-agent-tile .cat-icon { font-size: 16px; line-height: 1; }
 .council-agent-tile .cat-label {
-  font-size: 7px; font-weight: 900; letter-spacing: 1.5px;
+  font-size: 6px; font-weight: 900; letter-spacing: 1.5px;
   text-transform: uppercase; text-align: center; line-height: 1.2;
 }
 .council-agent-tile .cat-dot {
-  width: 4px; height: 4px; border-radius: 50%;
+  width: 3px; height: 3px; border-radius: 50%;
   background: currentColor; opacity: 0; transition: opacity 0.3s;
 }
 .council-agent-tile.briefed .cat-dot { opacity: 0.8; }
