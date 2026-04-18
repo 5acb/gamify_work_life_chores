@@ -112,9 +112,11 @@ function renderApp(){
             +'<button class="tile hdr-btn" id="logoutBtn" title="Sign Out">⏻</button>'
           +'</div>'
         +'</div>'
-        +'<div style="display:flex;justify-content:flex-end;margin-top:15px;align-items:center;gap:12px">'
-          +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off" style="max-width:200px">'
-          +'<div id="statusDots"></div>'
+        +'<div style="display:flex;flex-direction:column;margin-top:20px;gap:12px;width:100%">'
+          +'<div style="display:flex;justify-content:flex-end">'
+            +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off" style="width:100%;max-width:300px">'
+          +'</div>'
+          +'<div id="statusDots" style="width:100%"></div>'
         +'</div>'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
@@ -419,9 +421,12 @@ function openAI(){
   var m=document.getElementById('modal');
   m.innerHTML='<h2>✦ Oracle</h2>'
     +'<div class="ai-chips">'+SUGG.map(function(s){return'<span class="ai-chip">'+esc(s)+'</span>'}).join('')+'</div>'
-    +'<div class="field"><label>Inquiry</label><textarea id="ai-q" rows="3" style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:15px;outline:none"></textarea></div>'
-    +'<div class="modal-actions" style="display:flex;gap:15px"><button id="mc" class="btn-cancel" style="flex:1">Back</button><button class="ai-btn" id="ms" style="flex:1;background:var(--honey);color:#000">Ask</button></div>'
-    +'<div class="ai-response" id="ai-resp" style="margin-top:20px;padding:20px;background:rgba(255,255,255,0.02);display:none;font-size:14px;line-height:1.6"></div>';
+    +'<div class="field"><label>Inquiry</label><textarea id="ai-q" rows="4" placeholder="Seek wisdom..."></textarea></div>'
+    +'<div class="modal-actions">'
+      +'<button id="mc" class="btn-cancel">Back</button>'
+      +'<button class="btn-save" id="ms" style="background:var(--honey);color:#000">Ask Oracle</button>'
+    +'</div>'
+    +'<div class="ai-response" id="ai-resp" style="display:none"></div>';
   showModal();
   var qa=document.getElementById('ai-q');
   document.querySelectorAll('.ai-chip').forEach(function(c){c.onclick=function(){qa.value=this.textContent;qa.focus()}});
