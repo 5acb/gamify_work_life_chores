@@ -210,7 +210,7 @@ body {
 
 /* ── Card Footer Group (Name + Blocker) ── */
 .card-footer {
-  position: absolute; bottom: 20px; left: 20px; width: calc(100% - 90px);
+  position: absolute; bottom: 20px; left: 20px; width: calc(100% - 100px);
   display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
   z-index: 2; pointer-events: none;
 }
@@ -243,7 +243,7 @@ body {
 .cbtn:hover { opacity: 1; color: var(--honey); filter: drop-shadow(0 0 10px var(--honey)) !important; }
 
 /* Subtiles (TOP RIGHT) */
-.card-grid { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; position: relative; z-index: 2; width: 100%; padding-top: 44px; }
+.card-grid { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; position: relative; z-index: 2; width: 100%; }
 .tile {
   background: var(--glass-inner); border: 1px solid rgba(255, 255, 255, 0.1); 
   padding: 4px 10px; display: flex; align-items: center; justify-content: center;
@@ -429,6 +429,9 @@ body.mode-execute .oracle-panel { display: flex; }
 @media (max-width: 1024px) {
   .app { grid-template-columns: 1fr; }
   .panel-tree { display: none; }
+  .cards { padding-left: 16px; padding-right: 16px; }
+  .card { max-width: 100%; }
+  .tree-container { padding: 40px 16px; }
   /* Mobile tree view: swap panels when card selected */
   .app.mobile-tree-active .panel-tree { display: flex; }
   .app.mobile-tree-active .panel-list { display: none; }
