@@ -463,50 +463,60 @@ body.mode-execute .oracle-panel { display: flex; }
 .council-extract:hover { background: rgba(232,176,4,0.2); box-shadow: 0 0 16px rgba(232,176,4,0.2); }
 .council-extract:disabled { opacity: 0.4; cursor: default; }
 
-.council-grid {
-  flex: 1; display: grid; grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr; gap: 1px;
-  background: rgba(255,255,255,0.04); overflow: hidden;
-}
-.agent-panel {
-  display: flex; flex-direction: column;
-  background: rgba(9,10,15,0.8);
-  overflow: hidden; position: relative;
-}
-.agent-panel-header {
-  flex-shrink: 0; padding: 16px 20px 12px;
-  display: flex; align-items: center; gap: 12px;
+/* ── Council: agent symbol row ── */
+.council-agent-row {
+  flex-shrink: 0; display: flex; align-items: center;
+  padding: 0 24px; gap: 8px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
+  background: rgba(0,0,0,0.2);
 }
-.agent-icon { font-size: 16px; flex-shrink: 0; }
-.agent-name {
-  font-size: 9px; font-weight: 900; letter-spacing: 3px;
-  text-transform: uppercase; flex: 1;
+.council-agent-tile {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 5px; padding: 12px 4px; cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s; opacity: 0.35;
 }
-.agent-spinner {
-  width: 10px; height: 10px; border-radius: 50%;
-  border: 1.5px solid currentColor; border-top-color: transparent;
-  animation: spin 0.7s linear infinite; opacity: 0.5; flex-shrink: 0;
-  display: none;
+.council-agent-tile:hover { opacity: 0.7; }
+.council-agent-tile.active { opacity: 1; }
+.council-agent-tile .cat-icon { font-size: 18px; line-height: 1; }
+.council-agent-tile .cat-label {
+  font-size: 7px; font-weight: 900; letter-spacing: 1.5px;
+  text-transform: uppercase; text-align: center; line-height: 1.2;
 }
-.agent-panel.thinking .agent-spinner { display: block; }
-.agent-ready-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: currentColor; flex-shrink: 0;
-  opacity: 0; transition: opacity 0.4s;
+.council-agent-tile .cat-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: currentColor; opacity: 0; transition: opacity 0.3s;
 }
-.agent-panel.ready .agent-ready-dot { opacity: 0.8; }
+.council-agent-tile.briefed .cat-dot { opacity: 0.8; }
 
-.agent-feed {
-  flex: 1; overflow-y: auto; padding: 14px 20px;
-  display: flex; flex-direction: column; gap: 10px;
+/* Per-agent colours */
+.council-agent-tile[data-agent="moderator"]   { color: var(--honey); }
+.council-agent-tile[data-agent="strategist"]  { color: #93c5fd; }
+.council-agent-tile[data-agent="risk_scout"]  { color: #ff8888; }
+.council-agent-tile[data-agent="psychologist"]{ color: #e9d5ff; }
+.council-agent-tile[data-agent="plan_oracle"] { color: #fcd34d; }
+.council-agent-tile[data-agent="domain_expert"]{ color: #99f6e4; }
+
+.council-agent-tile.active { border-bottom-color: currentColor; }
+
+/* ── Council: single chat ── */
+.council-chat {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+.council-feed {
+  flex: 1; overflow-y: auto; padding: 20px 28px;
+  display: flex; flex-direction: column; gap: 12px;
   scroll-behavior: smooth;
 }
-.agent-msg { font-size: 12px; line-height: 1.75; }
-.agent-msg.from-agent { color: rgba(244,240,234,0.82); }
-.agent-msg.from-user { color: var(--honey); font-weight: 700; font-size: 11px; }
+.agent-msg { font-size: 13px; line-height: 1.8; }
+.agent-msg.from-agent { color: rgba(244,240,234,0.85); }
+.agent-msg.from-user {
+  color: var(--honey); font-weight: 700; font-size: 11.5px;
+  opacity: 0.8; padding-left: 12px;
+  border-left: 2px solid rgba(232,176,4,0.3);
+}
 .agent-msg-typing {
-  display: flex; gap: 4px; align-items: center; padding: 4px 0;
+  display: flex; gap: 5px; align-items: center; padding: 4px 0;
 }
 .agent-msg-typing span {
   width: 5px; height: 5px; border-radius: 50%;
@@ -517,51 +527,34 @@ body.mode-execute .oracle-panel { display: flex; }
 .agent-msg-typing span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes typingDot { 0%,80%,100%{transform:scale(0.6);opacity:0.3} 40%{transform:scale(1);opacity:1} }
 
-.agent-input-row {
-  flex-shrink: 0; display: flex; gap: 8px;
-  padding: 10px 16px 14px;
-  border-top: 1px solid rgba(255,255,255,0.04);
+.council-input-row {
+  flex-shrink: 0; display: flex; gap: 10px;
+  padding: 12px 24px 18px;
+  border-top: 1px solid rgba(255,255,255,0.05);
 }
-.agent-input {
+.council-input {
   flex: 1; background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: var(--r-sm); padding: 7px 12px;
-  color: var(--ink); font-family: inherit; font-size: 11.5px; outline: none;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--r-sm); padding: 10px 16px;
+  color: var(--ink); font-family: inherit; font-size: 12.5px; outline: none;
   transition: border-color 0.2s;
 }
-.agent-input:focus { border-color: rgba(232,176,4,0.4); }
-.agent-send {
-  background: transparent; border: 1px solid rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.4); width: 30px; border-radius: var(--r-sm);
-  cursor: pointer; font-size: 13px; transition: all 0.2s; flex-shrink: 0;
+.council-input:focus { border-color: rgba(232,176,4,0.4); }
+.council-send {
+  background: rgba(232,176,4,0.1); border: 1px solid rgba(232,176,4,0.25);
+  color: var(--honey); padding: 10px 18px; border-radius: var(--r-sm);
+  cursor: pointer; font-family: inherit; font-weight: 800;
+  font-size: 10px; letter-spacing: 1px; transition: all 0.2s; flex-shrink: 0;
 }
-.agent-send:hover { border-color: var(--honey); color: var(--honey); }
+.council-send:hover { background: rgba(232,176,4,0.2); }
+.council-send:disabled { opacity: 0.3; cursor: default; }
 
-/* Per-agent accent colours */
-.agent-panel[data-agent="strategist"] .agent-name,
-.agent-panel[data-agent="strategist"] .agent-icon,
-.agent-panel[data-agent="strategist"] .agent-spinner,
-.agent-panel[data-agent="strategist"] .agent-ready-dot { color: #93c5fd; }
-
-.agent-panel[data-agent="risk_scout"] .agent-name,
-.agent-panel[data-agent="risk_scout"] .agent-icon,
-.agent-panel[data-agent="risk_scout"] .agent-spinner,
-.agent-panel[data-agent="risk_scout"] .agent-ready-dot { color: #ff8888; }
-
-.agent-panel[data-agent="psychologist"] .agent-name,
-.agent-panel[data-agent="psychologist"] .agent-icon,
-.agent-panel[data-agent="psychologist"] .agent-spinner,
-.agent-panel[data-agent="psychologist"] .agent-ready-dot { color: #e9d5ff; }
-
-.agent-panel[data-agent="domain_expert"] .agent-name,
-.agent-panel[data-agent="domain_expert"] .agent-icon,
-.agent-panel[data-agent="domain_expert"] .agent-spinner,
-.agent-panel[data-agent="domain_expert"] .agent-ready-dot { color: #99f6e4; }
-
-.agent-panel[data-agent="plan_oracle"] .agent-name,
-.agent-panel[data-agent="plan_oracle"] .agent-icon,
-.agent-panel[data-agent="plan_oracle"] .agent-spinner,
-.agent-panel[data-agent="plan_oracle"] .agent-ready-dot { color: #fcd34d; }
+/* active-agent name strip */
+.council-active-label {
+  padding: 6px 28px; font-size: 9px; font-weight: 900;
+  letter-spacing: 3px; text-transform: uppercase;
+  opacity: 0.4; flex-shrink: 0;
+}
 
 /* Council extraction result */
 .extract-result {

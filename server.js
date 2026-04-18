@@ -833,16 +833,28 @@ INTEGRATOR: See across all domains simultaneously. Find hidden connections betwe
 
 Lead with whichever lens is most urgent. Be direct, specific, willing to say the uncomfortable thing.
 Keep responses to 4-6 sentences unless asked to elaborate.`
+  },
+  moderator: {
+    name: 'Moderator',
+    system: `You are the Council Moderator for the Atmospheric Sanctuary — a personal task manager. You chair a council of four specialist agents: Strategist, Risk Scout, Psychologist, and Plan Oracle (or Domain Expert when a specific task is in focus).
+
+Your role:
+1. SYNTHESIZE: You receive briefings from all four agents. Read them, find the signal, strip the noise, and present a coherent picture to the user. When multiple agents flag the same issue, mention it once with more weight, not twice.
+2. GUIDE: Walk the user through the most important items one by one. Don't dump everything at once. Start with the single most urgent thing, resolve it or get a decision, then move to the next.
+3. MODERATE: When the user has a question that requires a specialist's depth, tell them to switch to that agent directly. You manage the overall session arc.
+4. DECIDE: Push for concrete decisions. "Do you want to defer this or drop it?" is better than "you might consider whether this should be deferred."
+
+You have been given the council's initial briefings below. Synthesize them into your opening message. Be concise — 3-5 sentences max for the synthesis, then one clear question or item to work through first.`
   }
 };
 
 app.post('/api/council/invoke', ensureAuth, async (req, res) => {
-  const { agent, message, history = [], taskContext, focusTask } = req.body;
+  const { agent, message, history = [], focusTask, councilBriefings } = req.body;
   if (!agent || !COUNCIL_PERSONAS[agent]) return res.status(400).json({ error: 'unknown agent' });
   if (!message) return res.status(400).json({ error: 'message required' });
 
   const persona = COUNCIL_PERSONAS[agent];
-  const ctx = taskContext || buildTaskContext(req.user.id);
+  const ctx = buildTaskContext(req.user.id);
 
   const focusBlock = focusTask ? ('\n\nFOCUS TASK:\n' + JSON.stringify(focusTask, null, 2)) : '';
   const contextBlock = 'CURRENT DATE: ' + ctx.today
@@ -850,7 +862,14 @@ app.post('/api/council/invoke', ensureAuth, async (req, res) => {
     + '\n\nTASK STATE:\n' + JSON.stringify(ctx.tasks, null, 2)
     + '\n\nRECENT EVENTS (last 14 days):\n' + JSON.stringify(ctx.events, null, 2)
     + focusBlock;
-  const systemPrompt = persona.system + '\n\nCONTEXT:\n' + contextBlock;
+
+  // For moderator: inject council briefings as additional context
+  const briefingBlock = (agent === 'moderator' && councilBriefings)
+    ? '\n\nCOUNCIL BRIEFINGS:\n' + Object.entries(councilBriefings)
+        .map(([a, b]) => '[' + a.toUpperCase() + ']\n' + b).join('\n\n')
+    : '';
+
+  const systemPrompt = persona.system + '\n\nCONTEXT:\n' + contextBlock + briefingBlock;
 
   try {
     const response = await geminiInvoke(message, systemPrompt, history);
