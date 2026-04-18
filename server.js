@@ -735,4 +735,53 @@ User question: ${question}`;
 });
 
 // SEC-11: bind to localhost only — nginx handles external traffic
+// ── Plan Sessions API ──────────────────────────────────────────
+app.post('/api/plan-sessions', ensureAuth, (req, res) => {
+  const { id, triggered, domain, task_ids, task_snapshot } = req.body;
+  const sessionId = id || `ps_${Date.now()}_${domain||'all'}`;
+  db.prepare(`INSERT OR REPLACE INTO plan_sessions (id,triggered,domain,task_ids,started_at,task_snapshot)
+    VALUES (?,?,?,?,datetime('now'),?)`).run(sessionId, triggered||'manual', domain||'all',
+    JSON.stringify(task_ids||[]), JSON.stringify(task_snapshot||{}));
+  res.json({ ok:true, id:sessionId });
+});
+
+app.patch('/api/plan-sessions/:id/close', ensureAuth, (req, res) => {
+  db.prepare("UPDATE plan_sessions SET ended_at=datetime('now') WHERE id=?").run(req.params.id);
+  res.json({ ok:true });
+});
+
+app.post('/api/plan-sessions/:id/events', ensureAuth, (req, res) => {
+  const { agent, event_type, task_id, content } = req.body;
+  const r = db.prepare(`INSERT INTO session_events (session_id,ts,agent,event_type,task_id,content)
+    VALUES (?,datetime('now'),?,?,?,?)`).run(req.params.id, agent, event_type, task_id||null, JSON.stringify(content||{}));
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+app.post('/api/plan-sessions/:id/decisions', ensureAuth, (req, res) => {
+  const { decision_type, task_id, proposed_by, accepted, rationale } = req.body;
+  const r = db.prepare(`INSERT INTO session_decisions (session_id,ts,decision_type,task_id,proposed_by,accepted,rationale)
+    VALUES (?,datetime('now'),?,?,?,?,?)`).run(req.params.id, decision_type, task_id||null, proposed_by, accepted, rationale||'');
+  res.json({ ok:true, id:r.lastInsertRowid });
+});
+
+app.get('/api/plan-sessions', ensureAuth, (req, res) => {
+  const sessions = db.prepare('SELECT * FROM plan_sessions ORDER BY started_at DESC LIMIT 20').all();
+  res.json({ sessions });
+});
+
+app.get('/api/plan-sessions/:id/events', ensureAuth, (req, res) => {
+  const events = db.prepare('SELECT * FROM session_events WHERE session_id=? ORDER BY ts ASC').all(req.params.id);
+  res.json({ events });
+});
+
+app.get('/api/meta-insights', ensureAuth, (req, res) => {
+  const unseen = db.prepare('SELECT * FROM meta_insights WHERE surfaced=0 ORDER BY generated_at DESC').all();
+  res.json({ insights: unseen });
+});
+
+app.patch('/api/meta-insights/:id/seen', ensureAuth, (req, res) => {
+  db.prepare('UPDATE meta_insights SET surfaced=1 WHERE id=?').run(+req.params.id);
+  res.json({ ok:true });
+});
+
 app.listen(PORT, '127.0.0.1', () => console.log(`Organizer running on 127.0.0.1:${PORT}`));

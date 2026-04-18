@@ -4,7 +4,7 @@ var DM={CTI:{c:'#5E9C95',l:'CTI',m:'mat-teal'},ECM:{c:'#9b6a9b',l:'ECM',m:'mat-w
 var SPEED_L=['snap','sesh','grind'],STAKES_L=['low','high','crit'];
 var DOMAINS=Object.keys(DM);
 
-var state={slug:null,user:null,tasks:[],taskById:{},view:'current',searchQuery:'',selectedId:null};
+var state={slug:null,user:null,tasks:[],taskById:{},view:'current',searchQuery:'',selectedId:null,mode:'plan'};
 
 function api(m,u,b){
   var o={method:m,headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}};
@@ -67,6 +67,7 @@ function loadBoard(){
   ]).then(function(resArr){
     var res=resArr[0], ui=resArr[1];
     state.tasks=res.tasks;state.user=res.user;
+    if(ui.mode) state.mode=ui.mode;
     
     // Apply custom sort order if present
     if(ui.order && ui.order.length){
@@ -87,6 +88,23 @@ function loadBoard(){
 
 // ── Shell ─────────────────────────────────────────────────────
 
+function applyMode(){
+  if(state.mode==='execute') document.body.classList.add('mode-execute');
+  else document.body.classList.remove('mode-execute');
+}
+
+function sendOracleMsg(){
+  var inp=document.getElementById('oracleInput'); if(!inp) return;
+  var q=inp.value.trim(); if(!q) return;
+  var feed=document.getElementById('oracleFeed'); if(!feed) return;
+  var userEl=document.createElement('div');userEl.className='oracle-msg from-user';userEl.textContent=q;feed.appendChild(userEl);
+  inp.value='';
+  api('POST','/api/agent/gemini',{question:q,slug:state.slug}).then(function(r){
+    var el=document.createElement('div');el.className='oracle-msg from-oracle';el.textContent=r.answer||r.error||'...';feed.appendChild(el);
+    feed.scrollTop=feed.scrollHeight;
+  });
+}
+
 function renderApp(){
   var root=document.getElementById('root');
   var dateStr=TODAY.toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric'});
@@ -105,13 +123,14 @@ function renderApp(){
         +'<div class="hdr-top">'
           +'<div class="hdr-controls">'
             +'<div class="hdr-date-etched">'+dateStr+'</div>'
+            +'<button class="mode-toggle-btn" id="modeToggleBtn">'+(state.mode==='plan'?'◈ PLAN':'▶ EXECUTE')+'</button>'
             +'<div id="viewToggle" class="tile switch-tile">'
               +'<div id="toggleKnob" class="switch-knob '+(state.view==='current'?'active':'archived')+'"></div>'
               +'<span class="switch-label '+(state.view==='current'?'on':'')+'" title="Active">↑</span>'
               +'<span class="switch-label '+(state.view==='archived'?'on':'')+'" title="Archived">↓</span>'
             +'</div>'
             +'<button class="tile hdr-btn" id="addBtn" title="New Stone">+</button>'
-            +'<button class="tile ai-btn" id="aiBtn">✦ Oracle</button>'
+            +'<button class="tile ai-btn" id="aiBtn">'+(state.mode==='plan'?'✦ Oracle':'✦ Oracle')+'</button>'
             +'<button class="tile hdr-btn" id="logoutBtn" title="Sign Out">⏻</button>'
           +'</div>'
         +'</div>'
@@ -125,11 +144,30 @@ function renderApp(){
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
     +'</div>';
 
+  // Inject oracle panel
+  if(!document.getElementById('oraclePanel')){
+    var op=document.createElement('div');op.id='oraclePanel';op.className='oracle-panel';
+    op.innerHTML='<div class="oracle-label">▶ Oracle</div>'
+      +'<div class="oracle-feed" id="oracleFeed"><div class="oracle-msg from-oracle">Oracle ready. What are you working on?</div></div>'
+      +'<div class="oracle-input-row"><input class="oracle-input" id="oracleInput" placeholder="Talk to Oracle..." autocomplete="off"><button class="oracle-send" id="oracleSend">ASK</button></div>';
+    document.body.appendChild(op);
+    document.getElementById('oracleSend').onclick=sendOracleMsg;
+    document.getElementById('oracleInput').addEventListener('keydown',function(e){if(e.key==='Enter')sendOracleMsg()});
+  }
+  applyMode();
   document.getElementById('userName').textContent=state.user?state.user.name.toUpperCase():'';
+
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
   document.getElementById('addBtn').addEventListener('click',openAddTask);
   document.getElementById('aiBtn').addEventListener('click',openAI);
   document.getElementById('logoutBtn').addEventListener('click',openLogoutConfirm);
+  document.getElementById('modeToggleBtn').addEventListener('click',function(){
+    state.mode = state.mode==='plan' ? 'execute' : 'plan';
+    api('PUT','/api/users/'+state.slug+'/ui-state',{mode:state.mode});
+    applyMode();
+    // Re-render header button label
+    document.getElementById('modeToggleBtn').textContent = state.mode==='plan'?'◈ PLAN':'▶ EXECUTE';
+  });
 
   document.getElementById('viewToggle').onclick = function(){
     state.view = state.view === 'current' ? 'archived' : 'current';
@@ -178,7 +216,14 @@ function updateStatusDots(){
     dotCounts[3] += diff; // Adjust dim (most common)
   }
 
-  h += '<div class="status-tile">';
+  // Build tooltip text
+  var tipParts=[];
+  if(counts.canyon) tipParts.push(counts.canyon+' canyon');
+  if(counts.amber) tipParts.push(counts.amber+' amber');
+  if(counts.marble) tipParts.push(counts.marble+' marble');
+  if(counts.dim) tipParts.push(counts.dim+' clear');
+  var tipText=tipParts.join(' · ')||'all clear';
+  h += '<div class="status-tile"><span class="status-tile-tooltip">'+tipText+'</span>';
   types.forEach((type, idx) => {
     for(var i=0; i<dotCounts[idx]; i++) {
         h += '<div class="status-dot dot-'+type+'" title="'+type.toUpperCase()+'"></div>';
@@ -223,7 +268,12 @@ function makeCardEl(t, isList){
   var hueCls = hue ? 'hue-' + hue : '';
 
   var el=document.createElement('div');
+  var archiveAge=0;
+  if(archived && t.archived_at){
+    archiveAge=Math.min(7,Math.floor((Date.now()-new Date(t.archived_at).getTime())/(1000*60*60*24)));
+  }
   el.className='card '+dm.m+' '+stateCls+' '+hueCls+(archived?' archived':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
+  if(archived && archiveAge>0) el.dataset.age=archiveAge;
   el.dataset.id=t.id;
 
   var h='';
@@ -361,7 +411,7 @@ function taskForm(t){
   return '<div class="field-tile"><label>Task Name</label><input id="f-name" value="'+esc(t?t.name:'')+'" placeholder="..."></div>'
     +'<div class="field-tile"><label>Domain</label><select id="f-domain">'+sel+'</select></div>'
     +'<div style="display:flex;gap:12px">'
-      +'<div class="field-tile" style="flex:1"><label>Start</label><input id="f-pd" type="date" value="'+esc(t&&t.plan_date?t.plan_date:'')+'"></div>'
+      +'<div class="field-tile'+(t&&t.due_date&&!t.plan_date?' plan-nudge':'')+'" style="flex:1"><label>Start</label><input id="f-pd" type="date" value="'+esc(t&&t.plan_date?t.plan_date:'')+'"></div>'
       +'<div class="field-tile" style="flex:1"><label>Due</label><input id="f-dd" type="date" value="'+esc(t&&t.due_date?t.due_date:'')+'"></div>'
     +'</div>'
     +'<div class="field-tile"><label>Status</label><select id="f-done"><option value="0">Pending</option><option value="1" '+(t&&t.done?'selected':'')+'>Done</option></select></div>';
@@ -373,7 +423,7 @@ function openEdit(id){
   var m=document.getElementById('modal');
   m.innerHTML='<h2>Edit Stone</h2>'+taskForm(t)
     +'<div class="modal-actions">'
-      +'<button id="mdel" class="btn-cancel" style="color:#ff8888">Shatter</button>'
+      +'<button id="mdel" class="btn-danger">Shatter</button>'
       +'<button id="mc" class="btn-cancel">Back</button>'
       +'<button class="btn-save" id="ms">Save</button>'
     +'</div>';
