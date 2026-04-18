@@ -136,6 +136,15 @@ function renderApp(){
   if(state.selectedId) renderTree(state.selectedId);
 }
 
+function getTaskHue(t){
+  if(t.archived) return '';
+  var dp=daysFrom(t.plan_date), dd=daysFrom(t.due_date);
+  if(dd <= 1) return 'canyon';
+  if(dd <= 3) return 'amber';
+  if(dd <= 7 || (dd < 999 && dp < 999 && dd - dp < 3)) return 'marble';
+  return 'bamboo';
+}
+
 function updateStatusDots(){
   var container = document.getElementById('statusDots'); if(!container) return;
   var activeTasks = state.tasks.filter(t => !t.archived);
@@ -143,11 +152,8 @@ function updateStatusDots(){
 
   var counts = {canyon:0, amber:0, marble:0, bamboo:0};
   activeTasks.forEach(t => {
-    var dp=daysFrom(t.plan_date), dd=daysFrom(t.due_date);
-    if(dd <= 1) counts.canyon++;
-    else if(dd <= 3) counts.amber++;
-    else if(dd <= 7 || (dd < 999 && dp < 999 && dd - dp < 3)) counts.marble++;
-    else counts.bamboo++;
+    var h = getTaskHue(t);
+    if(h) counts[h]++;
   });
 
   var total = activeTasks.length;
@@ -199,13 +205,8 @@ function makeCardEl(t, isList){
   var stateCls = isUrgent ? 'state-urgent' : (archived ? 'state-safe' : '');
   
   // Subtle Background Hues
-  var hueCls = '';
-  if(!archived){
-    if(dd <= 1) hueCls = 'hue-canyon';
-    else if(dd <= 3) hueCls = 'hue-amber';
-    else if(dd <= 7 || (dd < 999 && dp < 999 && dd - dp < 3)) hueCls = 'hue-marble';
-    else hueCls = 'hue-bamboo';
-  }
+  var hue = getTaskHue(t);
+  var hueCls = hue ? 'hue-' + hue : '';
 
   var el=document.createElement('div');
   el.className='card '+dm.m+' '+stateCls+' '+hueCls+(archived?' archived':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
@@ -213,12 +214,13 @@ function makeCardEl(t, isList){
 
   var h='';
   // Dissolved Action Icons (absolute top left)
-  h+='<div class="tile-actions" style="position:absolute; top:5px; left:5px; display:flex; gap:4px; z-index:10">'
+  h+='<div class="tile-actions" style="position:absolute; top:5px; left:5px; display:flex; gap:4px; z-index:10; align-items:center">'
     +(archived || state.view === 'archived' 
       ? '<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>' 
       : '<button class="cbtn act-archive" data-id="'+t.id+'" title="Archive / Done">×</button>')
     +'<button class="cbtn act-edit" data-id="'+t.id+'" title="Edit">✎</button>'
     +'<button class="cbtn act-drag" data-id="'+t.id+'" title="Drag to reorder" style="cursor:grab">⠿</button>'
+    +(hue ? '<div class="card-hue-indicator dot-'+hue+'" title="Status: '+hue.toUpperCase()+'"></div>' : '')
   +'</div>';
 
   h+='<div class="card-grid">';
