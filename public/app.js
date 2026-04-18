@@ -157,9 +157,9 @@ function makeCardEl(t, isList){
   h+='<div class="card-grid">';
   // Subtiles (TOP RIGHT)
   var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'---';
-  h+='<div class="tile tile-date '+stateCls+'">'+esc(dLabel)+'</div>';
+  h+='<div class="tile tile-date">'+esc(dLabel)+'</div>';
   
-  h+='<div class="tile tile-urgency '+stateCls+'">';
+  h+='<div class="tile tile-urgency">';
   if(dp<999||dd<999){
     if(dp<999) h+='<span class="u-pill">'+tLabel(dp)+'</span>';
     if(dp<999&&dd<999&&dd>dp) h+='<span class="u-dots">'+bufferDots(dp,dd)+'</span>';

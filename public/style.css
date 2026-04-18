@@ -8,7 +8,7 @@
   --ink: #f4f0ea;           /* Washi contrast */
   --faded: rgba(244, 240, 234, 0.25);
   
-  /* Material Gradient Borders */
+  /* Material Gradient Borders & Backgrounds */
   --mat-teal: linear-gradient(135deg, #5E9C95 0%, #2C5651 100%);  /* Asagi (Teal) */
   --mat-cobalt: linear-gradient(135deg, #3b6978 0%, #204051 100%); /* Ruri (Cobalt) */
   --mat-indigo: linear-gradient(135deg, #1f3b4d 0%, #0d1b2a 100%); /* Aizome (Indigo) */
@@ -162,35 +162,26 @@ body {
 .card-grid { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; position: relative; z-index: 2; width: 100%; }
 .tile {
   background: var(--glass-inner); border: 1px solid rgba(255, 255, 255, 0.1); 
-  padding: 4px 8px; display: flex; align-items: center; justify-content: center;
-  color: var(--ink); font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;
-  width: fit-content; border-radius: var(--r-sm); transition: all 0.2s;
+  padding: 4px 10px; display: flex; align-items: center; justify-content: center;
+  color: #fff !important; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px;
+  width: fit-content; border-radius: var(--r-sm); transition: all 0.2s; border: none !important;
 }
-.tile:hover { border-color: var(--honey); color: var(--honey); filter: drop-shadow(0 0 8px var(--honey)); }
+.tile:hover { filter: drop-shadow(0 0 8px var(--honey)); }
+
+/* Subtile backgrounds (ALL TILES NOW DOMAIN-CONSISTENT) */
+.card.mat-teal .tile { background: var(--mat-teal); }
+.card.mat-cobalt .tile { background: var(--mat-cobalt); }
+.card.mat-indigo .tile { background: var(--mat-indigo); }
+.card.mat-wood .tile { background: var(--mat-wood); }
+.card.mat-amber .tile { background: var(--mat-amber); }
 
 /* Domain Identifier (STRICT BOTTOM RIGHT) */
 .tile-domain {
   position: absolute; bottom: 20px; right: 20px;
   padding: 4px 12px; font-size: 11px; font-weight: 900; letter-spacing: 2px;
-  color: #fff !important; z-index: 2; transition: all 0.3s; border: none;
+  color: #fff !important; z-index: 2; transition: all 0.3s; border: none !important;
 }
-.card.mat-teal .tile-domain { background: var(--mat-teal); }
-.card.mat-cobalt .tile-domain { background: var(--mat-cobalt); }
-.card.mat-indigo .tile-domain { background: var(--mat-indigo); }
-.card.mat-wood .tile-domain { background: var(--mat-wood); }
-.card.mat-amber .tile-domain { background: var(--mat-amber); }
-.tile-domain:hover { border-color: var(--honey); color: var(--honey); filter: drop-shadow(0 0 10px var(--honey)) !important; }
-
-/* Functional States */
-.state-urgent .tile-date, .state-urgent .tile-urgency { background: var(--mat-canyon) !important; color: #fff !important; }
-.state-safe .tile-date, .state-safe .tile-urgency { background: var(--mat-bamboo) !important; color: #fff !important; }
-
-/* Subtile Gradients (Default) */
-.mat-teal .tile { background: linear-gradient(135deg, rgba(94, 156, 149, 0.3) 0%, rgba(44, 86, 81, 0.6) 100%); }
-.mat-cobalt .tile { background: linear-gradient(135deg, rgba(59, 105, 120, 0.3) 0%, rgba(32, 64, 81, 0.6) 100%); }
-.mat-indigo .tile { background: linear-gradient(135deg, rgba(31, 59, 77, 0.3) 0%, rgba(13, 27, 42, 0.6) 100%); }
-.mat-wood .tile { background: linear-gradient(135deg, rgba(93, 64, 55, 0.3) 0%, rgba(43, 29, 29, 0.6) 100%); }
-.mat-amber .tile { background: linear-gradient(135deg, rgba(245, 124, 0, 0.3) 0%, rgba(130, 75, 0, 0.6) 100%); }
+.tile-domain:hover { filter: drop-shadow(0 0 10px var(--honey)) !important; }
 
 /* ── Layout ── */
 .tree-container { flex: 1; overflow: auto; padding: 80px; display: flex; flex-direction: column; align-items: center; gap: 100px; }
@@ -224,12 +215,11 @@ body {
 .btn-save { background: var(--honey); color: #000; border: none; }
 .btn-save:hover { filter: brightness(1.1); box-shadow: 0 0 20px var(--honey); }
 
-.card.done { opacity: 0.3; filter: grayscale(0.5); }
 .card.archived { opacity: 0.85; filter: saturate(0.9); }
 .card.archived .tile-name { opacity: 0.5; }
 .card.archived::after { border-style: dashed; opacity: 0.4; }
 
-.u-pill { color: var(--honey); font-size: 10px; margin: 0 6px; }
+.u-pill { color: #fff; font-size: 10px; margin: 0 6px; font-weight: 900; }
 .u-dots { opacity: 0.4; letter-spacing: 4px; }
 .inline-edit { background: transparent; border: none; color: var(--honey); font-family: inherit; font-size: inherit; font-weight: 900; width: 100%; text-align: left; outline: none; }
 
