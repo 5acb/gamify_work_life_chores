@@ -347,20 +347,20 @@ app.post('/api/auth/register-verify-public', async (req, res) => {
     if (verification.verified && verification.registrationInfo) {
       const info = verification.registrationInfo;
       // Nesting fix for SimpleWebAuthn v13: publicKey/id are inside the 'credential' object
-      const credData = info.credential;
-      let finalID = credData ? credData.id : info.credentialID;
-      const finalPubKey = credData ? credData.publicKey : (info.credentialPublicKey || info.publicKey);
-      const finalCounter = credData ? credData.counter : info.counter;
+      const finalID = info.credentialID || (info.credential && info.credential.id);
+      const finalPubKey = info.credentialPublicKey || (info.credential && info.credential.publicKey);
+      const finalCounter = info.counter !== undefined ? info.counter : (info.credential && info.credential.counter);
 
-      if (finalID instanceof Uint8Array) finalID = isoBase64URL.fromUint8Array(finalID);
-
-      if (!finalPubKey) {
-        console.error('Handshake Debug - Full Info:', JSON.stringify(info));
-        throw new Error('No public key found in registration info');
+      if (!finalPubKey || !finalID) {
+        console.error('Registration Handshake Failed - Missing Data. Info:', JSON.stringify(info));
+        throw new Error('Incomplete registration info: ' + (!finalPubKey ? 'No Public Key' : 'No Credential ID'));
       }
 
+      const idStr = (finalID instanceof Uint8Array) ? isoBase64URL.fromUint8Array(finalID) : finalID;
+      const pubKeyBuffer = Buffer.from(finalPubKey);
+
       db.prepare('INSERT INTO credentials (id, user_id, public_key, counter, transports) VALUES (?, ?, ?, ?, ?)')
-        .run(finalID, user.id, Buffer.from(finalPubKey), finalCounter, JSON.stringify(response.response.transports || []));
+        .run(idStr, user.id, pubKeyBuffer, finalCounter || 0, JSON.stringify(response.response.transports || []));
       
       const token = signSession(slug);
       res.setHeader('Set-Cookie', `sid=${encodeURIComponent(token)}; Path=/; Max-Age=${30*24*3600}; HttpOnly; Secure; SameSite=Strict`);
@@ -413,20 +413,20 @@ app.post('/api/auth/register-verify', ensureAuth, async (req, res) => {
 
     if (verification.verified && verification.registrationInfo) {
       const info = verification.registrationInfo;
-      const credData = info.credential;
-      let finalID = credData ? credData.id : info.credentialID;
-      const finalPubKey = credData ? credData.publicKey : (info.credentialPublicKey || info.publicKey);
-      const finalCounter = credData ? credData.counter : info.counter;
+      const finalID = info.credentialID || (info.credential && info.credential.id);
+      const finalPubKey = info.credentialPublicKey || (info.credential && info.credential.publicKey);
+      const finalCounter = info.counter !== undefined ? info.counter : (info.credential && info.credential.counter);
 
-      if (finalID instanceof Uint8Array) finalID = isoBase64URL.fromUint8Array(finalID);
-
-      if (!finalPubKey) {
-        console.error('Handshake Debug (Standard) - Full Info:', JSON.stringify(info));
-        throw new Error('No public key found in registration info');
+      if (!finalPubKey || !finalID) {
+        console.error('Standard Registration Handshake Failed - Missing Data. Info:', JSON.stringify(info));
+        throw new Error('Incomplete registration info: ' + (!finalPubKey ? 'No Public Key' : 'No Credential ID'));
       }
 
+      const idStr = (finalID instanceof Uint8Array) ? isoBase64URL.fromUint8Array(finalID) : finalID;
+      const pubKeyBuffer = Buffer.from(finalPubKey);
+
       db.prepare('INSERT INTO credentials (id, user_id, public_key, counter, transports) VALUES (?, ?, ?, ?, ?)')
-        .run(finalID, user.id, Buffer.from(finalPubKey), finalCounter, JSON.stringify(req.body.response.transports || []));
+        .run(idStr, user.id, pubKeyBuffer, finalCounter || 0, JSON.stringify(req.body.response.transports || []));
       res.json({ ok: true });
     } else {
       res.status(400).json({ error: 'verification failed' });
@@ -465,17 +465,13 @@ app.post('/api/auth/login-verify', async (req, res) => {
 
   const expectedChallenge = getChallenge(user.id);
   if (!expectedChallenge) {
-    console.error('Login Verify Error: Challenge expired for', user.id);
+    console.error('Login Verify Error: Challenge expired for user', user.id);
     return res.status(400).json({ error: 'challenge expired' });
   }
 
-  console.log('Login Verify: Looking up credential', response.id, 'for user', user.id);
   const cred = db.prepare('SELECT public_key, counter FROM credentials WHERE id = ? AND user_id = ?').get(response.id, user.id);
-  
   if (!cred) {
-    console.error('Login Verify Error: Credential not found in DB. Received ID:', response.id);
-    const anyCreds = db.prepare('SELECT id FROM credentials WHERE user_id = ?').all(user.id);
-    console.error('Login Verify Error: IDs currently in DB for this user:', anyCreds.map(c => c.id));
+    console.error('Login Verify Error: Credential not found in DB:', response.id);
     return res.status(400).json({ error: 'credential not found' });
   }
 
@@ -491,8 +487,6 @@ app.post('/api/auth/login-verify', async (req, res) => {
         counter: cred.counter,
       },
     });
-
-    console.log('Login Verification Result for', slug, ':', verification.verified);
 
     if (verification.verified) {
       db.prepare('UPDATE credentials SET counter = ? WHERE id = ?').run(verification.authenticationInfo.newCounter, response.id);
