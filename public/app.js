@@ -12,13 +12,19 @@ function api(m,u,b){
   return fetch(u,o).then(function(r){if(r.status===401){location.href='/login';throw new Error('unauthorized')}if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}).catch(function(e){console.error('API:',m,u,e);throw e});
 }
 
-function daysFrom(ds){if(!ds)return 999;return Math.max(0,Math.round((new Date(ds+'T00:00:00')-TODAY)/864e5))}
+function daysFrom(ds){if(!ds)return 999;return Math.round((new Date(ds+'T00:00:00')-TODAY)/864e5)}
+
+function tLabel(n){
+  if(n===999) return '---';
+  if(n<0) return 'T+'+Math.abs(n);
+  return 'T-'+n;
+}
 
 function isBlocked(t){
   if(!t.needs||!t.needs.length) return false;
   for(var k=0;k<t.needs.length;k++){
     var d=state.taskById[t.needs[k]];if(!d)continue;
-    if(!d.done)return true;
+    if(!d.done && !d.archived)return true;
   }return false;
 }
 
@@ -155,9 +161,9 @@ function makeCardEl(t, isList){
   
   h+='<div class="tile tile-urgency '+stateCls+'">';
   if(dp<999||dd<999){
-    if(dp<999) h+='<span class="u-pill">T−'+dp+'</span>';
+    if(dp<999) h+='<span class="u-pill">'+tLabel(dp)+'</span>';
     if(dp<999&&dd<999&&dd>dp) h+='<span class="u-dots">'+bufferDots(dp,dd)+'</span>';
-    if(dd<999) h+='<span class="u-pill">T−'+dd+'</span>';
+    if(dd<999) h+='<span class="u-pill">'+tLabel(dd)+'</span>';
   } else h+='<span style="opacity:0.2">---</span>';
   h+='</div>';
   h+='</div>'; // end card-grid
