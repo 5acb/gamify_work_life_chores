@@ -64,8 +64,25 @@ body {
 
 /* ── Header ── */
 .hdr { padding: 40px 60px; flex-shrink: 0; }
-.hdr-top { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-.hdr h1 { font-size: 26px; font-weight: 800; letter-spacing: -1px; text-transform: uppercase; flex: 1; display: none; } /* Hidden, moved to ID block */
+.hdr-top { display: flex; align-items: stretch; gap: 8px; margin-bottom: 20px; }
+
+.hdr-controls { display: flex; align-items: stretch; gap: 8px; width: 100%; }
+.hdr-date-tile { flex: 1; justify-content: flex-start; padding: 12px 24px; font-size: 11px; opacity: 0.6; font-weight: 800; text-transform: uppercase; }
+
+.switch-tile { position: relative; width: 160px; padding: 0 !important; cursor: pointer; overflow: hidden; }
+.switch-knob {
+  position: absolute; top: 0; bottom: 0; width: 50%;
+  background: var(--honey); transition: left 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  z-index: 0; opacity: 0.8;
+}
+.switch-knob.active { left: 0; }
+.switch-knob.archived { left: 50%; }
+.switch-label { 
+  flex: 1; height: 100%; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+  z-index: 1; transition: color 0.2s; color: rgba(255,255,255,0.3);
+}
+.switch-label.on { color: #000; }
 
 .hdr-btn, .ai-btn { 
   background: var(--glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -80,25 +97,10 @@ body {
 .search { 
   width: 100%; padding: 10px 15px; background: rgba(255,255,255,0.02); 
   border: 1px solid rgba(255,255,255,0.1); color: var(--ink);
-  outline: none; font-size: 14px; font-weight: 600; border-radius: var(--r-md);
+  outline: none; font-size: 12px; font-weight: 600; border-radius: var(--r-md);
+  opacity: 0.5; transition: opacity 0.3s;
 }
-
-/* ── Toggle Switch ── */
-.switch-outer {
-  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 30px; width: 140px; height: 28px; position: relative;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 12px; cursor: pointer; user-select: none;
-}
-.switch-knob {
-  position: absolute; top: 2px; height: 24px; width: calc(50% - 4px);
-  background: var(--honey); border-radius: 20px; transition: left 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-  z-index: 0;
-}
-.switch-knob.active { left: 2px; }
-.switch-knob.archived { left: calc(50% + 2px); }
-.switch-label { font-size: 9px; font-weight: 900; text-transform: uppercase; z-index: 1; transition: color 0.2s; }
-.switch-label.on { color: #000; }
+.search:focus { opacity: 1; border-color: var(--honey); }
 
 /* ── The Material Card ── */
 .card {
