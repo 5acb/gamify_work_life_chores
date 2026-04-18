@@ -411,7 +411,7 @@ function renderTree(id){
   var dependents=state.tasks.filter(function(t){return(t.needs||[]).includes(task.id)});
   var subtasks=(task.subs||[]).map(function(s){return{id:'s'+s.id,name:s.label,domain:task.domain,done:s.done,isSub:true,parentId:task.id}});
   if(dependents.length||subtasks.length)
-    makeSection('Depends on this task', dependents.concat(subtasks), {dim:true});
+    makeSection('Depends on this task', dependents.concat(subtasks));
 }
 
 function getBlockerName(t){
