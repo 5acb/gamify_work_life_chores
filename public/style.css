@@ -73,23 +73,23 @@ body {
 .error-notification.show { opacity: 1; }
 
 /* ── Header ── */
-.hdr { padding: 16px 16px 12px; flex-shrink: 0; }
+.hdr { padding: 16px 20px 12px; flex-shrink: 0; }
 
-/* Row 1: date tile full width */
+/* Desktop: single row — date flex + icon cluster right */
 .hdr-row1 {
-  display: flex; align-items: center; margin-bottom: 8px;
+  display: flex; align-items: center; gap: 12px;
 }
 .hdr-date-etched {
-  width: 100%; padding: 10px 14px; font-size: 10px; opacity: 0.4; font-weight: 800;
+  flex: 1; padding: 10px 14px; font-size: 10px; opacity: 0.4; font-weight: 800;
   text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.03);
   box-shadow: inset 1px 1px 3px rgba(0,0,0,0.5); border-radius: var(--r-sm);
   letter-spacing: 1.5px;
 }
 
-/* Row 2: icon cluster — etched pill, same language as card action cluster */
+/* hdr-row2-icons: on desktop sits inline in row1, on mobile separate row */
 .hdr-row2-icons {
-  display: flex; align-items: center;
+  display: contents; /* children participate in row1 flex on desktop */
 }
 .hdr-icon-cluster {
   display: flex; align-items: center; gap: 0; flex-shrink: 0;
@@ -360,6 +360,9 @@ body {
 
 /* ── Mode Toggle Button ── */
 /* mode-toggle-btn removed — replaced by hdr-icon-cluster */
+
+/* Back button: desktop = always hidden */
+.mobile-back-btn { display: none; }
 
 /* ── Execute Mode (Washi / Light) ── */
 body.mode-execute {
