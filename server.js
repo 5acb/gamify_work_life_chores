@@ -11,6 +11,7 @@ const {
   generateAuthenticationOptions, 
   verifyAuthenticationResponse 
 } = require('@simplewebauthn/server');
+const { isoBase64URL } = require('@simplewebauthn/server/helpers');
 
 // ---- Sanctuary RP Config ----
 const RP_ID = '7ay.de';
@@ -172,6 +173,9 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
   button:hover{filter:brightness(1.1);transform:translateY(-4px);box-shadow:0 25px 50px rgba(232, 176, 4, 0.4)}
   button:active{transform:translateY(2px);box-shadow:inset 0 4px 10px rgba(0,0,0,0.4)}
 
+  .passkey-btn{background:rgba(255,255,255,0.05);color:#f4f0ea;border:1px solid rgba(255,255,255,0.1);margin-top:-10px}
+  .passkey-btn:hover{background:rgba(255,255,255,0.1);border-color:#e8b004}
+
   .err{color:#ff8888;font-size:13px;font-weight:600;background:rgba(255,85,85,0.05);border-left:4px solid #ff8888;padding:15px;letter-spacing:0.5px}
 
   @keyframes breathe {
@@ -208,7 +212,7 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
     errorBox.innerHTML = '';
 
     try {
-      // 1. Check if user exists and has passkeys
+      // 1. Get options from server
       const optsResp = await fetch('/api/auth/login-options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -343,10 +347,12 @@ app.post('/api/auth/register-verify-public', async (req, res) => {
     if (verification.verified && verification.registrationInfo) {
       const info = verification.registrationInfo;
       // Nesting fix for SimpleWebAuthn v13: publicKey/id are inside the 'credential' object
-      const cred = info.credential;
-      const finalID = cred ? cred.id : info.credentialID;
-      const finalPubKey = cred ? cred.publicKey : (info.credentialPublicKey || info.publicKey);
-      const finalCounter = cred ? cred.counter : info.counter;
+      const credData = info.credential;
+      let finalID = credData ? credData.id : info.credentialID;
+      const finalPubKey = credData ? credData.publicKey : (info.credentialPublicKey || info.publicKey);
+      const finalCounter = credData ? credData.counter : info.counter;
+
+      if (finalID instanceof Uint8Array) finalID = isoBase64URL.fromUint8Array(finalID);
 
       if (!finalPubKey) {
         console.error('Handshake Debug - Full Info:', JSON.stringify(info));
@@ -407,11 +413,12 @@ app.post('/api/auth/register-verify', ensureAuth, async (req, res) => {
 
     if (verification.verified && verification.registrationInfo) {
       const info = verification.registrationInfo;
-      // Nesting fix for SimpleWebAuthn v13: publicKey/id are inside the 'credential' object
-      const cred = info.credential;
-      const finalID = cred ? cred.id : info.credentialID;
-      const finalPubKey = cred ? cred.publicKey : (info.credentialPublicKey || info.publicKey);
-      const finalCounter = cred ? cred.counter : info.counter;
+      const credData = info.credential;
+      let finalID = credData ? credData.id : info.credentialID;
+      const finalPubKey = credData ? credData.publicKey : (info.credentialPublicKey || info.publicKey);
+      const finalCounter = credData ? credData.counter : info.counter;
+
+      if (finalID instanceof Uint8Array) finalID = isoBase64URL.fromUint8Array(finalID);
 
       if (!finalPubKey) {
         console.error('Handshake Debug (Standard) - Full Info:', JSON.stringify(info));
@@ -457,10 +464,16 @@ app.post('/api/auth/login-verify', async (req, res) => {
   if (!user) return res.status(404).json({ error: 'user not found' });
 
   const expectedChallenge = getChallenge(user.id);
-  if (!expectedChallenge) return res.status(400).json({ error: 'challenge expired' });
+  if (!expectedChallenge) {
+    console.error('Login Verify Error: Challenge expired for', user.id);
+    return res.status(400).json({ error: 'challenge expired' });
+  }
 
   const cred = db.prepare('SELECT public_key, counter FROM credentials WHERE id = ? AND user_id = ?').get(response.id, user.id);
-  if (!cred) return res.status(400).json({ error: 'credential not found' });
+  if (!cred) {
+    console.error('Login Verify Error: Credential not found for', response.id);
+    return res.status(400).json({ error: 'credential not found' });
+  }
 
   try {
     const verification = await verifyAuthenticationResponse({
@@ -484,7 +497,7 @@ app.post('/api/auth/login-verify', async (req, res) => {
       res.status(400).json({ error: 'verification failed' });
     }
   } catch (err) {
-    console.error(err);
+    console.error('Login Verify Exception:', err);
     res.status(400).json({ error: err.message });
   }
 });
@@ -656,7 +669,7 @@ app.patch('/api/tasks/:id/unarchive', ensureAuth, (req, res) => {
   if (!task) return;
   // DEDUP: unarchive is not done
   db.prepare("UPDATE tasks SET archived = 0, done = 0, archived_at = NULL, updated_at = datetime('now') WHERE id = ?").run(req.params.id);
-  logTaskEvent(task.id, req.user.id, 'unarchived');
+  logTaskEvent(task.id, req.user.id, 'unarchive');
   res.json({ ok: true });
 });
 
