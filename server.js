@@ -144,6 +144,7 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
     box-shadow:0 60px 120px rgba(0,0,0,0.8);
     display:flex;flex-direction:column;gap:40px;
     transform: perspective(1000px) rotateY(-5deg) rotateX(2deg);
+    transition: all 0.5s ease-in-out;
   }
   .monolith::before{
     content:"";position:absolute;inset:0;
@@ -173,8 +174,8 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
   button:hover{filter:brightness(1.1);transform:translateY(-4px);box-shadow:0 25px 50px rgba(232, 176, 4, 0.4)}
   button:active{transform:translateY(2px);box-shadow:inset 0 4px 10px rgba(0,0,0,0.4)}
 
-  .passkey-btn{background:rgba(255,255,255,0.05);color:#f4f0ea;border:1px solid rgba(255,255,255,0.1);margin-top:-10px}
-  .passkey-btn:hover{background:rgba(255,255,255,0.1);border-color:#e8b004}
+  .secondary-btn{background:rgba(255,255,255,0.05);color:#f4f0ea;border:1px solid rgba(255,255,255,0.1);margin-top:-10px}
+  .secondary-btn:hover{background:rgba(255,255,255,0.1);border-color:#e8b004}
 
   .err{color:#ff8888;font-size:13px;font-weight:600;background:rgba(255,85,85,0.05);border-left:4px solid #ff8888;padding:15px;letter-spacing:0.5px}
 
@@ -183,40 +184,57 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
     50% { opacity: 0.6; transform: scale(1.1); }
   }
   .fog{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 70%);animation:breathe 10s infinite ease-in-out;pointer-events:none}
+  
+  .enroll-view{display:none;flex-direction:column;gap:30px}
+  .enroll-view h2{font-size:24px;font-weight:800;letter-spacing:-1px;color:#e8b004}
+  .enroll-view p{font-size:14px;opacity:0.6;line-height:1.6}
 </style>
 </head>
 <body>
 <div class="bg-text">sanctuary</div>
 <div class="fog"></div>
 <div class="monolith">
-  <h1>organizer<span>.</span></h1>
-  <form id="loginForm" style="display:flex;flex-direction:column;gap:30px">
-    <div id="errorBox"></div>
-    <div class="field">
-      <label>Identity</label>
-      <input id="slug" name="slug" placeholder="username" autocomplete="username" required autofocus>
-    </div>
-    <button type="submit" id="unlockBtn">Unlock Sanctuary</button>
-  </form>
+  <div id="loginView" style="display:flex;flex-direction:column;gap:40px">
+    <h1>organizer<span>.</span></h1>
+    <form id="loginForm" style="display:flex;flex-direction:column;gap:30px">
+      <div id="errorBox"></div>
+      <div class="field">
+        <label>Identity</label>
+        <input id="slug" name="slug" placeholder="username" autocomplete="username" required autofocus>
+      </div>
+      <button type="submit" id="unlockBtn">Unlock Sanctuary</button>
+    </form>
+  </div>
+  
+  <div id="enrollView" class="enroll-view">
+    <h2>Secure this Identity?</h2>
+    <p>No biometric key found for this identity in the sanctuary. Use your device's fingerprint or face scanner to create a permanent, passwordless link.</p>
+    <button id="confirmEnroll">Register this Device</button>
+    <button id="cancelEnroll" class="secondary-btn">Cancel</button>
+  </div>
 </div>
+
 <script nonce="${nonce}">
   const { startAuthentication, startRegistration } = SimpleWebAuthnBrowser;
-  const form = document.getElementById('loginForm');
+  const loginForm = document.getElementById('loginForm');
   const slugInput = document.getElementById('slug');
   const errorBox = document.getElementById('errorBox');
+  const loginView = document.getElementById('loginView');
+  const enrollView = document.getElementById('enrollView');
+  
+  let currentSlug = '';
 
-  form.onsubmit = async (e) => {
+  loginForm.onsubmit = async (e) => {
     e.preventDefault();
-    const slug = slugInput.value.trim();
-    if (!slug) return;
+    currentSlug = slugInput.value.trim();
+    if (!currentSlug) return;
     errorBox.innerHTML = '';
 
     try {
-      // 1. Get options from server
       const optsResp = await fetch('/api/auth/login-options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ slug })
+        body: JSON.stringify({ slug: currentSlug })
       });
       const opts = await optsResp.json();
 
@@ -226,39 +244,52 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
       }
 
       if (opts.allowCredentials && opts.allowCredentials.length > 0) {
-        // AUTHENTICATION FLOW
         const asseResp = await startAuthentication(opts);
         const verifyResp = await fetch('/api/auth/login-verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ slug, response: asseResp })
+          body: JSON.stringify({ slug: currentSlug, response: asseResp })
         });
         const verif = await verifyResp.json();
-        if (verif.ok) location.href = '/' + slug;
+        if (verif.ok) location.href = '/' + currentSlug;
         else errorBox.innerHTML = '<p class="err">Verification failed.</p>';
       } else {
-        // REGISTRATION FLOW (Trust on first use for existing user without passkey)
-        if (confirm('No passkey found for this identity. Register this device?')) {
-          const regOptsResp = await fetch('/api/auth/register-options-public', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ slug })
-          });
-          const regOpts = await regOptsResp.json();
-          const attResp = await startRegistration(regOpts);
-          const verifyResp = await fetch('/api/auth/register-verify-public', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ slug, response: attResp })
-          });
-          const verif = await verifyResp.json();
-          if (verif.ok) location.href = '/' + slug;
-          else errorBox.innerHTML = '<p class="err">Registration failed.</p>';
-        }
+        loginView.style.display = 'none';
+        enrollView.style.display = 'flex';
       }
     } catch (err) {
       console.error(err);
       errorBox.innerHTML = '<p class="err">' + err.message + '</p>';
+    }
+  };
+
+  document.getElementById('cancelEnroll').onclick = () => {
+    enrollView.style.display = 'none';
+    loginView.style.display = 'flex';
+    errorBox.innerHTML = '';
+  };
+
+  document.getElementById('confirmEnroll').onclick = async () => {
+    try {
+      const regOptsResp = await fetch('/api/auth/register-options-public', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: currentSlug })
+      });
+      const regOpts = await regOptsResp.json();
+      const attResp = await startRegistration(regOpts);
+      const verifyResp = await fetch('/api/auth/register-verify-public', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: currentSlug, response: attResp })
+      });
+      const verif = await verifyResp.json();
+      if (verif.ok) location.href = '/' + currentSlug;
+      else alert('Registration failed.');
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+      document.getElementById('cancelEnroll').click();
     }
   };
 </script>
@@ -423,8 +454,6 @@ app.post('/api/auth/login-verify', async (req, res) => {
         counter: cred.counter || 0,
       },
     });
-
-    console.log('Login Verification Result for', slug, ':', verification.verified);
 
     if (verification.verified) {
       const info = verification.authenticationInfo;
