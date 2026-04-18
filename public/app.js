@@ -385,38 +385,33 @@ function renderTree(id){
   var container=document.getElementById('treeContainer');if(!container)return;
   var task=state.taskById[id];if(!task)return;
   container.innerHTML='';
+  var isMobile=window.innerWidth<=1024;
+
+  function makeSection(label, cards, opts){
+    var s=document.createElement('div');
+    s.className='tree-section';
+    s.innerHTML='<div class="tree-label">'+label+'</div>';
+    cards.forEach(function(t){
+      var el=makeCardEl(t,false);
+      if(opts&&opts.scale&&!isMobile) el.style.transform='scale(1.1)';
+      if(opts&&opts.dim) el.style.opacity='0.5';
+      s.appendChild(el);
+    });
+    container.appendChild(s);
+  }
 
   // 1. Blockers
-  var blockers = (task.needs||[]).map(nid => state.taskById[nid]).filter(Boolean);
-  if(blockers.length){
-    var s1=document.createElement('div'); s1.className='tree-section';
-    s1.innerHTML='<div class="tree-label">Blocks this task</div>';
-    blockers.forEach(t => s1.appendChild(makeCardEl(t, false)));
-    container.appendChild(s1);
-  }
+  var blockers=(task.needs||[]).map(function(nid){return state.taskById[nid]}).filter(Boolean);
+  if(blockers.length) makeSection('Blocks this task', blockers);
 
   // 2. Focus
-  var s2=document.createElement('div'); s2.className='tree-section';
-  s2.innerHTML='<div class="tree-label">Active Focus</div>';
-  var focusCard = makeCardEl(task, false);
-  focusCard.style.transform = 'scale(1.1)';
-  s2.appendChild(focusCard);
-  container.appendChild(s2);
+  makeSection('Active Focus', [task], {scale:true});
 
-  // 3. Dependents
-  var dependents = state.tasks.filter(t => (t.needs||[]).includes(task.id));
-  var subtasks = (task.subs||[]).map(s => ({id:'s'+s.id, name:s.label, domain:task.domain, done:s.done, isSub:true, parentId: task.id}));
-  if(dependents.length || subtasks.length){
-    var s3=document.createElement('div'); s3.className='tree-section';
-    s3.innerHTML='<div class="tree-label">Depends on this task</div>';
-    dependents.forEach(t => s3.appendChild(makeCardEl(t, false)));
-    subtasks.forEach(t => {
-        var el=makeCardEl(t, false);
-        el.style.opacity = '0.5';
-        s3.appendChild(el);
-    });
-    container.appendChild(s3);
-  }
+  // 3. Dependents + subtasks
+  var dependents=state.tasks.filter(function(t){return(t.needs||[]).includes(task.id)});
+  var subtasks=(task.subs||[]).map(function(s){return{id:'s'+s.id,name:s.label,domain:task.domain,done:s.done,isSub:true,parentId:task.id}});
+  if(dependents.length||subtasks.length)
+    makeSection('Depends on this task', dependents.concat(subtasks), {dim:true});
 }
 
 function getBlockerName(t){
