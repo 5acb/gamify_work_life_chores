@@ -346,14 +346,13 @@ app.post('/api/auth/register-verify-public', async (req, res) => {
 
     if (verification.verified && verification.registrationInfo) {
       const info = verification.registrationInfo;
-      // Nesting fix for SimpleWebAuthn v13: publicKey/id are inside the 'credential' object
       const finalID = info.credentialID || (info.credential && info.credential.id);
       const finalPubKey = info.credentialPublicKey || (info.credential && info.credential.publicKey);
       const finalCounter = info.counter !== undefined ? info.counter : (info.credential && info.credential.counter);
 
       if (!finalPubKey || !finalID) {
         console.error('Registration Handshake Failed - Missing Data. Info:', JSON.stringify(info));
-        throw new Error('Incomplete registration info: ' + (!finalPubKey ? 'No Public Key' : 'No Credential ID'));
+        throw new Error('Incomplete registration info');
       }
 
       const idStr = (finalID instanceof Uint8Array) ? isoBase64URL.fromUint8Array(finalID) : finalID;
@@ -419,7 +418,7 @@ app.post('/api/auth/register-verify', ensureAuth, async (req, res) => {
 
       if (!finalPubKey || !finalID) {
         console.error('Standard Registration Handshake Failed - Missing Data. Info:', JSON.stringify(info));
-        throw new Error('Incomplete registration info: ' + (!finalPubKey ? 'No Public Key' : 'No Credential ID'));
+        throw new Error('Incomplete registration info');
       }
 
       const idStr = (finalID instanceof Uint8Array) ? isoBase64URL.fromUint8Array(finalID) : finalID;
@@ -481,17 +480,16 @@ app.post('/api/auth/login-verify', async (req, res) => {
       expectedChallenge,
       expectedOrigin: ORIGIN,
       expectedRPID: RP_ID,
-      authenticator: {
-        credentialID: response.id,
-        credentialPublicKey: new Uint8Array(cred.public_key),
+      credential: {
+        id: response.id,
+        publicKey: new Uint8Array(cred.public_key),
         counter: cred.counter || 0,
       },
     });
 
-    console.log('Login Verification Result:', JSON.stringify(verification, (k,v) => v instanceof Uint8Array ? Array.from(v) : v));
+    console.log('Login Verification Result for', slug, ':', verification.verified);
 
     if (verification.verified) {
-      // Update counter if provided (it might be in authenticationInfo or nested)
       const info = verification.authenticationInfo;
       const newCounter = info ? info.newCounter : (verification.counter !== undefined ? verification.counter : cred.counter);
       
