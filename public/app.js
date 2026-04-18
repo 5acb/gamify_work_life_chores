@@ -61,8 +61,25 @@ function showPicker(){
 
 function loadBoard(){
   var vp=state.view==='archived'?'?view=archived':'';
-  api('GET','/api/users/'+state.slug+'/tasks'+vp).then(function(res){
+  Promise.all([
+    api('GET','/api/users/'+state.slug+'/tasks'+vp),
+    api('GET','/api/users/'+state.slug+'/ui-state')
+  ]).then(function(resArr){
+    var res=resArr[0], ui=resArr[1];
     state.tasks=res.tasks;state.user=res.user;
+    
+    // Apply custom sort order if present
+    if(ui.order && ui.order.length){
+      var map={}; ui.order.forEach(function(id,idx){map[id]=idx});
+      state.tasks.sort(function(a,b){
+        var ia=map[a.id], ib=map[b.id];
+        if(ia!==undefined && ib!==undefined) return ia-ib;
+        if(ia!==undefined) return -1;
+        if(ib!==undefined) return 1;
+        return 0;
+      });
+    }
+
     state.taskById={};state.tasks.forEach(function(t){state.taskById[t.id]=t});
     renderApp();
   });
