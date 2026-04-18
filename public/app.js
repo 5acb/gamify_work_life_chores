@@ -1,6 +1,6 @@
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
-var DM={CTI:{c:'#8e9aaf',l:'CTI'},ECM:{c:'#cbc0d3',l:'ECM'},CSD:{c:'#efd3d7',l:'CSD'},GRA:{c:'#feeafa',l:'GRA'},Personal:{c:'#dee2ff',l:'Per'}};
+var DM={CTI:{c:'#8e9aaf',l:'CTI'},ECM:{c:'#cbc0d3',l:'ECM'},CSD:{c:'#efd3d7',l:'CSD'},GRA:{c:'#feeafa',l:'GRA'},Personal:{c:'#dee2ff',l:'PER'}};
 var SPEED_L=['snap','sesh','grind'],STAKES_L=['low','high','crit'];
 var DOMAINS=Object.keys(DM);
 
@@ -44,7 +44,7 @@ function showPicker(){
   api('GET','/api/users').then(function(d){
     var pk=document.querySelector('.picker');
     d.users.forEach(function(u){
-      var c=document.createElement('div');c.style.cssText='display:inline-block;padding:40px;background:rgba(255,255,255,0.4);backdrop-filter:blur(20px);margin:20px;border-radius:32px;cursor:pointer;border:1px solid rgba(255,255,255,0.6)';
+      var c=document.createElement('div');c.className='tile';c.style.cssText='display:inline-block;padding:40px;margin:20px;cursor:pointer;';
       c.innerHTML='<h2>'+esc(u.name)+'</h2><p>@'+esc(u.slug)+'</p>';
       c.onclick=function(){navigate(u.slug)};pk.appendChild(c);
     });
@@ -69,25 +69,25 @@ function renderApp(){
     '<div class="panel-list">'
       +'<div class="hdr">'
         +'<div class="hdr-top">'
-          +'<a class="hdr-back" href="/" onclick="event.preventDefault();history.pushState(null,\'\',\'/\');route()">←</a>'
-          +'<h1 id="hdrName"></h1>'
+          +'<a class="tile hdr-back" href="/" onclick="event.preventDefault();history.pushState(null,\'\',\'/\');route()">←</a>'
+          +'<h1 class="tile" id="hdrName" style="padding:10px 20px"></h1>'
           +'<div class="hdr-nav">'
-            +'<button class="ai-btn" id="aiBtn">✦ Oracle</button>'
-            +'<a class="hdr-btn" href="/logout">sign out</a>'
+            +'<button class="tile ai-btn" id="aiBtn">✦ Oracle</button>'
+            +'<a class="tile hdr-btn" href="/logout">sign out</a>'
           +'</div>'
         +'</div>'
-        +'<p class="hdr-date">'+dateStr+'</p>'
-        +'<div style="display:flex;justify-content:space-between;align-items:center">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px">'
+          +'<div class="tile" style="padding:10px 20px">'+dateStr+'</div>'
           +'<div class="toggle-wrap">'
-            +'<button class="toggle-btn'+(state.view==='current'?' active':'')+'" data-view="current">active</button>'
-            +'<button class="toggle-btn'+(state.view==='archived'?' active':'')+'" data-view="archived">archived</button>'
+            +'<button class="tile toggle-btn'+(state.view==='current'?' active':'')+'" data-view="current">active</button>'
+            +'<button class="tile toggle-btn'+(state.view==='archived'?' active':'')+'" data-view="archived">archived</button>'
           +'</div>'
-          +'<input class="search" id="search" placeholder="Search tasks..." autocomplete="off">'
+          +'<input class="tile search" id="search" placeholder="Search tasks..." autocomplete="off">'
         +'</div>'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
     +'</div>'
-    +'<button class="fab" id="fab">+</button>';
+    +'<button class="tile fab" id="fab">+</button>';
 
   document.getElementById('hdrName').textContent=state.user?state.user.name:'';
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
@@ -108,40 +108,35 @@ function renderApp(){
 function makeCardEl(t, index){
   var blocked=isBlocked(t), done=!!t.done;
   var dp=daysFrom(t.plan_date), dd=daysFrom(t.due_date);
+  var dm=DM[t.domain]||{c:'#71717a',l:t.domain};
 
   var el=document.createElement('div');
-  el.className='card'+(done?' done':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
+  el.className='card-cluster dm-'+t.domain+(done?' done':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
   el.dataset.id=t.id;
 
-  var h='<div class="card-bar dm-'+t.domain+'"></div>';
-  h+='<div class="card-index">'+(index<10?'0':'')+index+'</div>';
-  h+='<div class="card-body">';
-  
-  h+='<div class="card-r1">';
-  h+='<span class="card-domain">'+esc(t.domain)+'</span>';
+  var h='';
+  h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
   if(dp<999||dd<999){
-    h+='<div class="card-urgency">';
+    h+='<div class="tile tile-urgency">';
     if(dp<999) h+='<span class="u-pill">T−'+dp+'</span>';
     if(dp<999&&dd<999&&dd>dp) h+='<span class="u-dots">'+bufferDots(dp,dd)+'</span>';
     if(dd<999) h+='<span class="u-pill">T−'+dd+'</span>';
     h+='</div>';
   }
-  h+='</div>';
 
-  h+='<div class="card-name">'+esc(t.name)+'</div>';
+  h+='<div class="tile tile-name">'+esc(t.name)+'</div>';
 
-  if(t.isSub) h+='<div class="card-blocked" style="background:rgba(0,0,0,0.03);color:var(--faded);border:none">↳ subtask of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
-  else if(blocked) h+='<div class="card-blocked">needs: '+esc(getBlockerName(t))+'</div>';
+  if(t.isSub) h+='<div class="tile tile-blocked" style="color:var(--faded-silver);font-size:10px">↳ subtask of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
+  else if(blocked) h+='<div class="tile tile-blocked">needs: '+esc(getBlockerName(t))+'</div>';
 
   var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'';
-  if(dLabel) h+='<div class="card-date">'+esc(dLabel)+'</div>';
+  if(dLabel) h+='<div class="tile tile-date">'+esc(dLabel)+'</div>';
   
-  h+='<div class="card-r-actions">'
+  h+='<div class="tile tile-actions">'
     +'<button class="cbtn" data-edit="'+t.id+'">edit</button>'
     +'<button class="cbtn" data-archive="'+t.id+'">archive</button>'
   +'</div>';
 
-  h+='</div>'; // card-body
   el.innerHTML=h;
 
   el.onclick=function(e){
@@ -149,7 +144,7 @@ function makeCardEl(t, index){
     if(state.selectedId===t.id) openEdit(t.id);
     else {
       state.selectedId=t.id;
-      document.querySelectorAll('.card').forEach(c=>c.classList.toggle('selected',c.dataset.id===String(t.id)));
+      document.querySelectorAll('.card-cluster').forEach(c=>c.classList.toggle('selected',c.dataset.id===String(t.id)));
     }
   };
 
@@ -192,13 +187,7 @@ function renderCards(){
 
   Sortable.create(list, {
     animation: 300,
-    ghostClass: 'sortable-ghost',
-    onEnd: function(){
-      document.querySelectorAll('.card-index').forEach((el, idx)=>{
-        var n = idx + 1;
-        el.textContent = (n<10?'0':'') + n;
-      });
-    }
+    ghostClass: 'sortable-ghost'
   });
 
   bindActionEvents();
