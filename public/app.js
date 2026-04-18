@@ -48,15 +48,10 @@ window.addEventListener('popstate',route);
 function route(){state.slug=getSlug();if(!state.slug)showPicker();else loadBoard()}
 
 function showPicker(){
-  document.getElementById('root').innerHTML='<div class="picker" style="padding:100px;text-align:center"><h1>organizer</h1></div>';
+  // No picker — auto-navigate to authenticated user's board
   api('GET','/api/users').then(function(d){
-    var pk=document.querySelector('.picker');
-    d.users.forEach(function(u){
-      var c=document.createElement('div');c.className='tile';c.style.cssText='display:inline-block;padding:40px;margin:20px;cursor:pointer;';
-      c.innerHTML='<h2>'+esc(u.name)+'</h2><p>@'+esc(u.slug)+'</p>';
-      c.onclick=function(){navigate(u.slug)};pk.appendChild(c);
-    });
-  });
+    if(d.users && d.users.length > 0) navigate(d.users[0].slug);
+  }).catch(function(){ location.href='/login'; });
 }
 
 function loadBoard(){
