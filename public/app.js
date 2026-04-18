@@ -76,7 +76,7 @@ function renderApp(){
           +'<div class="hdr-nav">'
             +'<button class="hdr-btn" id="addBtn" style="font-size:18px; line-height:1; padding:8px 15px">+</button>'
             +'<button class="ai-btn" id="aiBtn">✦ Oracle</button>'
-            +'<a class="hdr-btn" href="/logout">sign out</a>'
+            +'<button class="hdr-btn" id="logoutBtn" title="Sign Out">⏻</button>'
           +'</div>'
         +'</div>'
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">'
@@ -95,6 +95,7 @@ function renderApp(){
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
   document.getElementById('addBtn').addEventListener('click',openAddTask);
   document.getElementById('aiBtn').addEventListener('click',openAI);
+  document.getElementById('logoutBtn').addEventListener('click',openLogoutConfirm);
 
   document.querySelectorAll('[data-view]').forEach(function(b){b.addEventListener('click',function(){
     var v=this.dataset.view;if(v===state.view)return;
@@ -104,6 +105,19 @@ function renderApp(){
 
   renderCards();
   if(state.selectedId) renderTree(state.selectedId);
+}
+
+function openLogoutConfirm(){
+  var m=document.getElementById('modal');
+  m.innerHTML='<h2>Exit Sanctuary?</h2>'
+    +'<p style="text-align:center;opacity:0.6;font-size:14px;margin-bottom:30px">Your session will be ended and you will return to the gateway.</p>'
+    +'<div class="modal-actions">'
+      +'<button id="mc" class="btn-cancel">Stay Focused</button>'
+      +'<button id="ms" class="btn-save" style="background:#ff8888;color:#000">Sign Out</button>'
+    +'</div>';
+  showModal();
+  document.getElementById('mc').onclick=closeModal;
+  document.getElementById('ms').onclick=function(){ location.href='/logout'; };
 }
 
 // ── Cards ─────────────────────────────────────────────────────

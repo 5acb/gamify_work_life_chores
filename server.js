@@ -111,28 +111,65 @@ const LOGIN_HTML = (error = '') => `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#0e0e12">
+<meta name="theme-color" content="#090a0f">
 <title>organizer</title>
 <style>
-  *{box-sizing:border-box}
-  body{margin:0;font-family:system-ui,sans-serif;background:#09090b;color:#e4e4e7;display:flex;align-items:center;justify-content:center;min-height:100vh}
-  form{display:flex;flex-direction:column;gap:12px;width:280px}
-  h1{margin:0 0 4px;font-size:22px;font-weight:800;text-align:center;letter-spacing:-.5px}
-  input{padding:10px 12px;border-radius:8px;border:1px solid #3f3f46;background:#18181b;color:#e4e4e7;font-size:14px;outline:none}
-  input:focus{border-color:#60a5fa}
-  button{padding:10px;border-radius:8px;border:none;background:#3b82f6;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}
-  button:hover{background:#2563eb}
-  .err{color:#f87171;font-size:13px;text-align:center;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.2);border-radius:6px;padding:8px}
+  @import url('https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Lexend Deca',sans-serif;
+    background-color:#090a0f;
+    color:#f4f0ea;
+    display:flex;align-items:center;justify-content:center;
+    min-height:100vh;overflow:hidden;
+    background-image: 
+      radial-gradient(at 0% 0%, rgba(30,36,44,0.4) 0, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(193,92,61,0.05) 0, transparent 40%),
+      linear-gradient(180deg, #0f1217 0%, #050608 100%);
+  }
+  .glass{
+    background:rgba(255,255,255,0.04);
+    backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);
+    border:1px solid rgba(255,255,255,0.1);
+    padding:60px;width:100%;max-width:400px;
+    box-shadow:0 40px 100px rgba(0,0,0,0.8);
+    border-radius:24px;display:flex;flex-direction:column;gap:30px;
+    text-align:center;
+  }
+  h1{font-size:32px;font-weight:800;letter-spacing:-1.5px;text-transform:uppercase;color:#e8b004;margin-bottom:10px}
+  .field{display:flex;flex-direction:column;gap:8px;text-align:left}
+  label{font-size:10px;font-weight:800;text-transform:uppercase;color:rgba(244,240,234,0.4);letter-spacing:2px}
+  input{
+    width:100%;padding:14px 18px;background:rgba(255,255,255,0.02);
+    border:1px solid rgba(255,255,255,0.1);border-radius:12px;
+    color:#f4f0ea;font-size:16px;outline:none;font-family:inherit;
+  }
+  input:focus{border-color:#e8b004;box-shadow:0 0 15px rgba(232,176,4,0.2)}
+  button{
+    padding:16px;background:#e8b004;color:#000;border:none;border-radius:12px;
+    font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:1px;
+    cursor:pointer;transition:all 0.3s;margin-top:10px;
+  }
+  button:hover{filter:brightness(1.1);box-shadow:0 0 25px rgba(232,176,4,0.3);transform:translateY(-2px)}
+  .err{color:#ff8888;font-size:12px;background:rgba(255,85,85,0.08);border:1px solid rgba(255,85,85,0.1);border-radius:8px;padding:12px}
 </style>
 </head>
 <body>
-<form method="POST" action="/login">
+<div class="glass">
   <h1>organizer</h1>
-  ${error ? `<p class="err">${error}</p>` : ''}
-  <input name="slug" placeholder="username" autocomplete="username" required autofocus>
-  <input name="password" type="password" placeholder="password" autocomplete="current-password" required>
-  <button type="submit">sign in</button>
-</form>
+  <form method="POST" action="/login" style="display:flex;flex-direction:column;gap:20px">
+    ${error ? `<p class="err">${error}</p>` : ''}
+    <div class="field">
+      <label>Username</label>
+      <input name="slug" placeholder="anas" autocomplete="username" required autofocus>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input name="password" type="password" placeholder="••••••••" autocomplete="current-password" required>
+    </div>
+    <button type="submit">Enter Sanctuary</button>
+  </form>
+</div>
 </body>
 </html>`;
 
