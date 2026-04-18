@@ -68,11 +68,16 @@ function renderApp(){
   var root=document.getElementById('root');
   var dateStr=TODAY.toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric'});
   root.innerHTML=
-    '<div class="panel-tree" id="treePanel"><div class="tree-container" id="treeContainer"></div></div>'
+    '<div class="panel-tree" id="treePanel">'
+      +'<div class="tree-container" id="treeContainer"></div>'
+      +'<div class="user-identity">'
+        +'<div class="tile identity-tile" id="userName"></div>'
+      +'</div>'
+    +'</div>'
     +'<div class="panel-list">'
       +'<div class="hdr">'
         +'<div class="hdr-top">'
-          +'<h1 id="hdrName"></h1>'
+          +'<div style="flex:1"></div>'
           +'<div class="hdr-nav">'
             +'<button class="hdr-btn" id="addBtn" style="font-size:18px; line-height:1; padding:8px 15px">+</button>'
             +'<button class="ai-btn" id="aiBtn">✦ Oracle</button>'
@@ -92,7 +97,7 @@ function renderApp(){
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
     +'</div>';
 
-  document.getElementById('hdrName').textContent=state.user?state.user.name:'';
+  document.getElementById('userName').textContent=state.user?state.user.name.toUpperCase():'';
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
   document.getElementById('addBtn').addEventListener('click',openAddTask);
   document.getElementById('aiBtn').addEventListener('click',openAI);
@@ -132,16 +137,15 @@ function makeCardEl(t, isList){
   el.dataset.id=t.id;
 
   var h='';
-  // Dissolved Action Icons (pinned to absolute top left)
+  // Dissolved Action Icons (absolute top left)
   h+='<div class="tile-actions">'
-    +'<button class="cbtn" data-edit="'+t.id+'" title="Edit">✎</button>'
+    +'<button class="cbtn act-edit" data-id="'+t.id+'" title="Edit">✎</button>'
     +(archived || state.view === 'archived' 
-      ? '<button class="cbtn" data-unarchive="'+t.id+'" title="Restore">↑</button>' 
-      : '<button class="cbtn" data-archive="'+t.id+'" title="Archive">×</button>')
+      ? '<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>' 
+      : '<button class="cbtn act-archive" data-id="'+t.id+'" title="Archive">×</button>')
   +'</div>';
 
   h+='<div class="card-grid">';
-  // Subtiles (TOP RIGHT)
   var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'---';
   h+='<div class="tile tile-date">'+esc(dLabel)+'</div>';
   
@@ -152,12 +156,9 @@ function makeCardEl(t, isList){
     if(dd<999) h+='<span class="u-pill">T−'+dd+'</span>';
   } else h+='<span style="opacity:0.2">---</span>';
   h+='</div>';
-  h+='</div>'; // end card-grid
+  h+='</div>';
 
-  // Name (Strict Bottom Left)
   h+='<div class="tile-name">'+esc(t.name)+'</div>';
-
-  // Domain Identifier (STRICT BOTTOM RIGHT)
   h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
 
   if(blocked && !t.isSub) h+='<div class="tile tile-blocked" style="position:absolute; bottom:60px; left:20px; border:none; background:rgba(255,85,85,0.05); color:#ff8888; font-size:10px">needs: '+esc(getBlockerName(t))+'</div>';
@@ -165,15 +166,7 @@ function makeCardEl(t, isList){
 
   el.innerHTML=h;
 
-  // Domain Cycling Logic
-  el.querySelector('.tile-domain').onclick=function(e){
-    e.stopPropagation();
-    var idx=DOMAINS.indexOf(t.domain);
-    var next=DOMAINS[(idx+1)%DOMAINS.length];
-    api('PATCH','/api/tasks/'+t.id,{domain:next}).then(loadBoard);
-  };
-
-  // Inline Date Logic
+  // Inline Date
   el.querySelector('.tile-date').onclick=function(e){
     e.stopPropagation();
     var tile=this;
@@ -186,7 +179,7 @@ function makeCardEl(t, isList){
   };
 
   el.onclick=function(e){
-    if(e.target.closest('button, input')) return;
+    if(e.target.closest('.cbtn, input')) return;
     if(state.selectedId===t.id && isList) openEdit(t.id);
     else {
       state.selectedId=t.id;
@@ -206,16 +199,27 @@ function renderCards(){
   filtered.forEach(function(t){ list.appendChild(makeCardEl(t, true)) });
 
   Sortable.create(list, { animation: 300, ghostClass: 'sortable-ghost' });
-  bindActionEvents();
+  bindGlobalActionEvents();
+}
+
+function bindGlobalActionEvents(){
+  var list = document.getElementById('cardList');
+  list.onclick = function(e){
+    var btn = e.target.closest('.cbtn'); if(!btn) return;
+    e.stopPropagation();
+    var id = +btn.dataset.id;
+    if(btn.classList.contains('act-edit')) openEdit(id);
+    if(btn.classList.contains('act-archive')) api('PATCH','/api/tasks/'+id+'/archive').then(loadBoard);
+    if(btn.classList.contains('act-restore')) api('PATCH','/api/tasks/'+id+'/unarchive').then(loadBoard);
+  };
 }
 
 function renderTree(id){
   var container=document.getElementById('treeContainer');if(!container)return;
   var task=state.taskById[id];if(!task)return;
-
   container.innerHTML='';
 
-  // 1. Find Blockers
+  // 1. Blockers
   var blockers = (task.needs||[]).map(nid => state.taskById[nid]).filter(Boolean);
   if(blockers.length){
     var s1=document.createElement('div'); s1.className='tree-section';
@@ -224,7 +228,7 @@ function renderTree(id){
     container.appendChild(s1);
   }
 
-  // 2. Focus Task
+  // 2. Focus
   var s2=document.createElement('div'); s2.className='tree-section';
   s2.innerHTML='<div class="tree-label">Active Focus</div>';
   var focusCard = makeCardEl(task, false);
@@ -232,10 +236,9 @@ function renderTree(id){
   s2.appendChild(focusCard);
   container.appendChild(s2);
 
-  // 3. Find Dependents
+  // 3. Dependents
   var dependents = state.tasks.filter(t => (t.needs||[]).includes(task.id));
   var subtasks = (task.subs||[]).map(s => ({id:'s'+s.id, name:s.label, domain:task.domain, done:s.done, isSub:true, parentId: task.id}));
-  
   if(dependents.length || subtasks.length){
     var s3=document.createElement('div'); s3.className='tree-section';
     s3.innerHTML='<div class="tree-label">Depends on this task</div>';
@@ -255,34 +258,26 @@ function getBlockerName(t){
   }return'';
 }
 
-function bindActionEvents(){
-  document.querySelectorAll('[data-edit]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();openEdit(+this.dataset.edit)})});
-  document.querySelectorAll('[data-archive]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();api('PATCH','/api/tasks/'+this.dataset.archive+'/archive').then(loadBoard)})});
-  document.querySelectorAll('[data-unarchive]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();api('PATCH','/api/tasks/'+this.dataset.unarchive+'/unarchive').then(loadBoard)})});
-}
-
-// ── Modals ────────────────────────────────────────────────────
-
 function taskForm(t){
   var sel=DOMAINS.map(function(d){return'<option value="'+d+'"'+(t&&d===t.domain?' selected':'')+'>'+d+'</option>'}).join('');
-  return '<div class="field-tile"><label>Task Name</label><input id="f-name" value="'+esc(t?t.name:'')+'" placeholder="Enter task name..."></div>'
+  return '<div class="field-tile"><label>Task Name</label><input id="f-name" value="'+esc(t?t.name:'')+'" placeholder="..."></div>'
     +'<div class="field-tile"><label>Domain</label><select id="f-domain">'+sel+'</select></div>'
     +'<div style="display:flex;gap:12px">'
-      +'<div class="field-tile" style="flex:1"><label>Start Date</label><input id="f-pd" type="date" value="'+esc(t&&t.plan_date?t.plan_date:'')+'"></div>'
-      +'<div class="field-tile" style="flex:1"><label>Due Date</label><input id="f-dd" type="date" value="'+esc(t&&t.due_date?t.due_date:'')+'"></div>'
+      +'<div class="field-tile" style="flex:1"><label>Start</label><input id="f-pd" type="date" value="'+esc(t&&t.plan_date?t.plan_date:'')+'"></div>'
+      +'<div class="field-tile" style="flex:1"><label>Due</label><input id="f-dd" type="date" value="'+esc(t&&t.due_date?t.due_date:'')+'"></div>'
     +'</div>'
-    +'<div class="field-tile"><label>Execution Status</label><select id="f-done"><option value="0">Active Focus</option><option value="1" '+(t&&t.done?'selected':'')+'>Completed</option></select></div>';
+    +'<div class="field-tile"><label>Status</label><select id="f-done"><option value="0">Pending</option><option value="1" '+(t&&t.done?'selected':'')+'>Done</option></select></div>';
 }
 
 function openEdit(id){
-  if(String(id).startsWith('s')){ alert('Subtask editing simplified: promote to task to edit fully.'); return; }
+  if(String(id).startsWith('s')){ alert('Subtask editing limited.'); return; }
   var t=state.taskById[id];if(!t)return;
   var m=document.getElementById('modal');
-  m.innerHTML='<h2>Edit Task</h2>'+taskForm(t)
+  m.innerHTML='<h2>Edit Stone</h2>'+taskForm(t)
     +'<div class="modal-actions">'
-      +'<button id="mdel" class="btn-cancel" style="color:#ff8888">Delete</button>'
+      +'<button id="mdel" class="btn-cancel" style="color:#ff8888">Shatter</button>'
       +'<button id="mc" class="btn-cancel">Back</button>'
-      +'<button class="btn-save" id="ms">Save Changes</button>'
+      +'<button class="btn-save" id="ms">Save</button>'
     +'</div>';
   showModal();
   document.getElementById('mc').onclick=closeModal;
@@ -301,10 +296,10 @@ function openEdit(id){
 
 function openAddTask(){
   var m=document.getElementById('modal');
-  m.innerHTML='<h2>New Task</h2>'+taskForm(null)
+  m.innerHTML='<h2>New Stone</h2>'+taskForm(null)
     +'<div class="modal-actions">'
       +'<button id="mc" class="btn-cancel">Cancel</button>'
-      +'<button class="btn-save" id="ms">Create Stone</button>'
+      +'<button class="btn-save" id="ms">Create</button>'
     +'</div>';
   showModal();
   document.getElementById('mc').onclick=closeModal;
@@ -322,12 +317,12 @@ function openAddTask(){
 }
 
 function openAI(){
-  var SUGG=['Prioritize my garden','What is blocking me?','Weekly critical path'];
+  var SUGG=['Prioritize my garden','Weekly critical path'];
   var m=document.getElementById('modal');
   m.innerHTML='<h2>✦ Oracle</h2>'
-    +'<div class="ai-chips" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px">'+SUGG.map(function(s){return'<span class="ai-chip" style="cursor:pointer;padding:8px 12px;background:rgba(255,255,255,0.05);font-size:10px;text-transform:uppercase;font-weight:800;border:1px solid rgba(255,255,255,0.1)">'+esc(s)+'</span>'}).join('')+'</div>'
+    +'<div class="ai-chips">'+SUGG.map(function(s){return'<span class="ai-chip">'+esc(s)+'</span>'}).join('')+'</div>'
     +'<div class="field"><label>Inquiry</label><textarea id="ai-q" rows="3" style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:15px;outline:none"></textarea></div>'
-    +'<div class="modal-actions" style="display:flex;gap:15px"><button id="mc" class="hdr-btn" style="flex:1">Back</button><button class="ai-btn" id="ms" style="flex:1;background:var(--honey);color:#000">Ask</button></div>'
+    +'<div class="modal-actions" style="display:flex;gap:15px"><button id="mc" class="btn-cancel" style="flex:1">Back</button><button class="ai-btn" id="ms" style="flex:1;background:var(--honey);color:#000">Ask</button></div>'
     +'<div class="ai-response" id="ai-resp" style="margin-top:20px;padding:20px;background:rgba(255,255,255,0.02);display:none;font-size:14px;line-height:1.6"></div>';
   showModal();
   var qa=document.getElementById('ai-q');

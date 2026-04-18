@@ -19,7 +19,7 @@
   --glass: rgba(255, 255, 255, 0.03);
   --glass-inner: rgba(255, 255, 255, 0.06);
   --glass-brd: rgba(255, 255, 255, 0.1);
-  --glass-shd: 0 10px 40px rgba(0, 0, 0, 0.6);
+  --glass-shd: 0 15px 40px rgba(0, 0, 0, 0.6);
   
   /* Radii */
   --r-md: 8px;
@@ -45,13 +45,27 @@ body {
 .app { display: grid; grid-template-columns: 2fr 1fr; height: 100vh; width: 100vw; }
 
 /* ── Panels ── */
-.panel-tree { display: flex; flex-direction: column; height: 100vh; border-right: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.1); overflow: hidden; }
+.panel-tree { 
+  display: flex; flex-direction: column; height: 100vh; 
+  border-right: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.1); 
+  overflow: hidden; position: relative;
+}
 .panel-list { display: flex; flex-direction: column; height: 100vh; background: rgba(0,0,0,0.2); overflow: hidden; }
+
+/* ── Identity Block (BOTTOM LEFT LHS) ── */
+.user-identity {
+  position: absolute; bottom: 40px; left: 40px; z-index: 100;
+}
+.identity-tile {
+  background: var(--glass-inner); border: 1px solid rgba(255,255,255,0.1);
+  padding: 12px 24px; font-size: 14px; font-weight: 900; letter-spacing: 4px;
+  color: var(--ink); box-shadow: var(--glass-shd);
+}
 
 /* ── Header ── */
 .hdr { padding: 40px 60px; flex-shrink: 0; }
 .hdr-top { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-.hdr h1 { font-size: 26px; font-weight: 800; letter-spacing: -1px; text-transform: uppercase; flex: 1; }
+.hdr h1 { font-size: 26px; font-weight: 800; letter-spacing: -1px; text-transform: uppercase; flex: 1; display: none; } /* Hidden, moved to ID block */
 
 .hdr-btn, .ai-btn { 
   background: var(--glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -96,7 +110,8 @@ body {
   position: relative; height: 220px; border-radius: var(--r-md); width: 100%; max-width: var(--card-w); overflow: hidden;
 }
 .card::after {
-  content: ""; position: absolute; inset: -1px; padding: 1px; background: var(--ink); 
+  content: ""; position: absolute; inset: -1px; padding: 4px; /* Thick 4px border */
+  background: var(--ink); 
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; z-index: 1; border-radius: var(--r-md);
 }
@@ -115,7 +130,8 @@ body {
 .tile-name {
   position: absolute; bottom: 20px; left: 20px; width: calc(100% - 100px); text-align: left;
   font-size: 22px; font-weight: 500; line-height: 1.2; letter-spacing: -0.5px; z-index: 2;
-  background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-color: var(--ink);
+  background-clip: text; -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; background-color: var(--ink);
 }
 .dm-CTI .tile-name { background-image: var(--mat-stone); }
 .dm-ECM .tile-name { background-image: var(--mat-wood); }
@@ -125,7 +141,7 @@ body {
 
 /* Dissolved Actions (ABSOLUTE TOP LEFT) */
 .tile-actions {
-  position: absolute; top: 10px; left: 10px; display: flex; gap: 4px; z-index: 10;
+  position: absolute; top: 5px; left: 5px; display: flex; gap: 4px; z-index: 10;
 }
 .cbtn {
   height: 24px; width: 24px; display: flex; align-items: center; justify-content: center;
