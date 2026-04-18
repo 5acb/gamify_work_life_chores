@@ -172,9 +172,6 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
   button:hover{filter:brightness(1.1);transform:translateY(-4px);box-shadow:0 25px 50px rgba(232, 176, 4, 0.4)}
   button:active{transform:translateY(2px);box-shadow:inset 0 4px 10px rgba(0,0,0,0.4)}
 
-  .passkey-btn{background:rgba(255,255,255,0.05);color:#f4f0ea;border:1px solid rgba(255,255,255,0.1);margin-top:-10px}
-  .passkey-btn:hover{background:rgba(255,255,255,0.1);border-color:#e8b004}
-
   .err{color:#ff8888;font-size:13px;font-weight:600;background:rgba(255,85,85,0.05);border-left:4px solid #ff8888;padding:15px;letter-spacing:0.5px}
 
   @keyframes breathe {
