@@ -4,7 +4,8 @@
   /* Cinematic Atmospheric Palette */
   --obsidian: #090a0f;
   --mist: #1e242c;
-  --honey: #e8b004;         /* Reserved for Selection/Focus */
+  --honey: #e8b004;         /* Reserved for Selection/Focus/Interaction ONLY */
+  --amber: #d4830a;         /* Urgency/Temporal — 3-day deadline signal */
   --ink: #f4f0ea;           /* Washi contrast */
   --faded: rgba(244, 240, 234, 0.25);
   
@@ -129,7 +130,7 @@ body {
 
 /* Subtle Urgency Hues */
 .card.hue-canyon { background: linear-gradient(135deg, rgba(193, 92, 61, 0.08) 0%, var(--glass) 100%); }
-.card.hue-amber { background: linear-gradient(135deg, rgba(232, 176, 4, 0.04) 0%, var(--glass) 100%); }
+.card.hue-amber { background: linear-gradient(135deg, rgba(212, 131, 10, 0.05) 0%, var(--glass) 100%); }
 .card.hue-marble { background: linear-gradient(135deg, rgba(215, 225, 235, 0.03) 0%, rgba(215, 225, 235, 0.01) 50%, var(--glass) 100%); }
 
 /* Status Tile & Indicator Line */
@@ -141,7 +142,7 @@ body {
 }
 .status-dot { height: 12px; width: 4px; border-radius: 1px; transition: all 0.3s ease; }
 .dot-canyon { background: #c15c3d; box-shadow: 0 0 8px rgba(193, 92, 61, 0.6); }
-.dot-amber { background: #e8b004; box-shadow: 0 0 8px rgba(232, 176, 4, 0.5); }
+.dot-amber { background: var(--amber); box-shadow: 0 0 8px rgba(212, 131, 10, 0.55); }
 .dot-marble { background: rgba(215, 225, 235, 0.3); }
 .dot-dim { background: rgba(255, 255, 255, 0.05); }
 
@@ -152,7 +153,7 @@ body {
   box-shadow: inset 1px 1px 2px rgba(0,0,0,0.5);
 }
 .card-hue-indicator.dot-canyon { border-color: #c15c3d; filter: drop-shadow(0 0 5px #c15c3d); }
-.card-hue-indicator.dot-amber { border-color: #e8b004; filter: drop-shadow(0 0 5px #e8b004); }
+.card-hue-indicator.dot-amber { border-color: var(--amber); filter: drop-shadow(0 0 5px rgba(212,131,10,0.8)); }
 .card-hue-indicator.dot-marble { border-color: rgba(215, 225, 235, 0.5); filter: drop-shadow(0 0 5px rgba(215,225,235,0.2)); }
 
 /* ── Oracle / AI Modal ── */
@@ -335,8 +336,8 @@ body {
 .btn-danger:hover { border-color: #E11D48; box-shadow: 0 0 12px rgba(225,29,72,0.3); }
 
 /* ── plan_date nudge ── */
-.field-tile.plan-nudge { border-color: rgba(232,176,4,0.4); background: rgba(232,176,4,0.04); }
-.field-tile.plan-nudge label::after { content: " — when will you start?"; color: rgba(232,176,4,0.7); }
+.field-tile.plan-nudge { border-color: rgba(212,131,10,0.45); background: rgba(212,131,10,0.04); }
+.field-tile.plan-nudge label::after { content: " — when will you start?"; color: rgba(212,131,10,0.85); }
 
 /* ── Wabi-sabi aging (archived cards ghost over 7 days) ── */
 .card.archived[data-age="1"] { opacity: 0.75; filter: saturate(0.7) brightness(0.95); }
@@ -574,5 +575,5 @@ body.mode-execute .oracle-panel { display: flex; }
 }
 .extract-item:last-child { border-bottom: none; }
 .extract-risk-high { color: #ff8888; }
-.extract-risk-medium { color: var(--honey); }
+.extract-risk-medium { color: var(--amber); }
 
