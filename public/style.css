@@ -1,174 +1,161 @@
 :root {
-  /* Zen Prism Palette - Soft Japandi */
-  --obsidian-base: #141618;
-  --sand: #ebe6d6;
-  --sage: #d1d3c4;
-  --clay: #e3d5ca;
+  /* Sanctuary Palette - Soft Japandi */
+  --obsidian: #0d0f11;
+  --obsidian-surface: #141618;
   --honey: #e8b004;
   --ink: #f4f0ea;
+  --faded: rgba(244, 240, 234, 0.4);
   
-  /* Atomic Glass Specs - Lighter & Softer */
-  --glass: rgba(255, 255, 255, 0.08);
-  --glass-bright: rgba(255, 255, 255, 0.15);
+  /* Atomic Glass Units */
+  --glass: rgba(255, 255, 255, 0.05);
+  --glass-inner: rgba(255, 255, 255, 0.08);
   --glass-brd: rgba(255, 255, 255, 0.12);
-  --glass-shd: 0 10px 30px rgba(0, 0, 0, 0.4);
+  --glass-shd: 0 10px 30px rgba(0, 0, 0, 0.5);
   
-  /* UI Layout */
-  --pad: 12px;
-  --gap: 2px;
+  /* Physical Bevels */
+  --bevel-light: rgba(255, 255, 255, 0.15);
+  --bevel-dark: rgba(0, 0, 0, 0.4);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: "Inter", -apple-system, system-ui, sans-serif;
-  background-color: var(--obsidian-base);
+  background-color: var(--obsidian);
   color: var(--ink);
   height: 100vh;
+  width: 100vw;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
-  
-  /* Luminous Ambient Backdrop */
   background-image: 
-    radial-gradient(at 0% 0%, rgba(209, 211, 196, 0.15) 0, transparent 40%),
-    radial-gradient(at 100% 0%, rgba(227, 213, 202, 0.15) 0, transparent 40%),
-    radial-gradient(at 50% 100%, rgba(235, 230, 214, 0.1) 0, transparent 50%),
-    linear-gradient(180deg, #181a1c 0%, #0d0f11 100%);
+    radial-gradient(at 0% 0%, rgba(209, 211, 196, 0.1) 0, transparent 40%),
+    radial-gradient(at 100% 0%, rgba(227, 213, 202, 0.1) 0, transparent 40%),
+    linear-gradient(180deg, #16181a 0%, #0d0f11 100%);
 }
 
-.app { display: flex; height: 100vh; width: 100vw; position: relative; z-index: 1; }
-.panel-list { flex: 1; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+.app { 
+  display: grid; 
+  grid-template-columns: 2fr 1fr; /* The 2:1 Split */
+  height: 100vh; 
+  width: 100vw; 
+}
 
-/* ── The Zen Tile ── */
-.tile {
+/* ── Panels ── */
+.panel-tree { 
+  display: flex; flex-direction: column; height: 100vh; 
+  border-right: 1px solid rgba(255,255,255,0.08); 
+  background: rgba(0,0,0,0.1); 
+  overflow: hidden;
+}
+.panel-list { 
+  display: flex; flex-direction: column; height: 100vh; 
+  background: rgba(0,0,0,0.2); 
+  overflow: hidden;
+}
+
+/* ── Header & Common UI ── */
+.hdr { padding: 30px 40px; flex-shrink: 0; }
+.hdr-top { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+.hdr h1 { font-size: 24px; font-weight: 800; letter-spacing: -1px; text-transform: uppercase; flex: 1; }
+
+.hdr-btn, .ai-btn { 
+  background: var(--glass); backdrop-filter: blur(10px);
+  border: 1px solid var(--glass-brd); color: var(--ink);
+  font-size: 10px; font-weight: 800; padding: 10px 18px; cursor: pointer; 
+  text-transform: uppercase; letter-spacing: 1.5px; border-radius: 4px;
+}
+.hdr-btn:active, .ai-btn:active { box-shadow: inset 2px 2px 5px rgba(0,0,0,0.6); transform: translate(1px, 1px); }
+.ai-btn { color: var(--honey); border-color: var(--honey); }
+
+.toggle-wrap { display: flex; gap: 2px; margin-bottom: 15px; }
+.toggle-btn { font-size: 10px; font-weight: 800; padding: 10px 15px; border: none; background: transparent; opacity: 0.4; cursor: pointer; }
+.toggle-btn.active { opacity: 1; background: var(--glass-inner); border-radius: 4px; }
+
+.search { 
+  width: 100%; padding: 12px 18px; background: rgba(255,255,255,0.03); 
+  border: 1px solid var(--glass-brd); border-radius: 8px; color: var(--ink);
+  outline: none; font-size: 14px;
+}
+
+/* ── The Unified Card ── */
+.card {
   background: var(--glass);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--glass-brd);
-  border-radius: 6px;
-  padding: var(--pad);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 600;
-  box-shadow: var(--glass-shd);
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-/* ── Header ── */
-.hdr { padding: 40px 60px; flex-shrink: 0; }
-.hdr-top { display: flex; align-items: stretch; gap: 8px; margin-bottom: 8px; }
-.hdr h1 { font-size: 26px; font-weight: 800; letter-spacing: -1px; text-transform: uppercase; flex: 1; justify-content: flex-start; }
-.hdr-back { font-size: 20px; text-decoration: none; width: 60px; cursor: pointer; }
-.hdr-btn, .ai-btn { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; cursor: pointer; border-radius: 4px; }
-.ai-btn { color: var(--honey); border-color: var(--honey) !important; }
-
-.toggle-wrap { display: flex; gap: 4px; }
-.toggle-btn { font-size: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; padding: 10px 20px; border: none; opacity: 0.4; border-radius: 4px; }
-.toggle-btn.active { opacity: 1; background: var(--glass-bright); }
-
-.search { flex: 1; outline: none; background: rgba(255,255,255,0.02); border-radius: 8px; }
-
-/* ── 3-Column Prism Grid ── */
-.cards { 
-  flex: 1; overflow-y: auto; padding: 20px 60px 200px;
-}
-.cards-inner { 
-  max-width: 1400px; margin: 0 auto; 
-  display: grid; 
-  grid-template-columns: repeat(3, 1fr); 
-  gap: 48px; 
-}
-
-/* ── Symmetrical Prism Cluster ── */
-.card-cluster {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 44px 1fr 54px auto;
-  gap: var(--gap);
+  border-radius: 12px;
+  padding: 10px;
   cursor: pointer;
-  transition: all 0.4s ease;
-  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  display: flex; flex-direction: column; gap: 4px;
+  box-shadow: var(--glass-shd);
+}
+.card:hover { background: rgba(255,255,255,0.08); transform: translateY(-4px); }
+.card.selected { 
+  border: 2px solid var(--honey); 
+  box-shadow: 0 0 40px rgba(232, 176, 4, 0.15), var(--glass-shd);
 }
 
-/* Internal Tile Layout */
-.tile-domain { grid-column: 1; grid-row: 1; font-weight: 900; letter-spacing: 2px; cursor: pointer; background: var(--glass-bright); border-top-left-radius: 6px; }
-.tile-date { grid-column: 2; grid-row: 1; font-size: 11px; cursor: pointer; opacity: 0.8; border-top-right-radius: 6px; }
-.tile-name { 
-  grid-column: 1 / span 2; grid-row: 2; 
-  font-size: 20px; font-weight: 800; padding: 36px 20px; 
-  text-align: center; line-height: 1.3;
-  letter-spacing: -0.5px;
-  border-radius: 0; /* Keep inner tiles sharp if they don't hit corners */
-}
-.tile-urgency { grid-column: 1; grid-row: 3; justify-content: center; border-bottom-left-radius: 6px; }
-.tile-actions { grid-column: 2; grid-row: 3; display: flex; gap: var(--gap); padding: 4px; border-bottom-right-radius: 6px; }
-.tile-blocked { grid-column: 1 / span 2; grid-row: 4; font-size: 11px; font-style: italic; color: #ff8888; background: rgba(255,85,85,0.05); margin-top: 4px; border-radius: 4px; }
-
-/* THE HONEY STAR */
-.card-cluster.selected .tile {
-  border-color: var(--honey);
-  box-shadow: 0 0 40px rgba(232, 176, 4, 0.15), 0 10px 40px rgba(0,0,0,0.6);
-  transform: translateY(-4px);
-  background: rgba(255, 255, 255, 0.12);
-  z-index: 10;
+/* ── The Atomic Tile (Inside Card) ── */
+.tile {
+  background: var(--glass-inner);
+  border-top: 1px solid var(--bevel-light);
+  border-left: 1px solid var(--bevel-light);
+  border-right: 1px solid var(--bevel-dark);
+  border-bottom: 1px solid var(--bevel-dark);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink); font-size: 12px; font-weight: 700;
 }
 
-/* Domain Tint Gradients - Subtle Light-Catching */
-.dm-CTI .tile { background: linear-gradient(145deg, rgba(74, 111, 165, 0.15) 0%, rgba(20,22,24,0.4) 100%); }
-.dm-ECM .tile { background: linear-gradient(145deg, rgba(155, 106, 155, 0.15) 0%, rgba(20,22,24,0.4) 100%); }
-.dm-CSD .tile { background: linear-gradient(145deg, rgba(94, 155, 142, 0.15) 0%, rgba(20,22,24,0.4) 100%); }
-.dm-GRA .tile { background: linear-gradient(145deg, rgba(194, 155, 74, 0.15) 0%, rgba(20,22,24,0.4) 100%); }
-.dm-PER .tile { background: linear-gradient(145deg, rgba(106, 106, 155, 0.15) 0%, rgba(20,22,24,0.4) 100%); }
+/* Internal Card Layout */
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.tile-domain { grid-column: 1; font-size: 14px; font-weight: 900; letter-spacing: 1px; background: rgba(255,255,255,0.1); }
+.tile-date { grid-column: 2; font-size: 10px; opacity: 0.8; }
+.tile-name { grid-column: 1 / span 2; font-size: 16px; padding: 20px 10px; text-align: center; }
+.tile-urgency { grid-column: 1; }
+.tile-actions { grid-column: 2; display: flex; gap: 4px; padding: 4px; }
 
-.card-cluster.done { opacity: 0.2; filter: grayscale(1); }
+/* ── Worktree Area (LHS) ── */
+.tree-container { 
+  flex: 1; overflow: auto; padding: 60px; 
+  display: flex; flex-direction: column; align-items: center; gap: 60px;
+}
+.tree-section { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 100%; }
+.tree-label { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--faded); letter-spacing: 3px; margin-bottom: 15px; width: 100%; text-align: center; }
 
-/* Prism Switches */
+/* ── Task List (RHS) ── */
+.cards { flex: 1; overflow-y: auto; padding: 20px 30px 200px; }
+.cards-inner { display: flex; flex-direction: column; gap: 20px; max-width: 500px; margin: 0 auto; }
+
+/* ── Buttons & FAB ── */
 .cbtn {
   flex: 1; height: 100%; display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.08); 
-  border: 1px solid var(--glass-brd);
-  border-radius: 4px;
-  color: var(--ink); font-size: 18px; cursor: pointer;
-  transition: all 0.2s;
+  background: rgba(255,255,255,0.05); border: 1px solid var(--glass-brd);
+  border-radius: 4px; color: var(--ink); font-size: 16px; cursor: pointer;
 }
-.cbtn:hover { background: var(--glass-bright); }
-.cbtn:active { background: var(--honey); color: #000; box-shadow: inset 0 2px 8px rgba(0,0,0,0.4); transform: translateY(1px); }
+.cbtn:active { box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); transform: translateY(1px); }
 
-/* ── FAB ── */
 .fab {
-  position: fixed; bottom: 50px; right: 50px;
-  width: 80px; height: 80px; font-size: 40px;
-  background: var(--honey); color: #000; border: none; cursor: pointer;
-  box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-  z-index: 100;
-  border-radius: 16px;
+  position: fixed; bottom: 40px; right: 40px;
+  width: 72px; height: 72px; border-radius: 24px;
+  background: var(--honey); color: #000; border: none; 
+  font-size: 32px; font-weight: 900; cursor: pointer;
+  box-shadow: 0 15px 45px rgba(0,0,0,0.6); z-index: 1000;
 }
-.fab:active { transform: scale(0.95); opacity: 0.8; }
 
-.u-pill { color: var(--honey); margin: 0 6px; font-size: 11px; font-weight: 800; }
-.u-dots { opacity: 0.3; letter-spacing: 4px; font-size: 14px; }
-.inline-edit { background: transparent; border: none; color: var(--honey); font-family: inherit; font-size: inherit; font-weight: 900; width: 100%; text-align: center; outline: none; border-radius: 4px; }
+/* Domain Tint Gradients */
+.dm-CTI .tile { background: linear-gradient(145deg, rgba(74, 111, 165, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
+.dm-ECM .tile { background: linear-gradient(145deg, rgba(155, 106, 155, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
+.dm-CSD .tile { background: linear-gradient(145deg, rgba(94, 155, 142, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
+.dm-GRA .tile { background: linear-gradient(145deg, rgba(194, 155, 74, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
+.dm-PER .tile { background: linear-gradient(145deg, rgba(106, 106, 155, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
 
-/* Modal */
-.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(40px); z-index: 2000; display: none; align-items: center; justify-content: center; }
-.modal-bg.show { display: flex; }
-.modal { 
-  background: linear-gradient(145deg, #1c1e20 0%, #0d0f11 100%);
-  border: 1px solid var(--glass-brd);
-  border-radius: 24px;
-  padding: 60px; width: 95%; max-width: 650px;
-  box-shadow: 0 40px 100px rgba(0,0,0,0.8);
-}
-.modal h2 { font-size: 32px; font-weight: 800; text-transform: lowercase; letter-spacing: -1.5px; margin-bottom: 40px; }
+.card.done { opacity: 0.2; filter: grayscale(1); }
+.u-pill { color: var(--honey); font-size: 10px; margin: 0 4px; }
 
 @media (max-width: 1024px) {
-  .cards-inner { grid-template-columns: repeat(2, 1fr); gap: 30px; }
-}
-@media (max-width: 768px) {
-  .hdr { padding: 30px 24px; }
-  .cards { padding: 20px 20px 140px; }
-  .cards-inner { grid-template-columns: 1fr; }
+  .app { grid-template-columns: 1fr; }
+  .panel-tree { display: none; } /* Hide tree on mobile/small tablets for now */
 }

@@ -1,7 +1,6 @@
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
-var DM={CTI:{c:'#8e9aaf',l:'CTI'},ECM:{c:'#cbc0d3',l:'ECM'},CSD:{c:'#efd3d7',l:'CSD'},GRA:{c:'#feeafa',l:'GRA'},Personal:{c:'#dee2ff',l:'PER'}};
-var SPEED_L=['snap','sesh','grind'],STAKES_L=['low','high','crit'];
+var DM={CTI:{c:'#4a6fa5',l:'CTI'},ECM:{c:'#9b6a9b',l:'ECM'},CSD:{c:'#5e9b8e',l:'CSD'},GRA:{c:'#c29b4a',l:'GRA'},Personal:{c:'#6a6a9b',l:'PER'}};
 var DOMAINS=Object.keys(DM);
 
 var state={slug:null,user:null,tasks:[],taskById:{},view:'current',searchQuery:'',selectedId:null};
@@ -15,7 +14,7 @@ function api(m,u,b){
 function daysFrom(ds){if(!ds)return 999;return Math.max(0,Math.round((new Date(ds+'T00:00:00')-TODAY)/864e5))}
 
 function isBlocked(t){
-  if(!t.needs||!t.needs.length)return false;
+  if(!t.needs||!t.needs.length) return false;
   for(var k=0;k<t.needs.length;k++){
     var d=state.taskById[t.needs[k]];if(!d)continue;
     if(!d.done)return true;
@@ -44,7 +43,7 @@ function showPicker(){
   api('GET','/api/users').then(function(d){
     var pk=document.querySelector('.picker');
     d.users.forEach(function(u){
-      var c=document.createElement('div');c.className='tile';c.style.cssText='display:inline-block;padding:40px;margin:20px;cursor:pointer;';
+      var c=document.createElement('div');c.style.cssText='display:inline-block;padding:40px;background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);margin:20px;border-radius:32px;cursor:pointer;border:1px solid rgba(255,255,255,0.1)';
       c.innerHTML='<h2>'+esc(u.name)+'</h2><p>@'+esc(u.slug)+'</p>';
       c.onclick=function(){navigate(u.slug)};pk.appendChild(c);
     });
@@ -66,28 +65,26 @@ function renderApp(){
   var root=document.getElementById('root');
   var dateStr=TODAY.toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric'});
   root.innerHTML=
-    '<div class="panel-list">'
+    '<div class="panel-tree" id="treePanel"><div class="tree-container" id="treeContainer"></div></div>'
+    +'<div class="panel-list">'
       +'<div class="hdr">'
         +'<div class="hdr-top">'
-          +'<a class="tile hdr-back" href="/" onclick="event.preventDefault();history.pushState(null,\'\',\'/\');route()">←</a>'
-          +'<h1 class="tile" id="hdrName" style="padding:10px 20px"></h1>'
+          +'<h1 id="hdrName"></h1>'
           +'<div class="hdr-nav">'
-            +'<button class="tile ai-btn" id="aiBtn">✦ Oracle</button>'
-            +'<a class="tile hdr-btn" href="/logout">sign out</a>'
+            +'<button class="ai-btn" id="aiBtn">✦ Oracle</button>'
+            +'<a class="hdr-btn" href="/logout">sign out</a>'
           +'</div>'
         +'</div>'
-        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px">'
-          +'<div class="tile" style="padding:10px 20px">'+dateStr+'</div>'
-          +'<div class="toggle-wrap">'
-            +'<button class="tile toggle-btn'+(state.view==='current'?' active':'')+'" data-view="current">active</button>'
-            +'<button class="tile toggle-btn'+(state.view==='archived'?' active':'')+'" data-view="archived">archived</button>'
-          +'</div>'
-          +'<input class="tile search" id="search" placeholder="Search tasks..." autocomplete="off">'
+        +'<p style="font-size:12px;opacity:0.6;margin-bottom:10px">'+dateStr+'</p>'
+        +'<div class="toggle-wrap">'
+          +'<button class="toggle-btn'+(state.view==='current'?' active':'')+'" data-view="current">active</button>'
+          +'<button class="toggle-btn'+(state.view==='archived'?' active':'')+'" data-view="archived">archived</button>'
         +'</div>'
+        +'<input class="search" id="search" placeholder="Search tasks..." autocomplete="off">'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
     +'</div>'
-    +'<button class="tile fab" id="fab">+</button>';
+    +'<button class="fab" id="fab">+</button>';
 
   document.getElementById('hdrName').textContent=state.user?state.user.name:'';
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
@@ -101,29 +98,26 @@ function renderApp(){
   })});
 
   renderCards();
+  if(state.selectedId) renderTree(state.selectedId);
 }
 
 // ── Cards ─────────────────────────────────────────────────────
 
-function makeCardEl(t, index){
+function makeCardEl(t, isList){
   var blocked=isBlocked(t), done=!!t.done;
   var dp=daysFrom(t.plan_date), dd=daysFrom(t.due_date);
   var dm=DM[t.domain]||{c:'#71717a',l:t.domain};
 
   var el=document.createElement('div');
-  el.className='card-cluster dm-'+t.domain+(done?' done':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
+  el.className='card dm-'+t.domain+(done?' done':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
   el.dataset.id=t.id;
 
-  var h='';
-  // Row 1: Domain (Left) | Date (Right)
+  var h='<div class="card-grid">';
   h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
   var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'---';
   h+='<div class="tile tile-date">'+esc(dLabel)+'</div>';
-
-  // Row 2: Name (Full Width)
   h+='<div class="tile tile-name">'+esc(t.name)+'</div>';
-
-  // Row 3: Urgency (Left) | Actions (Right)
+  
   h+='<div class="tile tile-urgency">';
   if(dp<999||dd<999){
     if(dp<999) h+='<span class="u-pill">T−'+dp+'</span>';
@@ -133,16 +127,14 @@ function makeCardEl(t, index){
   h+='</div>';
 
   h+='<div class="tile tile-actions">'
-    +'<button class="cbtn" data-edit="'+t.id+'" title="Edit">✎</button>'
-    +'<button class="cbtn" data-archive="'+t.id+'" title="Archive">⌧</button>'
+    +'<button class="cbtn" data-edit="'+t.id+'">✎</button>'
+    +'<button class="cbtn" data-archive="'+t.id+'">⌧</button>'
   +'</div>';
-
-  if(blocked && !t.isSub) h+='<div class="tile tile-blocked">needs: '+esc(getBlockerName(t))+'</div>';
-  if(t.isSub) h+='<div class="tile tile-blocked" style="color:rgba(255,255,255,0.4);font-size:10px">↳ sub of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
+  h+='</div>'; // grid
 
   el.innerHTML=h;
 
-  // Domain Cycling Logic
+  // Domain Cycling
   el.querySelector('.tile-domain').onclick=function(e){
     e.stopPropagation();
     var idx=DOMAINS.indexOf(t.domain);
@@ -150,7 +142,7 @@ function makeCardEl(t, index){
     api('PATCH','/api/tasks/'+t.id,{domain:next}).then(loadBoard);
   };
 
-  // Inline Date Logic
+  // Date Logic
   el.querySelector('.tile-date').onclick=function(e){
     e.stopPropagation();
     var tile=this;
@@ -164,14 +156,66 @@ function makeCardEl(t, index){
 
   el.onclick=function(e){
     if(e.target.closest('button, input')) return;
-    if(state.selectedId===t.id) openEdit(t.id);
+    if(state.selectedId===t.id && isList) openEdit(t.id);
     else {
       state.selectedId=t.id;
-      document.querySelectorAll('.card-cluster').forEach(c=>c.classList.toggle('selected',c.dataset.id===String(t.id)));
+      document.querySelectorAll('.card').forEach(c=>c.classList.toggle('selected',+c.dataset.id===t.id));
+      renderTree(t.id);
     }
   };
 
   return el;
+}
+
+function renderCards(){
+  var list=document.getElementById('cardList');if(!list)return;
+  var filtered=state.tasks.filter(matchSearch);
+  if(!filtered.length){list.innerHTML='<p style="text-align:center;padding:100px;opacity:0.3">Empty</p>';return}
+  list.innerHTML='';
+  filtered.forEach(function(t){ list.appendChild(makeCardEl(t, true)) });
+
+  Sortable.create(list, { animation: 300, ghostClass: 'sortable-ghost' });
+  bindActionEvents();
+}
+
+function renderTree(id){
+  var container=document.getElementById('treeContainer');if(!container)return;
+  var task=state.taskById[id];if(!task)return;
+
+  container.innerHTML='';
+
+  // 1. Find Blockers (Tasks this task needs)
+  var blockers = (task.needs||[]).map(nid => state.taskById[nid]).filter(Boolean);
+  if(blockers.length){
+    var s1=document.createElement('div'); s1.className='tree-section';
+    s1.innerHTML='<div class="tree-label">Blocks this task</div>';
+    blockers.forEach(t => s1.appendChild(makeCardEl(t, false)));
+    container.appendChild(s1);
+  }
+
+  // 2. Focus Task
+  var s2=document.createElement('div'); s2.className='tree-section';
+  s2.innerHTML='<div class="tree-label">Active Focus</div>';
+  var focusCard = makeCardEl(task, false);
+  focusCard.style.transform = 'scale(1.2)';
+  s2.appendChild(focusCard);
+  container.appendChild(s2);
+
+  // 3. Find Dependents (Tasks that need this task)
+  var dependents = state.tasks.filter(t => (t.needs||[]).includes(task.id));
+  var subtasks = (task.subs||[]).map(s => ({id:'s'+s.id, name:s.label, domain:task.domain, done:s.done, isSub:true}));
+  
+  if(dependents.length || subtasks.length){
+    var s3=document.createElement('div'); s3.className='tree-section';
+    s3.innerHTML='<div class="tree-label">Depends on this task</div>';
+    dependents.forEach(t => s3.appendChild(makeCardEl(t, false)));
+    subtasks.forEach(t => {
+        var el=makeCardEl(t, false);
+        el.style.opacity = '0.6';
+        s3.appendChild(el);
+    });
+    container.appendChild(s3);
+  }
 }
 
 function getBlockerName(t){
@@ -180,46 +224,8 @@ function getBlockerName(t){
   }return'';
 }
 
-function renderCards(){
-  var list=document.getElementById('cardList');if(!list)return;
-  
-  var flat=[];
-  state.tasks.forEach(function(t){
-    if(!matchSearch(t)) return;
-    flat.push(t);
-    if(t.subs&&t.subs.length){
-      t.subs.forEach(function(s){
-        flat.push({
-          id: 's'+s.id,
-          name: s.label,
-          domain: t.domain,
-          done: s.done,
-          isSub: true,
-          parentId: t.id
-        });
-      });
-    }
-  });
-
-  if(!flat.length){list.innerHTML='<p style="text-align:center;padding:100px;opacity:0.5">Sanctuary is Empty</p>';return}
-  list.innerHTML='';
-
-  flat.forEach(function(t, i){
-    list.appendChild(makeCardEl(t, i+1));
-  });
-
-  Sortable.create(list, {
-    animation: 300,
-    ghostClass: 'sortable-ghost'
-  });
-
-  bindActionEvents();
-}
-
-function bindEvents(){ /* deprecated - using el.onclick */ }
-
 function bindActionEvents(){
-  document.querySelectorAll('[data-edit]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();openEdit(this.dataset.edit)})});
+  document.querySelectorAll('[data-edit]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();openEdit(+this.dataset.edit)})});
   document.querySelectorAll('[data-archive]').forEach(function(el){el.addEventListener('click',function(e){e.stopPropagation();api('PATCH','/api/tasks/'+this.dataset.archive+'/archive').then(loadBoard)})});
 }
 
@@ -240,8 +246,8 @@ function openEdit(id){
   if(String(id).startsWith('s')){ alert('Subtask editing simplified: promote to task to edit fully.'); return; }
   var t=state.taskById[id];if(!t)return;
   var m=document.getElementById('modal');
-  m.innerHTML='<h2 style="margin-bottom:30px">Edit Task</h2>'+taskForm(t)
-    +'<div class="modal-actions" style="display:flex;gap:15px;margin-top:30px"><button id="mc" class="cbtn" style="flex:1">Cancel</button><button class="ai-btn" id="ms" style="flex:1;background:var(--charcoal);color:#fff">Save</button></div>';
+  m.innerHTML='<h2 style="margin-bottom:30px">Edit Stone</h2>'+taskForm(t)
+    +'<div class="modal-actions" style="display:flex;gap:15px;margin-top:30px"><button id="mc" class="hdr-btn" style="flex:1">Cancel</button><button class="ai-btn" id="ms" style="flex:1;background:var(--honey);color:#000">Save</button></div>';
   showModal();
   document.getElementById('mc').onclick=closeModal;
   document.getElementById('ms').onclick=function(){
@@ -258,8 +264,8 @@ function openEdit(id){
 
 function openAddTask(){
   var m=document.getElementById('modal');
-  m.innerHTML='<h2 style="margin-bottom:30px">New Task</h2>'+taskForm(null)
-    +'<div class="modal-actions" style="display:flex;gap:15px;margin-top:30px"><button id="mc" class="cbtn" style="flex:1">Cancel</button><button class="ai-btn" id="ms" style="flex:1;background:var(--charcoal);color:#fff">Create</button></div>';
+  m.innerHTML='<h2 style="margin-bottom:30px">New Stone</h2>'+taskForm(null)
+    +'<div class="modal-actions" style="display:flex;gap:15px;margin-top:30px"><button id="mc" class="hdr-btn" style="flex:1">Cancel</button><button class="ai-btn" id="ms" style="flex:1;background:var(--honey);color:#000">Create</button></div>';
   showModal();
   document.getElementById('mc').onclick=closeModal;
   document.getElementById('ms').onclick=function(){
@@ -276,13 +282,13 @@ function openAddTask(){
 }
 
 function openAI(){
-  var SUGG=['Prioritize my day','What is blocking me?','Weekly critical path'];
+  var SUGG=['Prioritize my garden','What is blocking me?','Weekly critical path'];
   var m=document.getElementById('modal');
   m.innerHTML='<h2>✦ Oracle</h2>'
-    +'<div class="ai-chips">'+SUGG.map(function(s){return'<span class="ai-chip">'+esc(s)+'</span>'}).join('')+'</div>'
-    +'<div class="field"><label>Question</label><textarea id="ai-q" rows="3" style="width:100%;border-radius:12px;padding:12px;border:1px solid rgba(0,0,0,0.1)"></textarea></div>'
-    +'<div class="modal-actions" style="display:flex;gap:15px"><button id="mc" class="cbtn" style="flex:1">Back</button><button class="ai-btn" id="ms" style="flex:1;background:var(--charcoal);color:#fff">Ask</button></div>'
-    +'<div class="ai-response" id="ai-resp" style="margin-top:20px;padding:20px;background:rgba(0,0,0,0.02);border-radius:16px;display:none;font-size:14px;line-height:1.6"></div>';
+    +'<div class="ai-chips" style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px">'+SUGG.map(function(s){return'<span class="ai-chip" style="cursor:pointer;padding:8px 12px;background:rgba(255,255,255,0.05);font-size:10px;text-transform:uppercase;font-weight:800;border:1px solid rgba(255,255,255,0.1)">'+esc(s)+'</span>'}).join('')+'</div>'
+    +'<div class="field"><label>Inquiry</label><textarea id="ai-q" rows="3" style="width:100%;background:rgba(0,0,0,0.2);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:15px;outline:none"></textarea></div>'
+    +'<div class="modal-actions" style="display:flex;gap:15px"><button id="mc" class="hdr-btn" style="flex:1">Back</button><button class="ai-btn" id="ms" style="flex:1;background:var(--honey);color:#000">Ask</button></div>'
+    +'<div class="ai-response" id="ai-resp" style="margin-top:20px;padding:20px;background:rgba(255,255,255,0.02);display:none;font-size:14px;line-height:1.6"></div>';
   showModal();
   var qa=document.getElementById('ai-q');
   document.querySelectorAll('.ai-chip').forEach(function(c){c.onclick=function(){qa.value=this.textContent;qa.focus()}});
