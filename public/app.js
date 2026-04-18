@@ -157,9 +157,17 @@ function makeCardEl(t, isList){
   // DEDUP: archived is the state of completion/done
   var isUrgent = (dd <= 1 && !archived) || blocked;
   var stateCls = isUrgent ? 'state-urgent' : (archived ? 'state-safe' : '');
+  
+  // Subtle Background Hues
+  var hueCls = '';
+  if(!archived){
+    if(dd <= 1) hueCls = 'hue-canyon';
+    else if(dd <= 3) hueCls = 'hue-amber';
+    else if(dd <= 7 || (dd < 999 && dp < 999 && dd - dp < 3)) hueCls = 'hue-iridescent';
+  }
 
   var el=document.createElement('div');
-  el.className='card '+dm.m+' '+stateCls+(archived?' archived':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
+  el.className='card '+dm.m+' '+stateCls+' '+hueCls+(archived?' archived':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
   el.dataset.id=t.id;
 
   var h='';

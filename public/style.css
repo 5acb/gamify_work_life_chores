@@ -114,6 +114,11 @@ body {
   display: flex; flex-direction: column; box-shadow: var(--glass-shd);
   position: relative; height: 220px; border-radius: var(--r-md); width: 100%; max-width: var(--card-w); overflow: hidden;
 }
+
+/* Subtle Urgency Hues */
+.card.hue-canyon { background: linear-gradient(135deg, rgba(193, 92, 61, 0.08) 0%, var(--glass) 100%); }
+.card.hue-amber { background: linear-gradient(135deg, rgba(232, 176, 4, 0.04) 0%, var(--glass) 100%); }
+.card.hue-iridescent { background: linear-gradient(135deg, rgba(153, 246, 228, 0.03) 0%, rgba(147, 197, 253, 0.03) 50%, var(--glass) 100%); }
 .card::after {
   content: ""; position: absolute; inset: -1px; padding: 4px; /* Thick 4px border */
   background: var(--ink); 
