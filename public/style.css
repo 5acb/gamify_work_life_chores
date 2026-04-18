@@ -1,23 +1,29 @@
 :root {
-  /* Sanctuary Palette - Soft Japandi */
-  --obsidian: #0d0f11;
-  --obsidian-surface: #141618;
+  /* Natural Monolith Palette - Earthy Skeuomorphism */
+  --obsidian: #0a0b0d;
   --honey: #e8b004;
   --ink: #f4f0ea;
-  --faded: rgba(244, 240, 234, 0.4);
+  --faded: rgba(244, 240, 234, 0.3);
   
-  /* Atomic Glass Units */
-  --glass: rgba(255, 255, 255, 0.05);
-  --glass-inner: rgba(255, 255, 255, 0.08);
-  --glass-brd: rgba(255, 255, 255, 0.12);
-  --glass-shd: 0 10px 30px rgba(0, 0, 0, 0.5);
+  /* Atomic Glass foundation */
+  --glass: rgba(255, 255, 255, 0.03);
+  --glass-inner: rgba(255, 255, 255, 0.06);
+  --glass-shd: 0 15px 45px rgba(0, 0, 0, 0.6);
   
-  /* Physical Bevels */
-  --bevel-light: rgba(255, 255, 255, 0.15);
-  --bevel-dark: rgba(0, 0, 0, 0.4);
+  /* Material Gradient Borders */
+  --mat-stone: linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%);
+  --mat-wood: linear-gradient(135deg, #5c4033 0%, #2b1d14 100%);
+  --mat-bamboo: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%);
+  --mat-honey: linear-gradient(135deg, #f6d365 0%, #ffb347 100%);
+  --mat-ash: linear-gradient(135deg, #e6d0ce 0%, #b9935a 100%);
+
+  /* Skeuomorphic Bevels (for inner tiles only) */
+  --bevel-light: rgba(255, 255, 255, 0.1);
+  --bevel-dark: rgba(0, 0, 0, 0.3);
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── Global Geometry Reset ── */
+* { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
 
 body {
   font-family: "Inter", -apple-system, system-ui, sans-serif;
@@ -28,14 +34,14 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(209, 211, 196, 0.1) 0, transparent 40%),
-    radial-gradient(at 100% 0%, rgba(227, 213, 202, 0.1) 0, transparent 40%),
-    linear-gradient(180deg, #16181a 0%, #0d0f11 100%);
+    radial-gradient(at 0% 0%, rgba(130, 146, 133, 0.08) 0, transparent 40%),
+    radial-gradient(at 100% 0%, rgba(194, 155, 74, 0.08) 0, transparent 40%),
+    linear-gradient(180deg, #121416 0%, #0a0b0d 100%);
 }
 
 .app { 
   display: grid; 
-  grid-template-columns: 2fr 1fr; /* The 2:1 Split */
+  grid-template-columns: 2fr 1fr; 
   height: 100vh; 
   width: 100vw; 
 }
@@ -43,119 +49,160 @@ body {
 /* ── Panels ── */
 .panel-tree { 
   display: flex; flex-direction: column; height: 100vh; 
-  border-right: 1px solid rgba(255,255,255,0.08); 
+  border-right: 1px solid rgba(255,255,255,0.05); 
   background: rgba(0,0,0,0.1); 
   overflow: hidden;
 }
 .panel-list { 
   display: flex; flex-direction: column; height: 100vh; 
-  background: rgba(0,0,0,0.2); 
+  background: rgba(0,0,0,0.15); 
   overflow: hidden;
 }
 
-/* ── Header & Common UI ── */
-.hdr { padding: 30px 40px; flex-shrink: 0; }
-.hdr-top { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
-.hdr h1 { font-size: 24px; font-weight: 800; letter-spacing: -1px; text-transform: uppercase; flex: 1; }
+/* ── Header ── */
+.hdr { padding: 40px 60px; flex-shrink: 0; }
+.hdr-top { display: flex; align-items: stretch; gap: 10px; margin-bottom: 20px; }
+.hdr h1 { font-size: 28px; font-weight: 900; letter-spacing: -1.5px; text-transform: uppercase; flex: 1; }
 
 .hdr-btn, .ai-btn { 
   background: var(--glass); backdrop-filter: blur(10px);
-  border: 1px solid var(--glass-brd); color: var(--ink);
-  font-size: 10px; font-weight: 800; padding: 10px 18px; cursor: pointer; 
-  text-transform: uppercase; letter-spacing: 1.5px; border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.1); color: var(--ink);
+  font-size: 11px; font-weight: 900; padding: 12px 24px; cursor: pointer; 
+  text-transform: uppercase; letter-spacing: 2px;
 }
-.hdr-btn:active, .ai-btn:active { box-shadow: inset 2px 2px 5px rgba(0,0,0,0.6); transform: translate(1px, 1px); }
+.hdr-btn:active, .ai-btn:active { box-shadow: inset 2px 2px 8px rgba(0,0,0,0.8); transform: translate(1px, 1px); }
 .ai-btn { color: var(--honey); border-color: var(--honey); }
 
-.toggle-wrap { display: flex; gap: 2px; margin-bottom: 15px; }
-.toggle-btn { font-size: 10px; font-weight: 800; padding: 10px 15px; border: none; background: transparent; opacity: 0.4; cursor: pointer; }
-.toggle-btn.active { opacity: 1; background: var(--glass-inner); border-radius: 4px; }
+.toggle-wrap { display: flex; gap: 4px; margin-bottom: 20px; }
+.toggle-btn { font-size: 11px; font-weight: 900; padding: 12px 20px; border: none; background: transparent; opacity: 0.3; cursor: pointer; text-transform: uppercase; }
+.toggle-btn.active { opacity: 1; background: var(--glass-inner); }
 
 .search { 
-  width: 100%; padding: 12px 18px; background: rgba(255,255,255,0.03); 
-  border: 1px solid var(--glass-brd); border-radius: 8px; color: var(--ink);
-  outline: none; font-size: 14px;
+  width: 100%; padding: 15px 20px; background: rgba(255,255,255,0.02); 
+  border: 1px solid rgba(255,255,255,0.1); color: var(--ink);
+  outline: none; font-size: 16px; font-weight: 800;
 }
 
-/* ── The Unified Card ── */
+/* ── The Material Card ── */
 .card {
   background: var(--glass);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border: 1px solid var(--glass-brd);
-  border-radius: 12px;
-  padding: 10px;
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 3px solid transparent; /* Base for border-image */
+  padding: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
   display: flex; flex-direction: column; gap: 4px;
   box-shadow: var(--glass-shd);
-}
-.card:hover { background: rgba(255,255,255,0.08); transform: translateY(-4px); }
-.card.selected { 
-  border: 2px solid var(--honey); 
-  box-shadow: 0 0 40px rgba(232, 176, 4, 0.15), var(--glass-shd);
+  position: relative;
 }
 
-/* ── The Atomic Tile (Inside Card) ── */
+/* Material Gradient Borders via Pseudo-element for better control */
+.card::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  padding: 3px;
+  background: var(--ink); /* Default fallback */
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.card.mat-stone::after { background: var(--mat-stone); }
+.card.mat-wood::after { background: var(--mat-wood); }
+.card.mat-bamboo::after { background: var(--mat-bamboo); }
+.card.mat-honey::after { background: var(--mat-honey); }
+.card.mat-ash::after { background: var(--mat-ash); }
+
+.card:hover { transform: translateY(-5px); }
+.card.selected::after { background: var(--honey); }
+.card.selected { box-shadow: 0 0 50px rgba(232, 176, 4, 0.2), var(--glass-shd); }
+
+/* ── The Atomic Tile (Inner data points) ── */
 .tile {
   background: var(--glass-inner);
   border-top: 1px solid var(--bevel-light);
   border-left: 1px solid var(--bevel-light);
   border-right: 1px solid var(--bevel-dark);
   border-bottom: 1px solid var(--bevel-dark);
-  border-radius: 6px;
   padding: 10px;
   display: flex; align-items: center; justify-content: center;
-  color: var(--ink); font-size: 12px; font-weight: 700;
+  color: var(--ink); font-size: 12px; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+
+/* ── Task Name (Direct on Glass) ── */
+.tile-name {
+  grid-column: 1 / span 2;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-size: 20px;
+  font-weight: 900;
+  padding: 30px 10px;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  line-height: 1.2;
 }
 
 /* Internal Card Layout */
-.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
-.tile-domain { grid-column: 1; font-size: 14px; font-weight: 900; letter-spacing: 1px; background: rgba(255,255,255,0.1); }
-.tile-date { grid-column: 2; font-size: 10px; opacity: 0.8; }
-.tile-name { grid-column: 1 / span 2; font-size: 16px; padding: 20px 10px; text-align: center; }
+.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; position: relative; z-index: 2; }
+.tile-domain { grid-column: 1; background: rgba(255,255,255,0.08); }
+.tile-date { grid-column: 2; opacity: 0.8; font-size: 10px; }
 .tile-urgency { grid-column: 1; }
-.tile-actions { grid-column: 2; display: flex; gap: 4px; padding: 4px; }
+.tile-actions { grid-column: 2; display: flex; gap: 4px; padding: 2px; }
 
 /* ── Worktree Area (LHS) ── */
 .tree-container { 
-  flex: 1; overflow: auto; padding: 60px; 
-  display: flex; flex-direction: column; align-items: center; gap: 60px;
+  flex: 1; overflow: auto; padding: 80px; 
+  display: flex; flex-direction: column; align-items: center; gap: 80px;
 }
-.tree-section { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 100%; }
-.tree-label { font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--faded); letter-spacing: 3px; margin-bottom: 15px; width: 100%; text-align: center; }
+.tree-section { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; width: 100%; }
+.tree-label { font-size: 11px; font-weight: 900; text-transform: uppercase; color: var(--faded); letter-spacing: 5px; margin-bottom: 25px; width: 100%; text-align: center; }
 
 /* ── Task List (RHS) ── */
-.cards { flex: 1; overflow-y: auto; padding: 20px 30px 200px; }
-.cards-inner { display: flex; flex-direction: column; gap: 20px; max-width: 500px; margin: 0 auto; }
+.cards { flex: 1; overflow-y: auto; padding: 20px 40px 240px; }
+.cards-inner { display: flex; flex-direction: column; gap: 30px; max-width: 600px; margin: 0 auto; }
 
 /* ── Buttons & FAB ── */
 .cbtn {
   flex: 1; height: 100%; display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.05); border: 1px solid var(--glass-brd);
-  border-radius: 4px; color: var(--ink); font-size: 16px; cursor: pointer;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  color: var(--ink); font-size: 18px; cursor: pointer;
 }
-.cbtn:active { box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); transform: translateY(1px); }
+.cbtn:active { background: var(--honey); color: #000; box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); transform: translateY(1px); }
 
 .fab {
-  position: fixed; bottom: 40px; right: 40px;
-  width: 72px; height: 72px; border-radius: 24px;
+  position: fixed; bottom: 60px; right: 60px;
+  width: 90px; height: 90px;
   background: var(--honey); color: #000; border: none; 
-  font-size: 32px; font-weight: 900; cursor: pointer;
-  box-shadow: 0 15px 45px rgba(0,0,0,0.6); z-index: 1000;
+  font-size: 44px; font-weight: 900; cursor: pointer;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8); z-index: 1000;
 }
 
-/* Domain Tint Gradients */
-.dm-CTI .tile { background: linear-gradient(145deg, rgba(74, 111, 165, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
-.dm-ECM .tile { background: linear-gradient(145deg, rgba(155, 106, 155, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
-.dm-CSD .tile { background: linear-gradient(145deg, rgba(94, 155, 142, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
-.dm-GRA .tile { background: linear-gradient(145deg, rgba(194, 155, 74, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
-.dm-PER .tile { background: linear-gradient(145deg, rgba(106, 106, 155, 0.2) 0%, rgba(0,0,0,0.4) 100%); }
-
 .card.done { opacity: 0.2; filter: grayscale(1); }
-.u-pill { color: var(--honey); font-size: 10px; margin: 0 4px; }
+.u-pill { color: var(--honey); font-size: 11px; margin: 0 6px; }
+.u-dots { opacity: 0.4; letter-spacing: 4px; }
+.inline-edit { background: transparent; border: none; color: var(--honey); font-family: inherit; font-size: inherit; font-weight: 900; width: 100%; text-align: center; outline: none; }
+
+/* Modal */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(50px); z-index: 2000; display: none; align-items: center; justify-content: center; }
+.modal-bg.show { display: flex; }
+.modal { 
+  background: linear-gradient(145deg, #1a1c1e 0%, #0a0b0d 100%);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 60px; width: 95%; max-width: 650px;
+  box-shadow: 0 50px 150px rgba(0,0,0,1);
+}
+.modal h2 { font-size: 36px; font-weight: 900; text-transform: lowercase; letter-spacing: -2px; margin-bottom: 50px; }
 
 @media (max-width: 1024px) {
   .app { grid-template-columns: 1fr; }
-  .panel-tree { display: none; } /* Hide tree on mobile/small tablets for now */
+  .panel-tree { display: none; }
 }

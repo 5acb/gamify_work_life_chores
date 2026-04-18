@@ -1,6 +1,7 @@
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
-var DM={CTI:{c:'#4a6fa5',l:'CTI'},ECM:{c:'#9b6a9b',l:'ECM'},CSD:{c:'#5e9b8e',l:'CSD'},GRA:{c:'#c29b4a',l:'GRA'},Personal:{c:'#6a6a9b',l:'PER'}};
+var DM={CTI:{c:'#4a6fa5',l:'CTI',m:'mat-stone'},ECM:{c:'#9b6a9b',l:'ECM',m:'mat-wood'},CSD:{c:'#5e9b8e',l:'CSD',m:'mat-bamboo'},GRA:{c:'#c29b4a',l:'GRA',m:'mat-honey'},Personal:{c:'#6a6a9b',l:'PER',m:'mat-ash'}};
+var SPEED_L=['snap','sesh','grind'],STAKES_L=['low','high','crit'];
 var DOMAINS=Object.keys(DM);
 
 var state={slug:null,user:null,tasks:[],taskById:{},view:'current',searchQuery:'',selectedId:null};
@@ -28,7 +29,9 @@ function matchSearch(t){
 
 function bufferDots(dp,dd){
   var n=Math.max(0,Math.min(5,dd-dp));
-  return '·'.repeat(n);
+  var h='';
+  for(var i=0;i<n;i++) h+='·';
+  return h;
 }
 
 // ── Routing ───────────────────────────────────────────────────
@@ -43,7 +46,7 @@ function showPicker(){
   api('GET','/api/users').then(function(d){
     var pk=document.querySelector('.picker');
     d.users.forEach(function(u){
-      var c=document.createElement('div');c.style.cssText='display:inline-block;padding:40px;background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);margin:20px;border-radius:32px;cursor:pointer;border:1px solid rgba(255,255,255,0.1)';
+      var c=document.createElement('div');c.className='tile';c.style.cssText='display:inline-block;padding:40px;margin:20px;cursor:pointer;';
       c.innerHTML='<h2>'+esc(u.name)+'</h2><p>@'+esc(u.slug)+'</p>';
       c.onclick=function(){navigate(u.slug)};pk.appendChild(c);
     });
@@ -106,18 +109,22 @@ function renderApp(){
 function makeCardEl(t, isList){
   var blocked=isBlocked(t), done=!!t.done;
   var dp=daysFrom(t.plan_date), dd=daysFrom(t.due_date);
-  var dm=DM[t.domain]||{c:'#71717a',l:t.domain};
+  var dm=DM[t.domain]||{c:'#71717a',l:t.domain,m:''};
 
   var el=document.createElement('div');
-  el.className='card dm-'+t.domain+(done?' done':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
+  el.className='card '+dm.m+(done?' done':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
   el.dataset.id=t.id;
 
   var h='<div class="card-grid">';
+  // Row 1: Domain | Date
   h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
   var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'---';
   h+='<div class="tile tile-date">'+esc(dLabel)+'</div>';
-  h+='<div class="tile tile-name">'+esc(t.name)+'</div>';
   
+  // Row 2: Name (Direct Text - No tile class)
+  h+='<div class="tile-name">'+esc(t.name)+'</div>';
+  
+  // Row 3: Urgency | Actions
   h+='<div class="tile tile-urgency">';
   if(dp<999||dd<999){
     if(dp<999) h+='<span class="u-pill">T−'+dp+'</span>';
@@ -127,14 +134,18 @@ function makeCardEl(t, isList){
   h+='</div>';
 
   h+='<div class="tile tile-actions">'
-    +'<button class="cbtn" data-edit="'+t.id+'">✎</button>'
-    +'<button class="cbtn" data-archive="'+t.id+'">⌧</button>'
+    +'<button class="cbtn" data-edit="'+t.id+'" title="Edit">✎</button>'
+    +'<button class="cbtn" data-archive="'+t.id+'" title="Archive">⌧</button>'
   +'</div>';
+
+  if(blocked && !t.isSub) h+='<div class="tile tile-blocked" style="grid-column:1/span 2; grid-row:4">needs: '+esc(getBlockerName(t))+'</div>';
+  if(t.isSub) h+='<div class="tile tile-blocked" style="grid-column:1/span 2; grid-row:4; color:rgba(255,255,255,0.4); font-size:10px">↳ sub of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
+
   h+='</div>'; // grid
 
   el.innerHTML=h;
 
-  // Domain Cycling
+  // Domain Cycling Logic
   el.querySelector('.tile-domain').onclick=function(e){
     e.stopPropagation();
     var idx=DOMAINS.indexOf(t.domain);
@@ -142,7 +153,7 @@ function makeCardEl(t, isList){
     api('PATCH','/api/tasks/'+t.id,{domain:next}).then(loadBoard);
   };
 
-  // Date Logic
+  // Inline Date Logic
   el.querySelector('.tile-date').onclick=function(e){
     e.stopPropagation();
     var tile=this;
