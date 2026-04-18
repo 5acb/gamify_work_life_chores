@@ -3,6 +3,31 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
+// ── Gemini Direct Invoke ─────────────────────────────────────
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_MODEL   = 'gemini-2.5-pro';
+
+async function geminiInvoke(prompt, systemPrompt = '', history = [], timeout = 90000) {
+  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not set');
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  const contents = [];
+  for (const h of history) contents.push({ role: h.role, parts: [{ text: h.text }] });
+  contents.push({ role: 'user', parts: [{ text: prompt }] });
+  const body = { contents };
+  if (systemPrompt) body.system_instruction = { parts: [{ text: systemPrompt }] };
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: controller.signal }
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || JSON.stringify(data));
+    return data.candidates?.[0]?.content?.parts?.map(p => p.text).join('') || '';
+  } finally { clearTimeout(timer); }
+}
+
+
 const fs = require('fs');
 const argon2 = require('argon2');
 const { 
