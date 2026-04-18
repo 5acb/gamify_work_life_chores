@@ -234,23 +234,28 @@ function bindActionEvents(){
 
 function taskForm(t){
   var sel=DOMAINS.map(function(d){return'<option value="'+d+'"'+(t&&d===t.domain?' selected':'')+'>'+d+'</option>'}).join('');
-  return '<div class="field"><label>Name</label><input id="f-name" value="'+esc(t?t.name:'')+'"></div>'
-    +'<div class="field"><label>Domain</label><select id="f-domain">'+sel+'</select></div>'
-    +'<div style="display:flex;gap:15px">'
-      +'<div class="field" style="flex:1"><label>Start</label><input id="f-pd" type="date" value="'+esc(t&&t.plan_date?t.plan_date:'')+'"></div>'
-      +'<div class="field" style="flex:1"><label>Due</label><input id="f-dd" type="date" value="'+esc(t&&t.due_date?t.due_date:'')+'"></div>'
+  return '<div class="field-tile"><label>Task Name</label><input id="f-name" value="'+esc(t?t.name:'')+'" placeholder="Enter task name..."></div>'
+    +'<div class="field-tile"><label>Domain</label><select id="f-domain">'+sel+'</select></div>'
+    +'<div style="display:flex;gap:12px">'
+      +'<div class="field-tile" style="flex:1"><label>Start Date</label><input id="f-pd" type="date" value="'+esc(t&&t.plan_date?t.plan_date:'')+'"></div>'
+      +'<div class="field-tile" style="flex:1"><label>Due Date</label><input id="f-dd" type="date" value="'+esc(t&&t.due_date?t.due_date:'')+'"></div>'
     +'</div>'
-    +'<div class="field"><label>Status</label><select id="f-done"><option value="0">Active</option><option value="1" '+(t&&t.done?'selected':'')+'>Done</option></select></div>';
+    +'<div class="field-tile"><label>Execution Status</label><select id="f-done"><option value="0">Active Focus</option><option value="1" '+(t&&t.done?'selected':'')+'>Completed</option></select></div>';
 }
 
 function openEdit(id){
   if(String(id).startsWith('s')){ alert('Subtask editing simplified: promote to task to edit fully.'); return; }
   var t=state.taskById[id];if(!t)return;
   var m=document.getElementById('modal');
-  m.innerHTML='<h2 style="margin-bottom:30px">Edit Stone</h2>'+taskForm(t)
-    +'<div class="modal-actions" style="display:flex;gap:15px;margin-top:30px"><button id="mc" class="hdr-btn" style="flex:1">Cancel</button><button class="ai-btn" id="ms" style="flex:1;background:var(--honey);color:#000">Save</button></div>';
+  m.innerHTML='<h2>Edit Task</h2>'+taskForm(t)
+    +'<div class="modal-actions">'
+      +'<button id="mdel" class="btn-cancel" style="color:#ff8888">Delete</button>'
+      +'<button id="mc" class="btn-cancel">Back</button>'
+      +'<button class="btn-save" id="ms">Save Changes</button>'
+    +'</div>';
   showModal();
   document.getElementById('mc').onclick=closeModal;
+  document.getElementById('mdel').onclick=function(){ if(confirm('Shatter this stone?')) api('DELETE','/api/tasks/'+id).then(()=>{closeModal();loadBoard()})};
   document.getElementById('ms').onclick=function(){
     var d={
       name:document.getElementById('f-name').value,
@@ -265,8 +270,11 @@ function openEdit(id){
 
 function openAddTask(){
   var m=document.getElementById('modal');
-  m.innerHTML='<h2 style="margin-bottom:30px">New Stone</h2>'+taskForm(null)
-    +'<div class="modal-actions" style="display:flex;gap:15px;margin-top:30px"><button id="mc" class="hdr-btn" style="flex:1">Cancel</button><button class="ai-btn" id="ms" style="flex:1;background:var(--honey);color:#000">Create</button></div>';
+  m.innerHTML='<h2>New Task</h2>'+taskForm(null)
+    +'<div class="modal-actions">'
+      +'<button id="mc" class="btn-cancel">Cancel</button>'
+      +'<button class="btn-save" id="ms">Create Stone</button>'
+    +'</div>';
   showModal();
   document.getElementById('mc').onclick=closeModal;
   document.getElementById('ms').onclick=function(){
