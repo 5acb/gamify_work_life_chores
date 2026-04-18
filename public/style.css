@@ -8,12 +8,16 @@
   --ink: #f4f0ea;           /* Washi contrast */
   --faded: rgba(244, 240, 234, 0.25);
   
-  /* Material Gradient Borders */
-  --mat-stone: linear-gradient(135deg, #8e918f 0%, #2c3e50 100%);  /* River Pebbles */
+  /* Oceanic Material Gradient Borders (Photo-sampled) */
+  --mat-teal: linear-gradient(135deg, #5E9C95 0%, #2C5651 100%);   /* Asagi (Teal) */
+  --mat-cobalt: linear-gradient(135deg, #3b6978 0%, #204051 100%); /* Ruri (Cobalt) */
+  --mat-indigo: linear-gradient(135deg, #1f3b4d 0%, #0d1b2a 100%); /* Aizome (Indigo) */
   --mat-wood: linear-gradient(135deg, #3d2b1f 0%, #0d0d0d 100%);   /* Dark Riverbed */
-  --mat-bamboo: linear-gradient(135deg, #7fb069 0%, #2d5a27 100%); /* Zion Green */
-  --mat-amber: linear-gradient(135deg, #d67d52 0%, #78350f 100%);  /* Burned Amber (GRA) */
-  --mat-canyon: linear-gradient(135deg, #c15c3d 0%, #4a2c2a 100%);  /* Zion Rock (PER) */
+  --mat-amber: linear-gradient(135deg, #d67d52 0%, #78350f 100%);  /* Burned Amber */
+
+  /* Functional Gradients (Repurposed from Canyon/Bamboo) */
+  --mat-canyon: linear-gradient(135deg, #c15c3d 0%, #4a2c2a 100%);  /* Urgent Red */
+  --mat-bamboo: linear-gradient(135deg, #7fb069 0%, #2d5a27 100%);  /* Safe Green */
 
   /* Glass foundation */
   --glass: rgba(255, 255, 255, 0.03);
@@ -105,17 +109,17 @@ body {
   position: relative; height: 220px; border-radius: var(--r-md); width: 100%; max-width: var(--card-w); overflow: hidden;
 }
 .card::after {
-  content: ""; position: absolute; inset: -1px; padding: 4px; /* Thick 4px border */
+  content: ""; position: absolute; inset: -1px; padding: 4px; 
   background: var(--ink); 
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; z-index: 1; border-radius: var(--r-md);
 }
 
-.card.mat-stone::after { background: var(--mat-stone); }
+.card.mat-teal::after { background: var(--mat-teal); }
+.card.mat-cobalt::after { background: var(--mat-cobalt); }
+.card.mat-indigo::after { background: var(--mat-indigo); }
 .card.mat-wood::after { background: var(--mat-wood); }
-.card.mat-bamboo::after { background: var(--mat-bamboo); }
 .card.mat-amber::after { background: var(--mat-amber); }
-.card.mat-canyon::after { background: var(--mat-canyon); }
 
 /* Selection & Hover Focus */
 .card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.06); border-color: rgba(232,176,4,0.3); box-shadow: 0 0 20px rgba(232, 176, 4, 0.1), var(--glass-shd); }
@@ -129,15 +133,15 @@ body {
   background-clip: text; -webkit-background-clip: text;
   -webkit-text-fill-color: transparent; background-color: var(--ink);
 }
-.dm-CTI .tile-name { background-image: var(--mat-stone); }
-.dm-ECM .tile-name { background-image: var(--mat-wood); }
-.dm-CSD .tile-name { background-image: var(--mat-bamboo); }
-.dm-GRA .tile-name { background-image: var(--mat-amber); }
-.dm-PER .tile-name { background-image: var(--mat-canyon); }
+.card.mat-teal .tile-name { background-image: var(--mat-teal); }
+.card.mat-cobalt .tile-name { background-image: var(--mat-cobalt); }
+.card.mat-indigo .tile-name { background-image: var(--mat-indigo); }
+.card.mat-wood .tile-name { background-image: var(--mat-wood); }
+.card.mat-amber .tile-name { background-image: var(--mat-amber); }
 
 /* Dissolved Actions (ABSOLUTE TOP LEFT) */
 .tile-actions {
-  position: absolute; top: 5px; left: 5px; display: flex; gap: 4px; z-index: 10;
+  position: absolute; top: 10px; left: 10px; display: flex; gap: 4px; z-index: 10;
 }
 .cbtn {
   height: 24px; width: 24px; display: flex; align-items: center; justify-content: center;
@@ -167,15 +171,15 @@ body {
 .tile-domain:hover { border-color: var(--honey); color: var(--honey); filter: drop-shadow(0 0 10px var(--honey)); }
 
 /* Functional States (Repurposed Gradients) */
-.state-urgent { filter: drop-shadow(0 0 8px rgba(193, 92, 61, 0.4)); color: #ff8888 !important; }
-.state-safe { filter: drop-shadow(0 0 8px rgba(127, 176, 105, 0.4)); color: #7fb069 !important; }
+.state-urgent .tile-date, .state-urgent .tile-urgency, .state-urgent .tile-domain { background: var(--mat-canyon) !important; color: #fff !important; }
+.state-safe .tile-date, .state-safe .tile-urgency, .state-safe .tile-domain { background: var(--mat-bamboo) !important; color: #fff !important; }
 
-/* Subtile Gradients */
-.dm-CTI .tile { background: linear-gradient(135deg, rgba(142, 145, 143, 0.3) 0%, rgba(44, 62, 80, 0.6) 100%); }
-.dm-ECM .tile { background: linear-gradient(135deg, rgba(61, 43, 31, 0.3) 0%, rgba(13, 13, 13, 0.6) 100%); }
-.dm-CSD .tile { background: linear-gradient(135deg, rgba(127, 176, 105, 0.3) 0%, rgba(45, 90, 39, 0.6) 100%); }
-.dm-GRA .tile { background: linear-gradient(135deg, rgba(214, 125, 82, 0.3) 0%, rgba(120, 53, 15, 0.6) 100%); }
-.dm-PER .tile { background: linear-gradient(135deg, rgba(193, 92, 61, 0.3) 0%, rgba(74, 44, 42, 0.6) 100%); }
+/* Subtile Gradients (Default) */
+.mat-teal .tile { background: linear-gradient(135deg, rgba(94, 156, 149, 0.3) 0%, rgba(44, 86, 81, 0.6) 100%); }
+.mat-cobalt .tile { background: linear-gradient(135deg, rgba(59, 105, 120, 0.3) 0%, rgba(32, 64, 81, 0.6) 100%); }
+.mat-indigo .tile { background: linear-gradient(135deg, rgba(31, 59, 77, 0.3) 0%, rgba(13, 27, 42, 0.6) 100%); }
+.mat-wood .tile { background: linear-gradient(135deg, rgba(61, 43, 31, 0.3) 0%, rgba(13, 13, 13, 0.6) 100%); }
+.mat-amber .tile { background: linear-gradient(135deg, rgba(214, 125, 82, 0.3) 0%, rgba(120, 53, 15, 0.6) 100%); }
 
 /* ── Layout ── */
 .tree-container { flex: 1; overflow: auto; padding: 80px; display: flex; flex-direction: column; align-items: center; gap: 100px; }
