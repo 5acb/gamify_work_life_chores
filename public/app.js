@@ -94,7 +94,10 @@ function renderApp(){
     '<div class="panel-tree" id="treePanel">'
       +'<div class="tree-container" id="treeContainer"></div>'
       +'<div class="user-identity">'
-        +'<div class="tile identity-tile" id="userName"></div>'
+        +'<div style="display:flex; align-items:center; gap:20px">'
+          +'<div class="tile identity-tile" id="userName"></div>'
+          +'<div id="errorNotify" class="error-notification"></div>'
+        +'</div>'
       +'</div>'
     +'</div>'
     +'<div class="panel-list">'
@@ -109,7 +112,6 @@ function renderApp(){
             +'</div>'
             +'<button class="tile hdr-btn" id="addBtn" title="New Stone">+</button>'
             +'<button class="tile ai-btn" id="aiBtn">✦ Oracle</button>'
-            +'<button class="tile hdr-btn" id="passBtn" title="Update Key">🔑</button>'
             +'<button class="tile hdr-btn" id="regBtn" title="Register Passkey">🛡</button>'
             +'<button class="tile hdr-btn" id="logoutBtn" title="Sign Out">⏻</button>'
           +'</div>'
@@ -128,7 +130,6 @@ function renderApp(){
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
   document.getElementById('addBtn').addEventListener('click',openAddTask);
   document.getElementById('aiBtn').addEventListener('click',openAI);
-  document.getElementById('passBtn').addEventListener('click',updatePassword);
   document.getElementById('regBtn').addEventListener('click',registerPasskey);
   document.getElementById('logoutBtn').addEventListener('click',openLogoutConfirm);
 
@@ -189,19 +190,13 @@ function updateStatusDots(){
   container.innerHTML = h;
 }
 
-async function updatePassword(){
-  const newPass = prompt('Enter new sanctuary key:');
-  if(!newPass) return;
-  try {
-    const res = await api('PATCH', '/api/me/password', { password: newPass });
-    if(res.ok) alert('Sanctuary key updated.');
-  } catch (err) {
-    alert('Update failed: ' + err.message);
-  }
+function notifyError(msg){
+  var el=document.getElementById('errorNotify'); if(!el) return;
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(function(){el.classList.remove('show')}, 5000);
 }
 
 async function registerPasskey(){
-  // Note: SimpleWebAuthnBrowser is globally available from the CDN in index.html
   const { startRegistration } = SimpleWebAuthnBrowser;
   try {
     const optsResp = await fetch('/api/auth/register-options', { 
@@ -219,11 +214,11 @@ async function registerPasskey(){
     });
 
     const verif = await verifyResp.json();
-    if (verif.ok) alert('Passkey registered. You can now use it to unlock your sanctuary.');
-    else alert('Verification failed.');
+    if (verif.ok) alert('Passkey registered.');
+    else throw new Error('Verification failed.');
   } catch (err) {
     console.error(err);
-    alert(err.message);
+    notifyError(err.message);
   }
 }
 

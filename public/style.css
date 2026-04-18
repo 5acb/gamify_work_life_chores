@@ -65,6 +65,11 @@ body {
 /* ── Identity Block ── */
 .user-identity { position: absolute; bottom: 40px; left: 40px; z-index: 100; }
 .identity-tile { background: var(--glass-inner); border: 1px solid rgba(255,255,255,0.1); padding: 12px 24px; font-size: 14px; font-weight: 900; letter-spacing: 4px; }
+.error-notification { 
+  color: #ff8888; font-size: 11px; font-weight: 800; text-transform: uppercase; 
+  letter-spacing: 2px; opacity: 0; transition: opacity 0.5s; pointer-events: none;
+}
+.error-notification.show { opacity: 1; }
 
 /* ── Header ── */
 .hdr { padding: 40px 60px; flex-shrink: 0; }

@@ -311,7 +311,7 @@ app.post('/api/auth/register-options-public', async (req, res) => {
   const options = await generateRegistrationOptions({
     rpName: RP_NAME,
     rpID: RP_ID,
-    userID: String(user.id),
+    userID: Buffer.from(String(user.id)),
     userName: user.slug,
     attestationType: 'none',
     authenticatorSelection: {
@@ -367,7 +367,7 @@ app.post('/api/auth/register-options', ensureAuth, async (req, res) => {
   const options = await generateRegistrationOptions({
     rpName: RP_NAME,
     rpID: RP_ID,
-    userID: String(user.id),
+    userID: Buffer.from(String(user.id)),
     userName: user.slug,
     attestationType: 'none',
     excludeCredentials: userCredentials.map(cred => ({
