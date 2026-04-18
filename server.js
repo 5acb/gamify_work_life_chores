@@ -373,69 +373,6 @@ app.post('/api/auth/register-verify-public', async (req, res) => {
   }
 });
 
-app.post('/api/auth/register-options', ensureAuth, async (req, res) => {
-  const user = req.user;
-  const userCredentials = db.prepare('SELECT id FROM credentials WHERE user_id = ?').all(user.id);
-
-  const options = await generateRegistrationOptions({
-    rpName: RP_NAME,
-    rpID: RP_ID,
-    userID: Uint8Array.from(String(user.id), c => c.charCodeAt(0)),
-    userName: user.slug,
-    attestationType: 'none',
-    excludeCredentials: userCredentials.map(cred => ({
-      id: cred.id,
-      type: 'public-key',
-    })),
-    authenticatorSelection: {
-      residentKey: 'required',
-      userVerification: 'preferred',
-    },
-  });
-
-  setChallenge(user.id, options.challenge);
-  res.json(options);
-});
-
-app.post('/api/auth/register-verify', ensureAuth, async (req, res) => {
-  const user = req.user;
-  const expectedChallenge = getChallenge(user.id);
-  if (!expectedChallenge) return res.status(400).json({ error: 'challenge expired' });
-
-  try {
-    const verification = await verifyRegistrationResponse({
-      response: req.body,
-      expectedChallenge,
-      expectedOrigin: ORIGIN,
-      expectedRPID: RP_ID,
-    });
-
-    if (verification.verified && verification.registrationInfo) {
-      const info = verification.registrationInfo;
-      const finalID = info.credentialID || (info.credential && info.credential.id);
-      const finalPubKey = info.credentialPublicKey || (info.credential && info.credential.publicKey);
-      const finalCounter = info.counter !== undefined ? info.counter : (info.credential && info.credential.counter);
-
-      if (!finalPubKey || !finalID) {
-        console.error('Standard Registration Handshake Failed - Missing Data. Info:', JSON.stringify(info));
-        throw new Error('Incomplete registration info');
-      }
-
-      const idStr = (finalID instanceof Uint8Array) ? isoBase64URL.fromUint8Array(finalID) : finalID;
-      const pubKeyBuffer = Buffer.from(finalPubKey);
-
-      db.prepare('INSERT INTO credentials (id, user_id, public_key, counter, transports) VALUES (?, ?, ?, ?, ?)')
-        .run(idStr, user.id, pubKeyBuffer, finalCounter || 0, JSON.stringify(req.body.response.transports || []));
-      res.json({ ok: true });
-    } else {
-      res.status(400).json({ error: 'verification failed' });
-    }
-  } catch (err) {
-    console.error('Standard Registration Verify Error:', err);
-    res.status(400).json({ error: err.message });
-  }
-});
-
 app.post('/api/auth/login-options', async (req, res) => {
   const { slug } = req.body;
   if (!slug) return res.status(400).json({ error: 'slug required' });

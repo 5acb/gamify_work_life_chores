@@ -112,7 +112,6 @@ function renderApp(){
             +'</div>'
             +'<button class="tile hdr-btn" id="addBtn" title="New Stone">+</button>'
             +'<button class="tile ai-btn" id="aiBtn">✦ Oracle</button>'
-            +'<button class="tile hdr-btn" id="regBtn" title="Register Passkey">🛡</button>'
             +'<button class="tile hdr-btn" id="logoutBtn" title="Sign Out">⏻</button>'
           +'</div>'
         +'</div>'
@@ -130,7 +129,6 @@ function renderApp(){
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
   document.getElementById('addBtn').addEventListener('click',openAddTask);
   document.getElementById('aiBtn').addEventListener('click',openAI);
-  document.getElementById('regBtn').addEventListener('click',registerPasskey);
   document.getElementById('logoutBtn').addEventListener('click',openLogoutConfirm);
 
   document.getElementById('viewToggle').onclick = function(){
@@ -194,32 +192,6 @@ function notifyError(msg){
   var el=document.getElementById('errorNotify'); if(!el) return;
   el.textContent=msg; el.classList.add('show');
   setTimeout(function(){el.classList.remove('show')}, 5000);
-}
-
-async function registerPasskey(){
-  const { startRegistration } = SimpleWebAuthnBrowser;
-  try {
-    const optsResp = await fetch('/api/auth/register-options', { 
-        method: 'POST',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' } 
-    });
-    const opts = await optsResp.json();
-    if (opts.error) throw new Error(opts.error);
-
-    const attResp = await startRegistration(opts);
-    const verifyResp = await fetch('/api/auth/register-verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-      body: JSON.stringify(attResp)
-    });
-
-    const verif = await verifyResp.json();
-    if (verif.ok) alert('Passkey registered.');
-    else throw new Error('Verification failed.');
-  } catch (err) {
-    console.error(err);
-    notifyError(err.message);
-  }
 }
 
 function openLogoutConfirm(){
