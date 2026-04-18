@@ -113,6 +113,13 @@ body {
 .card.mat-honey::after { background: var(--mat-honey); }
 .card.mat-ash::after { background: var(--mat-ash); }
 
+/* Glow Colors per Material */
+.mat-stone { --glow-c: #bdc3c7; }
+.mat-wood { --glow-c: #5c4033; }
+.mat-bamboo { --glow-c: #a8e063; }
+.mat-honey { --glow-c: #f6d365; }
+.mat-ash { --glow-c: #e6d0ce; }
+
 .card:hover { transform: translateY(-5px); }
 .card.selected::after { background: var(--honey); }
 .card.selected { box-shadow: 0 0 50px rgba(232, 176, 4, 0.2), var(--glass-shd); }
@@ -134,13 +141,16 @@ body {
   border: none !important;
   box-shadow: none !important;
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 500; /* REDUCED WEIGHT */
+  opacity: 0.85; /* SLIGHTLY TRANSLUCENT */
   padding: 20px 10px;
   text-align: center;
   text-transform: none;
-  letter-spacing: -0.5px;
+  letter-spacing: 0.5px;
   color: var(--ink);
-  line-height: 1.2;
+  line-height: 1.3;
+  /* SUBTLE MATERIAL GLOW */
+  text-shadow: 0 0 10px var(--glow-c);
 }
 
 /* Internal Card Layout */
