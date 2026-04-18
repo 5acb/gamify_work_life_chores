@@ -133,6 +133,7 @@ function renderApp(){
             +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off" style="width:100%;max-width:400px">'
           +'</div>'
           +'<div id="statusDots" style="width:100%"></div>'
+          +'<button class="oracle-toggle-btn" id="oracleToggle">✦ Execute Oracle</button>'
         +'</div>'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
@@ -158,6 +159,20 @@ function renderApp(){
   };
 
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
+  var oracleToggle = document.getElementById('oracleToggle');
+  if(oracleToggle) oracleToggle.onclick = function(){
+    var panel = document.getElementById('oraclePanel');
+    if(!panel) return;
+    var isOpen = panel.classList.toggle('oracle-open');
+    this.textContent = isOpen ? '✕ Close Oracle' : '✦ Execute Oracle';
+    if(isOpen && panel.querySelector('#oracleFeed').children.length === 0){
+      // First open — greet
+      var greet = document.createElement('div');
+      greet.className = 'oracle-msg from-oracle';
+      greet.textContent = 'Execute Oracle ready. What are you working on?';
+      panel.querySelector('#oracleFeed').appendChild(greet);
+    }
+  };
   document.getElementById('addBtn').addEventListener('click',openAddTask);
   document.getElementById('aiBtn').addEventListener('click',function(){
     if(state.mode==='plan') openCouncil();
