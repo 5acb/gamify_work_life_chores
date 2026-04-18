@@ -74,31 +74,23 @@ function renderApp(){
         +'<div class="hdr-top">'
           +'<h1 id="hdrName"></h1>'
           +'<div class="hdr-nav">'
+            +'<button class="hdr-btn" id="addBtn" style="font-size:18px; line-height:1; padding:8px 15px">+</button>'
             +'<button class="ai-btn" id="aiBtn">✦ Oracle</button>'
             +'<a class="hdr-btn" href="/logout">sign out</a>'
           +'</div>'
         +'</div>'
-        +'<p style="font-size:12px;opacity:0.6;margin-bottom:10px">'+dateStr+'</p>'
-        +'<div class="toggle-wrap">'
-          +'<button class="toggle-btn'+(state.view==='current'?' active':'')+'" data-view="current">active</button>'
-          +'<button class="toggle-btn'+(state.view==='archived'?' active':'')+'" data-view="archived">archived</button>'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">'
+          +'<p style="font-size:12px;opacity:0.6">'+dateStr+'</p>'
+          +'<input class="search" id="search" placeholder="Search tasks..." autocomplete="off" style="max-width:250px">'
         +'</div>'
-        +'<input class="search" id="search" placeholder="Search tasks..." autocomplete="off">'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
-    +'</div>'
-    +'<button class="fab" id="fab">+</button>';
+    +'</div>';
 
   document.getElementById('hdrName').textContent=state.user?state.user.name:'';
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
-  document.getElementById('fab').addEventListener('click',openAddTask);
+  document.getElementById('addBtn').addEventListener('click',openAddTask);
   document.getElementById('aiBtn').addEventListener('click',openAI);
-
-  document.querySelectorAll('[data-view]').forEach(function(b){b.addEventListener('click',function(){
-    var v=this.dataset.view;if(v===state.view)return;
-    state.view=v;
-    loadBoard();
-  })});
 
   renderCards();
   if(state.selectedId) renderTree(state.selectedId);
