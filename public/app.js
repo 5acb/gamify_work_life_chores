@@ -148,10 +148,10 @@ function makeCardEl(t, isList){
   var h='';
   // Dissolved Action Icons (absolute top left)
   h+='<div class="tile-actions" style="position:absolute; top:5px; left:5px; display:flex; gap:4px; z-index:10">'
-    +'<button class="cbtn act-edit" data-id="'+t.id+'" title="Edit">✎</button>'
     +(archived || state.view === 'archived' 
       ? '<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>' 
       : '<button class="cbtn act-archive" data-id="'+t.id+'" title="Archive / Done">×</button>')
+    +'<button class="cbtn act-edit" data-id="'+t.id+'" title="Edit">✎</button>'
   +'</div>';
 
   h+='<div class="card-grid">';
