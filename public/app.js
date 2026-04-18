@@ -110,6 +110,7 @@ function renderApp(){
   var dateStr=TODAY.toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric'});
   root.innerHTML=
     '<div class="panel-tree" id="treePanel">'
+      +'<button class="mobile-back-btn" id="mobileBackBtn">← Back</button>'
       +'<div class="tree-container" id="treeContainer"></div>'
       +'<div class="user-identity">'
         +'<div style="display:flex; align-items:center; gap:20px">'
@@ -156,6 +157,12 @@ function renderApp(){
   }
   applyMode();
   document.getElementById('userName').textContent=state.user?state.user.name.toUpperCase():'';
+  var backBtn = document.getElementById('mobileBackBtn');
+  if(backBtn) backBtn.onclick = function(){
+    document.querySelector('.app').classList.remove('mobile-tree-active');
+    state.selectedId = null;
+    document.querySelectorAll('.card').forEach(function(c){ c.classList.remove('selected'); });
+  };
 
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
   document.getElementById('addBtn').addEventListener('click',openAddTask);
@@ -323,6 +330,8 @@ function makeCardEl(t, isList){
       state.selectedId=t.id;
       document.querySelectorAll('.card').forEach(c=>c.classList.toggle('selected',+c.dataset.id===t.id));
       renderTree(t.id);
+      // Mobile: swap to tree panel
+      if(window.innerWidth <= 1024) document.querySelector('.app').classList.add('mobile-tree-active');
     }
   };
 
