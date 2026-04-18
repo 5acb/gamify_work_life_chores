@@ -115,30 +115,30 @@ function makeCardEl(t, index){
   el.dataset.id=t.id;
 
   var h='';
-  // Tactile Domain Switcher (cycles on click)
+  // Row 1: Domain (Left) | Date (Right)
   h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
-  
+  var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'---';
+  h+='<div class="tile tile-date">'+esc(dLabel)+'</div>';
+
+  // Row 2: Name (Full Width)
+  h+='<div class="tile tile-name">'+esc(t.name)+'</div>';
+
+  // Row 3: Urgency (Left) | Actions (Right)
+  h+='<div class="tile tile-urgency">';
   if(dp<999||dd<999){
-    h+='<div class="tile tile-urgency">';
     if(dp<999) h+='<span class="u-pill">T−'+dp+'</span>';
     if(dp<999&&dd<999&&dd>dp) h+='<span class="u-dots">'+bufferDots(dp,dd)+'</span>';
     if(dd<999) h+='<span class="u-pill">T−'+dd+'</span>';
-    h+='</div>';
-  }
+  } else h+='<span style="opacity:0.2">---</span>';
+  h+='</div>';
 
-  h+='<div class="tile tile-name">'+esc(t.name)+'</div>';
-
-  if(t.isSub) h+='<div class="tile tile-blocked" style="color:rgba(255,255,255,0.4);font-size:10px">↳ subtask of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
-  else if(blocked) h+='<div class="tile tile-blocked">needs: '+esc(getBlockerName(t))+'</div>';
-
-  // Tactile Date Switcher
-  var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'---';
-  h+='<div class="tile tile-date">'+esc(dLabel)+'</div>';
-  
   h+='<div class="tile tile-actions">'
-    +'<button class="cbtn" data-edit="'+t.id+'">edit</button>'
-    +'<button class="cbtn" data-archive="'+t.id+'">archive</button>'
+    +'<button class="cbtn" data-edit="'+t.id+'" title="Edit">✎</button>'
+    +'<button class="cbtn" data-archive="'+t.id+'" title="Archive">⌧</button>'
   +'</div>';
+
+  if(blocked && !t.isSub) h+='<div class="tile tile-blocked">needs: '+esc(getBlockerName(t))+'</div>';
+  if(t.isSub) h+='<div class="tile tile-blocked" style="color:rgba(255,255,255,0.4);font-size:10px">↳ sub of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
 
   el.innerHTML=h;
 
