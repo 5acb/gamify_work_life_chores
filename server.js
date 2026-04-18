@@ -112,7 +112,7 @@ const LOGIN_HTML = (error = '') => `<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#090a0f">
-<title>organizer</title>
+<title>organizer | gateway</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
@@ -120,54 +120,83 @@ const LOGIN_HTML = (error = '') => `<!DOCTYPE html>
     font-family:'Lexend Deca',sans-serif;
     background-color:#090a0f;
     color:#f4f0ea;
+    height:100vh;width:100vw;
     display:flex;align-items:center;justify-content:center;
-    min-height:100vh;overflow:hidden;
+    overflow:hidden;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(30,36,44,0.4) 0, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(193,92,61,0.05) 0, transparent 40%),
-      linear-gradient(180deg, #0f1217 0%, #050608 100%);
+      radial-gradient(at 0% 0%, rgba(30,36,44,0.5) 0, transparent 50%),
+      radial-gradient(at 100% 100%, rgba(232,176,4,0.08) 0, transparent 40%),
+      linear-gradient(180deg, #121416 0%, #050608 100%);
   }
-  .glass{
-    background:rgba(255,255,255,0.04);
-    backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);
+  .bg-text{
+    position:absolute;top:10%;left:5%;font-size:25vh;font-weight:900;
+    text-transform:uppercase;color:rgba(255,255,255,0.02);
+    letter-spacing:-15px;line-height:0.8;pointer-events:none;z-index:0;
+  }
+  .monolith{
+    position:relative;z-index:1;
+    background:linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+    backdrop-filter:blur(50px);-webkit-backdrop-filter:blur(50px);
     border:1px solid rgba(255,255,255,0.1);
-    padding:60px;width:100%;max-width:400px;
-    box-shadow:0 40px 100px rgba(0,0,0,0.8);
-    border-radius:24px;display:flex;flex-direction:column;gap:30px;
-    text-align:center;
+    padding:80px;width:90%;max-width:550px;
+    box-shadow:0 60px 120px rgba(0,0,0,0.8);
+    display:flex;flex-direction:column;gap:40px;
+    transform: perspective(1000px) rotateY(-5deg) rotateX(2deg);
   }
-  h1{font-size:32px;font-weight:800;letter-spacing:-1.5px;text-transform:uppercase;color:#e8b004;margin-bottom:10px}
-  .field{display:flex;flex-direction:column;gap:8px;text-align:left}
-  label{font-size:10px;font-weight:800;text-transform:uppercase;color:rgba(244,240,234,0.4);letter-spacing:2px}
+  .monolith::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at 100% 0%, rgba(232,176,4,0.1) 0%, transparent 50%);
+    pointer-events:none;
+  }
+  h1{font-size:40px;font-weight:900;letter-spacing:-2px;text-transform:lowercase;color:#f4f0ea;margin-bottom:0}
+  h1 span{color:#e8b004;opacity:0.8}
+
+  .field{display:flex;flex-direction:column;gap:12px;position:relative}
+  label{font-size:10px;font-weight:900;text-transform:uppercase;color:rgba(244,240,234,0.3);letter-spacing:4px}
   input{
-    width:100%;padding:14px 18px;background:rgba(255,255,255,0.02);
-    border:1px solid rgba(255,255,255,0.1);border-radius:12px;
-    color:#f4f0ea;font-size:16px;outline:none;font-family:inherit;
+    width:100%;padding:20px;background:rgba(0,0,0,0.2);
+    border:1px solid rgba(255,255,255,0.05);
+    color:#f4f0ea;font-size:18px;outline:none;font-family:inherit;
+    box-shadow:inset 4px 4px 10px rgba(0,0,0,0.5);
+    transition:all 0.3s;
   }
-  input:focus{border-color:#e8b004;box-shadow:0 0 15px rgba(232,176,4,0.2)}
+  input:focus{border-color:#e8b004;background:rgba(0,0,0,0.3);box-shadow:inset 4px 4px 10px rgba(0,0,0,0.6), 0 0 20px rgba(232,176,4,0.1)}
+
   button{
-    padding:16px;background:#e8b004;color:#000;border:none;border-radius:12px;
-    font-size:14px;font-weight:900;text-transform:uppercase;letter-spacing:1px;
-    cursor:pointer;transition:all 0.3s;margin-top:10px;
+    padding:22px;background:#e8b004;color:#000;border:none;
+    font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:3px;
+    cursor:pointer;transition:all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    box-shadow:0 15px 30px rgba(232,176,4,0.2);
   }
-  button:hover{filter:brightness(1.1);box-shadow:0 0 25px rgba(232,176,4,0.3);transform:translateY(-2px)}
-  .err{color:#ff8888;font-size:12px;background:rgba(255,85,85,0.08);border:1px solid rgba(255,85,85,0.1);border-radius:8px;padding:12px}
+  button:hover{filter:brightness(1.1);transform:translateY(-4px);box-shadow:0 25px 50px rgba(232,176,4,0.4)}
+  button:active{transform:translateY(2px);box-shadow:inset 0 4px 10px rgba(0,0,0,0.4)}
+
+  .err{color:#ff8888;font-size:13px;font-weight:600;background:rgba(255,85,85,0.05);border-left:4px solid #ff8888;padding:15px;letter-spacing:0.5px}
+
+  /* Fog Animation */
+  @keyframes breathe {
+    0%,100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.1); }
+  }
+  .fog{position:absolute;inset:0;background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 70%);animation:breathe 10s infinite ease-in-out;pointer-events:none}
 </style>
 </head>
 <body>
-<div class="glass">
-  <h1>organizer</h1>
-  <form method="POST" action="/login" style="display:flex;flex-direction:column;gap:20px">
+<div class="bg-text">sanctuary</div>
+<div class="fog"></div>
+<div class="monolith">
+  <h1>organizer<span>.</span></h1>
+  <form method="POST" action="/login" style="display:flex;flex-direction:column;gap:30px">
     ${error ? `<p class="err">${error}</p>` : ''}
     <div class="field">
-      <label>Username</label>
-      <input name="slug" placeholder="anas" autocomplete="username" required autofocus>
+      <label>Identity</label>
+      <input name="slug" placeholder="username" autocomplete="username" required autofocus>
     </div>
     <div class="field">
-      <label>Password</label>
+      <label>Key</label>
       <input name="password" type="password" placeholder="••••••••" autocomplete="current-password" required>
     </div>
-    <button type="submit">Enter Sanctuary</button>
+    <button type="submit">Unlock Gateway</button>
   </form>
 </div>
 </body>
