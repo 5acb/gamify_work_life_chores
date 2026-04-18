@@ -10,7 +10,7 @@
   --glass-inner: rgba(255, 255, 255, 0.06);
   --glass-shd: 0 15px 45px rgba(0, 0, 0, 0.6);
   
-  /* Material Gradient Borders */
+  /* Material Gradient Borders & Text Glows */
   --mat-stone: linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%);
   --mat-wood: linear-gradient(135deg, #5c4033 0%, #2b1d14 100%);
   --mat-bamboo: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%);
@@ -22,7 +22,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; border-radius: 0 !important; }
 
 body {
-  font-family: "Inter", -apple-system, system-ui, sans-serif;
+  /* Rounder, broad geometric sans-serif */
+  font-family: "Lexend", "Quicksand", "Comfortaa", "Inter", sans-serif;
   background-color: var(--obsidian);
   color: var(--ink);
   height: 100vh;
@@ -58,19 +59,19 @@ body {
 /* ── Header ── */
 .hdr { padding: 40px 60px; flex-shrink: 0; }
 .hdr-top { display: flex; align-items: stretch; gap: 10px; margin-bottom: 20px; }
-.hdr h1 { font-size: 28px; font-weight: 900; letter-spacing: -1.5px; text-transform: uppercase; flex: 1; }
+.hdr h1 { font-size: 28px; font-weight: 800; letter-spacing: -1px; text-transform: uppercase; flex: 1; }
 
 .hdr-btn, .ai-btn { 
   background: var(--glass); backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.1); color: var(--ink);
-  font-size: 11px; font-weight: 900; padding: 12px 24px; cursor: pointer; 
+  font-size: 11px; font-weight: 800; padding: 12px 24px; cursor: pointer; 
   text-transform: uppercase; letter-spacing: 2px;
 }
 .hdr-btn:active, .ai-btn:active { box-shadow: inset 2px 2px 8px rgba(0,0,0,0.8); transform: translate(1px, 1px); }
 .ai-btn { color: var(--honey); border-color: var(--honey); }
 
 .toggle-wrap { display: flex; gap: 4px; margin-bottom: 20px; }
-.toggle-btn { font-size: 11px; font-weight: 900; padding: 12px 20px; border: none; background: transparent; opacity: 0.3; cursor: pointer; text-transform: uppercase; }
+.toggle-btn { font-size: 11px; font-weight: 800; padding: 12px 20px; border: none; background: transparent; opacity: 0.3; cursor: pointer; text-transform: uppercase; }
 .toggle-btn.active { opacity: 1; background: var(--glass-inner); }
 
 .search { 
@@ -88,9 +89,10 @@ body {
   padding: 12px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
-  display: flex; flex-direction: column; gap: 4px;
+  display: flex; flex-direction: column;
   box-shadow: var(--glass-shd);
   position: relative;
+  height: 200px; /* Fixed height for symmetry */
 }
 
 .card::after {
@@ -113,52 +115,57 @@ body {
 .card.mat-honey::after { background: var(--mat-honey); }
 .card.mat-ash::after { background: var(--mat-ash); }
 
-/* Glow Colors per Material */
-.mat-stone { --glow-c: #bdc3c7; }
-.mat-wood { --glow-c: #5c4033; }
-.mat-bamboo { --glow-c: #a8e063; }
-.mat-honey { --glow-c: #f6d365; }
-.mat-ash { --glow-c: #e6d0ce; }
-
 .card:hover { transform: translateY(-5px); }
 .card.selected::after { background: var(--honey); }
 .card.selected { box-shadow: 0 0 50px rgba(232, 176, 4, 0.2), var(--glass-shd); }
 
 /* ── The Atomic Tile (Flat Gradient & Tiny) ── */
 .tile {
-  border: 1px solid rgba(255, 255, 255, 0.15); /* FLAT BORDER */
+  border: 1px solid rgba(255, 255, 255, 0.15); 
   padding: 4px 8px; 
   display: flex; align-items: center; justify-content: center;
-  color: var(--ink); font-size: 10px; font-weight: 900;
+  color: var(--ink); font-size: 9px; font-weight: 800;
   text-transform: uppercase; letter-spacing: 1px;
   width: fit-content; min-width: 0; height: fit-content;
 }
 
-/* ── Task Name (Direct on Glass) ── */
+/* ── Task Name (Bottom Left Alignment) ── */
 .tile-name {
-  grid-column: 1 / span 2;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: calc(100% - 40px);
+  text-align: left; /* Left align as requested */
   font-size: 20px;
-  font-weight: 500; /* REDUCED WEIGHT */
-  opacity: 0.85; /* SLIGHTLY TRANSLUCENT */
-  padding: 20px 10px;
-  text-align: center;
-  text-transform: none;
-  letter-spacing: 0.5px;
-  color: var(--ink);
-  line-height: 1.3;
-  /* SUBTLE MATERIAL GLOW */
-  text-shadow: 0 0 10px var(--glow-c);
+  font-weight: 500; /* Flat, broad weight */
+  line-height: 1.2;
+  letter-spacing: -0.2px;
+  z-index: 2;
+  /* INNER GLOW via Clipping */
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-color: var(--ink); /* Fallback */
 }
 
-/* Internal Card Layout */
-.card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; position: relative; z-index: 2; align-items: center; }
-.tile-domain { grid-column: 1; background: rgba(255,255,255,0.08); justify-self: start; }
-.tile-date { grid-column: 2; opacity: 0.8; font-size: 9px; justify-self: end; }
-.tile-urgency { grid-column: 1; justify-self: start; }
-.tile-actions { grid-column: 2; display: flex; gap: 4px; padding: 2px; justify-self: end; }
+/* Material Gradients for Text Fill (The Internal Glow) */
+.dm-CTI .tile-name { background-image: var(--mat-stone); }
+.dm-ECM .tile-name { background-image: var(--mat-wood); }
+.dm-CSD .tile-name { background-image: var(--mat-bamboo); }
+.dm-GRA .tile-name { background-image: var(--mat-honey); }
+.dm-PER .tile-name { background-image: var(--mat-ash); }
+
+/* Subtiles (Top Right Alignment) */
+.card-grid { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: flex-end; /* Right align all subtiles */
+  gap: 6px; 
+  position: relative; 
+  z-index: 2; 
+  width: 100%;
+}
+.tile-actions { display: flex; gap: 4px; padding: 2px; }
 
 /* ── Worktree Area (LHS) ── */
 .tree-container { 
@@ -193,7 +200,7 @@ body {
 .u-dots { opacity: 0.4; letter-spacing: 4px; }
 .inline-edit { background: transparent; border: none; color: var(--honey); font-family: inherit; font-size: inherit; font-weight: 900; width: 100%; text-align: center; outline: none; }
 
-/* ── Richer Category Gradients ── */
+/* ── Richer Category Gradients for Subtiles ── */
 .dm-CTI .tile { background: linear-gradient(135deg, rgba(189, 195, 199, 0.3) 0%, rgba(44, 62, 80, 0.6) 100%); }
 .dm-ECM .tile { background: linear-gradient(135deg, rgba(92, 64, 51, 0.3) 0%, rgba(43, 29, 20, 0.6) 100%); }
 .dm-CSD .tile { background: linear-gradient(135deg, rgba(168, 224, 99, 0.3) 0%, rgba(86, 171, 47, 0.6) 100%); }
