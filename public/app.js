@@ -81,12 +81,10 @@ function renderApp(){
         +'</div>'
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">'
           +'<p style="font-size:12px;opacity:0.6">'+dateStr+'</p>'
-          +'<div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.05); padding:4px; border-radius:30px; border:1px solid rgba(255,255,255,0.1)">'
-             +'<div id="toggleSwitch" style="position:relative; width:120px; height:24px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:0 10px; font-size:10px; font-weight:800; text-transform:uppercase">'
-                +'<div id="toggleKnob" style="position:absolute; top:0; left:'+(state.view==='current'?'0':'50%')+'; width:50%; height:100%; background:var(--honey); border-radius:30px; transition:left 0.3s ease; z-index:0"></div>'
-                +'<span style="z-index:1; color:'+(state.view==='current'?'#000':'var(--ink)')+'">Active</span>'
-                +'<span style="z-index:1; color:'+(state.view==='archived'?'#000':'var(--ink)')+'">Archived</span>'
-             +'</div>'
+          +'<div id="viewToggle" class="switch-outer">'
+            +'<div id="toggleKnob" class="switch-knob '+(state.view==='current'?'active':'archived')+'"></div>'
+            +'<span class="switch-label l-active '+(state.view==='current'?'on':'')+'">Active</span>'
+            +'<span class="switch-label l-archived '+(state.view==='archived'?'on':'')+'">Archived</span>'
           +'</div>'
           +'<input class="search" id="search" placeholder="Search tasks..." autocomplete="off" style="max-width:180px">'
         +'</div>'
@@ -100,7 +98,7 @@ function renderApp(){
   document.getElementById('aiBtn').addEventListener('click',openAI);
   document.getElementById('logoutBtn').addEventListener('click',openLogoutConfirm);
 
-  document.getElementById('toggleSwitch').onclick = function(){
+  document.getElementById('viewToggle').onclick = function(){
     state.view = state.view === 'current' ? 'archived' : 'current';
     loadBoard();
   };
@@ -143,8 +141,7 @@ function makeCardEl(t, isList){
   +'</div>';
 
   h+='<div class="card-grid">';
-  // Subtiles (Right Aligned Top Cluster)
-  h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
+  // Subtiles (TOP RIGHT)
   var dLabel=t.plan_label&&t.due_label&&t.plan_label!==t.due_label?t.plan_label+' → '+t.due_label:t.due_label||t.plan_label||'---';
   h+='<div class="tile tile-date">'+esc(dLabel)+'</div>';
   
@@ -159,6 +156,9 @@ function makeCardEl(t, isList){
 
   // Name (Strict Bottom Left)
   h+='<div class="tile-name">'+esc(t.name)+'</div>';
+
+  // Domain Identifier (STRICT BOTTOM RIGHT)
+  h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
 
   if(blocked && !t.isSub) h+='<div class="tile tile-blocked" style="position:absolute; bottom:60px; left:20px; border:none; background:rgba(255,85,85,0.05); color:#ff8888; font-size:10px">needs: '+esc(getBlockerName(t))+'</div>';
   if(t.isSub) h+='<div class="tile tile-blocked" style="position:absolute; bottom:60px; left:20px; border:none; color:rgba(255,255,255,0.2); font-size:9px">↳ sub of '+esc(state.taskById[t.parentId]?.name || 'parent')+'</div>';
@@ -317,7 +317,7 @@ function openAddTask(){
       done:+document.getElementById('f-done').value
     };
     if(!d.name)return;
-    api('POST','/api/users/'+state.slug+'/tasks',d).then(function(){closeBoard();loadBoard()}); // NOTE: fix closedBoard typo
+    api('POST','/api/users/'+state.slug+'/tasks',d).then(function(){loadBoard();closeModal()});
   };
 }
 

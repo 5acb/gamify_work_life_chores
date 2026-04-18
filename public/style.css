@@ -16,10 +16,10 @@
   --mat-canyon: linear-gradient(135deg, #c15c3d 0%, #4a2c2a 100%);  /* Zion Rock (PER) */
 
   /* Glass foundation */
-  --glass: rgba(255, 255, 255, 0.04);
+  --glass: rgba(255, 255, 255, 0.03);
   --glass-inner: rgba(255, 255, 255, 0.06);
   --glass-brd: rgba(255, 255, 255, 0.1);
-  --glass-shd: 0 15px 40px rgba(0, 0, 0, 0.6);
+  --glass-shd: 0 10px 40px rgba(0, 0, 0, 0.6);
   
   /* Radii */
   --r-md: 8px;
@@ -69,6 +69,23 @@ body {
   outline: none; font-size: 14px; font-weight: 600; border-radius: var(--r-md);
 }
 
+/* ── Toggle Switch ── */
+.switch-outer {
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 30px; width: 140px; height: 28px; position: relative;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px; cursor: pointer; user-select: none;
+}
+.switch-knob {
+  position: absolute; top: 2px; height: 24px; width: calc(50% - 4px);
+  background: var(--honey); border-radius: 20px; transition: left 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  z-index: 0;
+}
+.switch-knob.active { left: 2px; }
+.switch-knob.archived { left: calc(50% + 2px); }
+.switch-label { font-size: 9px; font-weight: 900; text-transform: uppercase; z-index: 1; transition: color 0.2s; }
+.switch-label.on { color: #000; }
+
 /* ── The Material Card ── */
 .card {
   background: var(--glass); backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
@@ -96,20 +113,19 @@ body {
 
 /* ── Task Name (STRICT BOTTOM LEFT) ── */
 .tile-name {
-  position: absolute; bottom: 20px; left: 20px; width: calc(100% - 40px); text-align: left;
+  position: absolute; bottom: 20px; left: 20px; width: calc(100% - 100px); text-align: left;
   font-size: 22px; font-weight: 500; line-height: 1.2; letter-spacing: -0.5px; z-index: 2;
-  background-clip: text; -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent; background-color: var(--ink);
+  background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-color: var(--ink);
 }
 .dm-CTI .tile-name { background-image: var(--mat-stone); }
 .dm-ECM .tile-name { background-image: var(--mat-wood); }
 .dm-CSD .tile-name { background-image: var(--mat-bamboo); }
 .dm-GRA .tile-name { background-image: var(--mat-amber); }
-.dm-Personal .tile-name { background-image: var(--mat-canyon); }
+.dm-PER .tile-name { background-image: var(--mat-canyon); }
 
 /* Dissolved Actions (ABSOLUTE TOP LEFT) */
 .tile-actions {
-  position: absolute; top: 5px; left: 5px; display: flex; gap: 4px; z-index: 10;
+  position: absolute; top: 10px; left: 10px; display: flex; gap: 4px; z-index: 10;
 }
 .cbtn {
   height: 24px; width: 24px; display: flex; align-items: center; justify-content: center;
@@ -128,6 +144,15 @@ body {
   width: fit-content; border-radius: var(--r-sm); transition: all 0.2s;
 }
 .tile:hover { border-color: var(--honey); color: var(--honey); filter: drop-shadow(0 0 8px var(--honey)); }
+
+/* Domain Identifier (STRICT BOTTOM RIGHT) */
+.tile-domain {
+  position: absolute; bottom: 20px; right: 20px;
+  background: var(--glass-inner); border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4px 10px; font-size: 11px; font-weight: 900; letter-spacing: 2px;
+  color: var(--ink); z-index: 2; transition: all 0.3s;
+}
+.tile-domain:hover { border-color: var(--honey); color: var(--honey); filter: drop-shadow(0 0 10px var(--honey)); }
 
 /* Subtile Gradients */
 .dm-CTI .tile { background: linear-gradient(135deg, rgba(142, 145, 143, 0.3) 0%, rgba(44, 62, 80, 0.6) 100%); }
