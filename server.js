@@ -440,7 +440,7 @@ app.post('/api/auth/register-verify', ensureAuth, async (req, res) => {
 app.post('/api/auth/login-options', async (req, res) => {
   const { slug } = req.body;
   if (!slug) return res.status(400).json({ error: 'slug required' });
-  const user = db.prepare('SELECT id FROM users WHERE slug = ?').get(slug);
+  const user = db.prepare('SELECT id, slug FROM users WHERE slug = ?').get(slug);
   if (!user) return res.status(404).json({ error: 'user not found' });
 
   const userCredentials = db.prepare('SELECT id, transports FROM credentials WHERE user_id = ?').all(user.id);
@@ -460,7 +460,7 @@ app.post('/api/auth/login-options', async (req, res) => {
 
 app.post('/api/auth/login-verify', async (req, res) => {
   const { slug, response } = req.body;
-  const user = db.prepare('SELECT id FROM users WHERE slug = ?').get(slug);
+  const user = db.prepare('SELECT id, slug FROM users WHERE slug = ?').get(slug);
   if (!user) return res.status(404).json({ error: 'user not found' });
 
   const expectedChallenge = getChallenge(user.id);
@@ -469,9 +469,13 @@ app.post('/api/auth/login-verify', async (req, res) => {
     return res.status(400).json({ error: 'challenge expired' });
   }
 
+  console.log('Login Verify: Looking up credential', response.id, 'for user', user.id);
   const cred = db.prepare('SELECT public_key, counter FROM credentials WHERE id = ? AND user_id = ?').get(response.id, user.id);
+  
   if (!cred) {
-    console.error('Login Verify Error: Credential not found for', response.id);
+    console.error('Login Verify Error: Credential not found in DB. Received ID:', response.id);
+    const anyCreds = db.prepare('SELECT id FROM credentials WHERE user_id = ?').all(user.id);
+    console.error('Login Verify Error: IDs currently in DB for this user:', anyCreds.map(c => c.id));
     return res.status(400).json({ error: 'credential not found' });
   }
 
@@ -487,6 +491,8 @@ app.post('/api/auth/login-verify', async (req, res) => {
         counter: cred.counter,
       },
     });
+
+    console.log('Login Verification Result for', slug, ':', verification.verified);
 
     if (verification.verified) {
       db.prepare('UPDATE credentials SET counter = ? WHERE id = ?').run(verification.authenticationInfo.newCounter, response.id);
