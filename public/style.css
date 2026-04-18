@@ -1,34 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap');
+
 :root {
-  /* Natural Monolith Palette - Earthy Skeuomorphism */
-  --obsidian: #0a0b0d;
+  /* Sanctuary Palette */
+  --obsidian: #0d0f11;
+  --obsidian-surface: #141618;
   --honey: #e8b004;
   --ink: #f4f0ea;
-  --faded: rgba(244, 240, 234, 0.3);
   
-  /* Atomic Glass foundation */
-  --glass: rgba(255, 255, 255, 0.03);
-  --glass-inner: rgba(255, 255, 255, 0.06);
-  --glass-shd: 0 12px 40px rgba(0, 0, 0, 0.4);
-  
-  /* Material Gradient Borders & Text Glows */
+  /* Material Gradient Borders */
   --mat-stone: linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%);
   --mat-wood: linear-gradient(135deg, #5c4033 0%, #2b1d14 100%);
   --mat-bamboo: linear-gradient(135deg, #a8e063 0%, #56ab2f 100%);
   --mat-honey: linear-gradient(135deg, #f6d365 0%, #ffb347 100%);
   --mat-ash: linear-gradient(135deg, #e6d0ce 0%, #b9935a 100%);
 
-  /* Subtle Softness Radii */
+  /* Glass foundation */
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-inner: rgba(255, 255, 255, 0.08);
+  --glass-brd: rgba(255, 255, 255, 0.12);
+  --glass-shd: 0 10px 40px rgba(0, 0, 0, 0.5);
+  
+  /* Radii */
   --r-lg: 24px;
   --r-md: 12px;
-  --r-sm: 4px;
+  --r-sm: 6px;
 }
 
-/* ── Global Reset ── */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  /* Rounder, broad geometric sans-serif */
-  font-family: "Lexend", "Quicksand", "Comfortaa", "Inter", sans-serif;
+  font-family: "Lexend Deca", sans-serif;
   background-color: var(--obsidian);
   color: var(--ink);
   height: 100vh;
@@ -36,16 +37,15 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(130, 146, 133, 0.08) 0, transparent 40%),
-    radial-gradient(at 100% 0%, rgba(194, 155, 74, 0.08) 0, transparent 40%),
+    radial-gradient(at 0% 0%, rgba(130, 146, 133, 0.1) 0, transparent 40%),
+    radial-gradient(at 100% 0%, rgba(194, 155, 74, 0.1) 0, transparent 40%),
     linear-gradient(180deg, #121416 0%, #0a0b0d 100%);
 }
 
 .app { 
   display: grid; 
-  grid-template-columns: 2fr 1fr; 
-  height: 100vh; 
-  width: 100vw; 
+  grid-template-columns: 2fr 1fr; /* 2:1 Split */
+  height: 100vh; width: 100vw; 
 }
 
 /* ── Panels ── */
@@ -57,50 +57,49 @@ body {
 }
 .panel-list { 
   display: flex; flex-direction: column; height: 100vh; 
-  background: rgba(0,0,0,0.15); 
+  background: rgba(0,0,0,0.2); 
   overflow: hidden;
 }
 
 /* ── Header ── */
 .hdr { padding: 40px 60px; flex-shrink: 0; }
-.hdr-top { display: flex; align-items: stretch; gap: 10px; margin-bottom: 20px; }
+.hdr-top { display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
 .hdr h1 { font-size: 28px; font-weight: 800; letter-spacing: -1px; text-transform: uppercase; flex: 1; }
 
 .hdr-btn, .ai-btn { 
   background: var(--glass); backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.1); color: var(--ink);
-  font-size: 11px; font-weight: 800; padding: 12px 24px; cursor: pointer; 
+  font-size: 10px; font-weight: 800; padding: 10px 20px; cursor: pointer; 
   text-transform: uppercase; letter-spacing: 2px;
   border-radius: var(--r-sm);
 }
-.hdr-btn:active, .ai-btn:active { box-shadow: inset 2px 2px 8px rgba(0,0,0,0.8); transform: translate(1px, 1px); }
 .ai-btn { color: var(--honey); border-color: var(--honey); }
 
 .toggle-wrap { display: flex; gap: 4px; margin-bottom: 20px; }
-.toggle-btn { font-size: 11px; font-weight: 800; padding: 12px 20px; border: none; background: transparent; opacity: 0.3; cursor: pointer; text-transform: uppercase; border-radius: var(--r-sm); }
+.toggle-btn { font-size: 10px; font-weight: 800; padding: 10px 15px; border: none; background: transparent; opacity: 0.3; cursor: pointer; text-transform: uppercase; border-radius: var(--r-sm); }
 .toggle-btn.active { opacity: 1; background: var(--glass-inner); }
 
 .search { 
-  width: 100%; padding: 15px 20px; background: rgba(255,255,255,0.02); 
+  width: 100%; padding: 14px 20px; background: rgba(255,255,255,0.02); 
   border: 1px solid rgba(255,255,255,0.1); color: var(--ink);
-  outline: none; font-size: 16px; font-weight: 800;
-  border-radius: var(--r-md);
+  outline: none; font-size: 16px; border-radius: var(--r-md);
 }
 
 /* ── The Material Card ── */
 .card {
   background: var(--glass);
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
   border: 3px solid transparent; 
-  padding: 12px;
+  padding: 15px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
   display: flex; flex-direction: column;
   box-shadow: var(--glass-shd);
   position: relative;
-  height: 200px; /* Fixed height for symmetry */
+  height: 220px; /* Comfortable height */
   border-radius: var(--r-md);
+  overflow: hidden;
 }
 
 .card::after {
@@ -124,60 +123,77 @@ body {
 .card.mat-honey::after { background: var(--mat-honey); }
 .card.mat-ash::after { background: var(--mat-ash); }
 
-.card:hover { transform: translateY(-5px); }
+.card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.08); }
 .card.selected::after { background: var(--honey); }
 .card.selected { box-shadow: 0 0 50px rgba(232, 176, 4, 0.15), var(--glass-shd); }
 
-/* ── The Atomic Tile (Flat Gradient & Tiny) ── */
-.tile {
-  border: 1px solid rgba(255, 255, 255, 0.15); 
-  padding: 4px 8px; 
-  display: flex; align-items: center; justify-content: center;
-  color: var(--ink); font-size: 9px; font-weight: 800;
-  text-transform: uppercase; letter-spacing: 1px;
-  width: fit-content; min-width: 0; height: fit-content;
-  border-radius: var(--r-sm);
-}
-
-/* ── Task Name (Bottom Left Alignment) ── */
+/* ── Task Name (STRICT BOTTOM LEFT) ── */
 .tile-name {
   position: absolute;
   bottom: 20px;
   left: 20px;
   width: calc(100% - 40px);
-  text-align: left; /* Left align as requested */
-  font-size: 20px;
-  font-weight: 500; /* Flat, broad weight */
+  text-align: left;
+  font-size: 22px;
+  font-weight: 500;
   line-height: 1.2;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.5px;
   z-index: 2;
-  /* INNER GLOW via Clipping */
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  background-color: var(--ink); /* Fallback */
+  background-color: var(--ink);
 }
 
-/* Material Gradients for Text Fill (The Internal Glow) */
 .dm-CTI .tile-name { background-image: var(--mat-stone); }
 .dm-ECM .tile-name { background-image: var(--mat-wood); }
 .dm-CSD .tile-name { background-image: var(--mat-bamboo); }
 .dm-GRA .tile-name { background-image: var(--mat-honey); }
 .dm-PER .tile-name { background-image: var(--mat-ash); }
 
-/* Subtiles (Top Right Alignment) */
+/* Subtiles (STRICT TOP RIGHT) ── */
 .card-grid { 
   display: flex; 
   flex-direction: column; 
-  align-items: flex-end; /* Right align all subtiles */
-  gap: 6px; 
+  align-items: flex-end; 
+  gap: 8px; 
   position: relative; 
   z-index: 2; 
   width: 100%;
 }
-.tile-actions { display: flex; gap: 4px; padding: 2px; }
 
-/* ── Worktree Area (LHS) ── */
+.tile {
+  background: var(--glass-inner);
+  border: 1px solid rgba(255, 255, 255, 0.15); 
+  padding: 5px 10px; 
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink); font-size: 9px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  width: fit-content; border-radius: var(--r-sm);
+}
+
+/* Rich Subtile Gradients */
+.dm-CTI .tile { background: linear-gradient(135deg, rgba(189, 195, 199, 0.3) 0%, rgba(44, 62, 80, 0.6) 100%); }
+.dm-ECM .tile { background: linear-gradient(135deg, rgba(92, 64, 51, 0.3) 0%, rgba(43, 29, 20, 0.6) 100%); }
+.dm-CSD .tile { background: linear-gradient(135deg, rgba(168, 224, 99, 0.3) 0%, rgba(86, 171, 47, 0.6) 100%); }
+.dm-GRA .tile { background: linear-gradient(135deg, rgba(246, 211, 101, 0.3) 0%, rgba(255, 179, 71, 0.6) 100%); }
+.dm-PER .tile { background: linear-gradient(135deg, rgba(230, 208, 206, 0.3) 0%, rgba(185, 147, 90, 0.6) 100%); }
+
+.tile-actions { display: flex; gap: 6px; padding: 4px; }
+
+/* ── Archive/Edit Fix ── */
+.cbtn {
+  height: 28px; width: 28px; display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+  color: var(--ink); font-size: 16px; cursor: pointer; border-radius: var(--r-sm);
+}
+.cbtn:active { background: var(--honey); color: #000; box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); }
+
+/* ── Grid/List Stability ── */
+.cards { flex: 1; overflow-y: auto; padding: 30px 40px 240px; }
+.cards-inner { display: flex; flex-direction: column; gap: 30px; max-width: 600px; margin: 0 auto; }
+
+/* ── Worktree LHS ── */
 .tree-container { 
   flex: 1; overflow: auto; padding: 80px; 
   display: flex; flex-direction: column; align-items: center; gap: 80px;
@@ -185,39 +201,13 @@ body {
 .tree-section { display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; width: 100%; }
 .tree-label { font-size: 11px; font-weight: 900; text-transform: uppercase; color: var(--faded); letter-spacing: 5px; margin-bottom: 25px; width: 100%; text-align: center; }
 
-/* ── Task List (RHS) ── */
-.cards { flex: 1; overflow-y: auto; padding: 20px 40px 240px; }
-.cards-inner { display: flex; flex-direction: column; gap: 30px; max-width: 600px; margin: 0 auto; }
-
-/* ── Buttons & FAB ── */
-.cbtn {
-  height: 24px; width: 24px; display: flex; align-items: center; justify-content: center;
-  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
-  color: var(--ink); font-size: 14px; cursor: pointer;
-  border-radius: var(--r-sm);
-}
-.cbtn:active { background: var(--honey); color: #000; box-shadow: inset 0 2px 8px rgba(0,0,0,0.5); transform: translateY(1px); }
-
 .fab {
-  position: fixed; bottom: 60px; right: 60px;
-  width: 90px; height: 90px;
+  position: fixed; bottom: 50px; right: 50px;
+  width: 80px; height: 80px; border-radius: var(--r-lg);
   background: var(--honey); color: #000; border: none; 
-  font-size: 44px; font-weight: 900; cursor: pointer;
+  font-size: 40px; font-weight: 900; cursor: pointer;
   box-shadow: 0 20px 60px rgba(0,0,0,0.8); z-index: 1000;
-  border-radius: var(--r-lg);
 }
-
-.card.done { opacity: 0.2; filter: grayscale(1); }
-.u-pill { color: var(--honey); font-size: 10px; margin: 0 6px; }
-.u-dots { opacity: 0.4; letter-spacing: 4px; }
-.inline-edit { background: transparent; border: none; color: var(--honey); font-family: inherit; font-size: inherit; font-weight: 900; width: 100%; text-align: center; outline: none; border-radius: var(--r-sm); }
-
-/* ── Richer Category Gradients for Subtiles ── */
-.dm-CTI .tile { background: linear-gradient(135deg, rgba(189, 195, 199, 0.3) 0%, rgba(44, 62, 80, 0.6) 100%); }
-.dm-ECM .tile { background: linear-gradient(135deg, rgba(92, 64, 51, 0.3) 0%, rgba(43, 29, 20, 0.6) 100%); }
-.dm-CSD .tile { background: linear-gradient(135deg, rgba(168, 224, 99, 0.3) 0%, rgba(86, 171, 47, 0.6) 100%); }
-.dm-GRA .tile { background: linear-gradient(135deg, rgba(246, 211, 101, 0.3) 0%, rgba(255, 179, 71, 0.6) 100%); }
-.dm-PER .tile { background: linear-gradient(135deg, rgba(230, 208, 206, 0.3) 0%, rgba(185, 147, 90, 0.6) 100%); }
 
 /* Modal */
 .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(50px); z-index: 2000; display: none; align-items: center; justify-content: center; }
