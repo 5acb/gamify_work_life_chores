@@ -102,7 +102,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use((req, res, next) => {
   const nonce = crypto.randomBytes(16).toString('base64');
   res.locals.nonce = nonce;
-  res.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://www.transparenttextures.com; connect-src 'self'; font-src 'self' https://fonts.gstatic.com`);
+  res.setHeader('Content-Security-Policy', `default-src 'self'; script-src 'self' 'nonce-${nonce}' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https://www.transparenttextures.com; connect-src 'self'; font-src 'self' https://fonts.gstatic.com`);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
