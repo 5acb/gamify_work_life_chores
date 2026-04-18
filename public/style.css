@@ -120,7 +120,6 @@ body {
 .card.hue-canyon { background: linear-gradient(135deg, rgba(193, 92, 61, 0.08) 0%, var(--glass) 100%); }
 .card.hue-amber { background: linear-gradient(135deg, rgba(232, 176, 4, 0.04) 0%, var(--glass) 100%); }
 .card.hue-marble { background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(200, 200, 200, 0.02) 50%, var(--glass) 100%); }
-.card.hue-bamboo { background: linear-gradient(135deg, rgba(127, 176, 105, 0.03) 0%, var(--glass) 100%); }
 
 /* Status Tile & Indicator Line */
 .status-tile {
@@ -133,16 +132,16 @@ body {
 .dot-canyon { background: #c15c3d; box-shadow: 0 0 8px rgba(193, 92, 61, 0.6); }
 .dot-amber { background: #e8b004; box-shadow: 0 0 8px rgba(232, 176, 4, 0.5); }
 .dot-marble { background: rgba(255, 255, 255, 0.2); }
-.dot-bamboo { background: #7fb069; opacity: 0.4; }
+.dot-bamboo { background: #7fb069; opacity: 0.15; }
 
 .card-hue-indicator { 
-  height: 10px; width: 10px; border-radius: 50%; 
-  margin-left: 6px; border: 1px solid rgba(255,255,255,0.2);
+  height: 8px; width: 8px; border-radius: 50%; 
+  margin-left: 2px; border: 2px solid transparent; background: transparent;
+  flex-shrink: 0;
 }
-.card-hue-indicator.dot-canyon { box-shadow: 0 0 15px #c15c3d; }
-.card-hue-indicator.dot-amber { box-shadow: 0 0 15px #e8b004; }
-.card-hue-indicator.dot-marble { box-shadow: 0 0 15px #b2b2b2; }
-.card-hue-indicator.dot-bamboo { box-shadow: 0 0 15px #7fb069; }
+.card-hue-indicator.dot-canyon { border-color: #c15c3d; filter: drop-shadow(0 0 5px #c15c3d); }
+.card-hue-indicator.dot-amber { border-color: #e8b004; filter: drop-shadow(0 0 5px #e8b004); }
+.card-hue-indicator.dot-marble { border-color: rgba(255, 255, 255, 0.4); filter: drop-shadow(0 0 5px rgba(255,255,255,0.2)); }
 .card::after {
   content: ""; position: absolute; inset: -1px; padding: 4px; /* Thick 4px border */
   background: var(--ink); 

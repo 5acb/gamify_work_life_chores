@@ -142,7 +142,7 @@ function getTaskHue(t){
   if(dd <= 1) return 'canyon';
   if(dd <= 3) return 'amber';
   if(dd <= 7 || (dd < 999 && dp < 999 && dd - dp < 3)) return 'marble';
-  return 'bamboo';
+  return '';
 }
 
 function updateStatusDots(){
@@ -216,7 +216,7 @@ function makeCardEl(t, isList){
 
   var h='';
   // Dissolved Action Icons (absolute top left)
-  h+='<div class="tile-actions" style="position:absolute; top:5px; left:5px; display:flex; gap:4px; z-index:10; align-items:center">'
+  h+='<div class="tile-actions" style="position:absolute; top:5px; left:5px; display:flex; gap:6px; z-index:10; align-items:center">'
     +(archived || state.view === 'archived' 
       ? '<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>' 
       : '<button class="cbtn act-archive" data-id="'+t.id+'" title="Archive / Done">×</button>')
