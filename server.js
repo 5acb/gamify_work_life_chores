@@ -95,6 +95,7 @@ function logTaskEvent(taskId, userId, action, detail = null) {
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // SEC-17: security headers
 app.use((req, res, next) => {
