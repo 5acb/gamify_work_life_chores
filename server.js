@@ -363,8 +363,12 @@ app.patch('/api/tasks/:id', ensureAuth, (req, res) => {
   if (req.body.name && req.body.name.length > 500) return res.status(400).json({ error: 'name too long (max 500)' });
   if (req.body.plan_label && req.body.plan_label.length > 100) return res.status(400).json({ error: 'plan_label too long (max 100)' });
   if (req.body.due_label && req.body.due_label.length > 100) return res.status(400).json({ error: 'due_label too long (max 100)' });
+  
+  // DEDUP: done is archived, archived is done
+  if (req.body.done !== undefined) req.body.archived = req.body.done;
+
   // SEC: fields is a hardcoded allowlist — f is never user-supplied, no SQL injection risk
-  const fields = ['domain','name','plan_date','due_date','plan_label','due_label','speed','stakes','sort_order','done'];
+  const fields = ['domain','name','plan_date','due_date','plan_label','due_label','speed','stakes','sort_order','done','archived'];
   const sets = [], vals = [];
   for (const f of fields) {
     if (req.body[f] !== undefined) { sets.push(`${f} = ?`); vals.push(req.body[f]); }
@@ -380,7 +384,9 @@ app.patch('/api/tasks/:id/toggle', ensureAuth, (req, res) => {
   const task = requireTaskOwner(req, res);
   if (!task) return;
   const done = task.done ? 0 : 1;
-  db.prepare("UPDATE tasks SET done = ?, updated_at = datetime('now') WHERE id = ?").run(done, task.id);
+  // DEDUP: toggle both
+  db.prepare("UPDATE tasks SET done = ?, archived = ?, archived_at = ?, updated_at = datetime('now') WHERE id = ?")
+    .run(done, done, done ? db.prepare("SELECT datetime('now')").get()['datetime(\'now\')'] : null, task.id);
   logTaskEvent(task.id, req.user.id, done ? 'done' : 'undone');
   res.json({ ok: true, done: !!done });
 });
@@ -388,7 +394,8 @@ app.patch('/api/tasks/:id/toggle', ensureAuth, (req, res) => {
 app.patch('/api/tasks/:id/archive', ensureAuth, (req, res) => {
   const task = requireTaskOwner(req, res);
   if (!task) return;
-  db.prepare("UPDATE tasks SET archived = 1, archived_at = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(req.params.id);
+  // DEDUP: archive is done
+  db.prepare("UPDATE tasks SET archived = 1, done = 1, archived_at = datetime('now'), updated_at = datetime('now') WHERE id = ?").run(req.params.id);
   logTaskEvent(task.id, req.user.id, 'archived');
   res.json({ ok: true });
 });
@@ -396,7 +403,8 @@ app.patch('/api/tasks/:id/archive', ensureAuth, (req, res) => {
 app.patch('/api/tasks/:id/unarchive', ensureAuth, (req, res) => {
   const task = requireTaskOwner(req, res);
   if (!task) return;
-  db.prepare("UPDATE tasks SET archived = 0, archived_at = NULL, updated_at = datetime('now') WHERE id = ?").run(req.params.id);
+  // DEDUP: unarchive is not done
+  db.prepare("UPDATE tasks SET archived = 0, done = 0, archived_at = NULL, updated_at = datetime('now') WHERE id = ?").run(req.params.id);
   logTaskEvent(task.id, req.user.id, 'unarchived');
   res.json({ ok: true });
 });

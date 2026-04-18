@@ -128,13 +128,13 @@ body {
 .card.mat-amber::after { background: var(--mat-amber); }
 
 /* Selection & Hover Focus */
-.card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.06); border-color: rgba(232,176,4,0.3); box-shadow: 0 0 20px rgba(232, 176, 4, 0.1), var(--glass-shd); }
+.card:hover { transform: translateY(-5px); background: rgba(255,255,255,0.06); border-color: rgba(232,176,4,0.3); box-shadow: 0 0 30px rgba(232, 176, 4, 0.2), var(--glass-shd); }
 .card.selected::after { background: var(--honey); }
-.card.selected { box-shadow: 0 0 60px rgba(232, 176, 4, 0.3), var(--glass-shd); border: 1px solid var(--honey) !important; }
+.card.selected { box-shadow: 0 0 60px rgba(232, 176, 4, 0.3), var(--glass-shd); border: 1.5px solid var(--honey) !important; }
 
 /* ── Task Name (Solid Polished Material Color) ── */
 .tile-name {
-  position: absolute; bottom: 20px; left: 20px; width: calc(100% - 40px); text-align: left;
+  position: absolute; bottom: 20px; left: 20px; width: calc(100% - 100px); text-align: left;
   font-size: 22px; font-weight: 500; line-height: 1.2; letter-spacing: -0.5px; z-index: 2;
   color: var(--ink); /* Fallback */
   transition: all 0.3s ease;
@@ -147,15 +147,16 @@ body {
 
 /* Dissolved Actions (ABSOLUTE TOP LEFT) */
 .tile-actions {
-  position: absolute; top: 10px; left: 10px; display: flex; gap: 4px; z-index: 10;
+  position: absolute; top: 5px !important; left: 5px !important;
+  display: flex; gap: 4px; z-index: 100 !important;
 }
 .cbtn {
-  height: 24px; width: 24px; display: flex; align-items: center; justify-content: center;
+  height: 20px; width: 20px; display: flex; align-items: center; justify-content: center;
   background: transparent !important; border: none !important;
-  color: var(--ink); opacity: 0.15; font-size: 16px; cursor: pointer;
+  color: var(--ink); opacity: 0.15; font-size: 14px; cursor: pointer;
   transition: all 0.3s ease; box-shadow: none !important;
 }
-.cbtn:hover { opacity: 1; color: var(--honey); filter: drop-shadow(0 0 10px var(--honey)); }
+.cbtn:hover { opacity: 1; color: var(--honey); filter: drop-shadow(0 0 10px var(--honey)) !important; }
 
 /* Subtiles (TOP RIGHT) */
 .card-grid { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; position: relative; z-index: 2; width: 100%; }
@@ -181,9 +182,9 @@ body {
 .card.mat-amber .tile-domain { color: #fbbf24; }
 .tile-domain:hover { border-color: var(--honey); color: var(--honey); filter: drop-shadow(0 0 10px var(--honey)) !important; }
 
-/* Functional States (Date/Urgency Tiles Only) */
-.state-urgent .tile-date, .state-urgent .tile-urgency { background: var(--mat-canyon) !important; color: #fff !important; }
-.state-safe .tile-date, .state-safe .tile-urgency { background: var(--mat-bamboo) !important; color: #fff !important; }
+/* Functional States */
+.state-urgent .tile-date, .state-urgent .tile-urgency, .state-urgent .tile-domain { background: var(--mat-canyon) !important; color: #fff !important; }
+.state-safe .tile-date, .state-safe .tile-urgency, .state-safe .tile-domain { background: var(--mat-bamboo) !important; color: #fff !important; }
 
 /* Subtile Gradients (Default) */
 .mat-teal .tile { background: linear-gradient(135deg, rgba(94, 156, 149, 0.3) 0%, rgba(44, 86, 81, 0.6) 100%); }
@@ -225,8 +226,9 @@ body {
 .btn-save:hover { filter: brightness(1.1); box-shadow: 0 0 20px var(--honey); }
 
 .card.done { opacity: 0.3; filter: grayscale(0.5); }
-.card.archived { opacity: 0.8; filter: saturate(0.8) brightness(0.9); border-style: dashed; }
-.card.archived::after { border-style: dashed; opacity: 0.5; }
+.card.archived { opacity: 0.85; filter: saturate(0.9); }
+.card.archived .tile-name { opacity: 0.5; }
+.card.archived::after { border-style: dashed; opacity: 0.4; }
 
 .u-pill { color: var(--honey); font-size: 10px; margin: 0 6px; }
 .u-dots { opacity: 0.4; letter-spacing: 4px; }

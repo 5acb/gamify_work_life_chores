@@ -127,26 +127,25 @@ function openLogoutConfirm(){
 // ── Cards ─────────────────────────────────────────────────────
 
 function makeCardEl(t, isList){
-  var blocked=isBlocked(t), done=!!t.done, archived=!!t.archived;
+  var blocked=isBlocked(t), archived=!!t.archived;
   var dp=daysFrom(t.plan_date), dd=daysFrom(t.due_date);
   var dm=DM[t.domain]||{c:'#71717a',l:t.domain,m:''};
 
-  // Functional Urgency State
-  var isUrgent = dd <= 1 || blocked;
-  var isSafe = done || dd > 3;
-  var stateCls = isUrgent ? 'state-urgent' : (isSafe ? 'state-safe' : '');
+  // DEDUP: archived is the state of completion/done
+  var isUrgent = (dd <= 1 && !archived) || blocked;
+  var stateCls = isUrgent ? 'state-urgent' : (archived ? 'state-safe' : '');
 
   var el=document.createElement('div');
-  el.className='card '+dm.m+' '+stateCls+(done?' done':'')+(blocked?' blocked':'')+(archived?' archived':'')+(state.selectedId===t.id?' selected':'');
+  el.className='card '+dm.m+' '+stateCls+(archived?' archived':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
   el.dataset.id=t.id;
 
   var h='';
-  // Dissolved Action Icons (pinned to absolute top left)
-  h+='<div class="tile-actions">'
+  // Dissolved Action Icons (absolute top left)
+  h+='<div class="tile-actions" style="position:absolute; top:5px; left:5px; display:flex; gap:4px; z-index:10">'
     +'<button class="cbtn act-edit" data-id="'+t.id+'" title="Edit">✎</button>'
     +(archived || state.view === 'archived' 
       ? '<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>' 
-      : '<button class="cbtn act-archive" data-id="'+t.id+'" title="Archive">×</button>')
+      : '<button class="cbtn act-archive" data-id="'+t.id+'" title="Archive / Done">×</button>')
   +'</div>';
 
   h+='<div class="card-grid">';
