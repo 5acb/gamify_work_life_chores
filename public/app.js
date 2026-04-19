@@ -628,135 +628,155 @@ function reloadDomains(cb){
   });
 }
 
-function matPickerHtml(usedMaterials, excludeMat, inputRef){
-  var div=document.createElement('div');
-  div.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:8px';
+function matSwatchGrid(container, usedMaterials, currentMat){
+  container.innerHTML='';
+  container.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px';
   Object.keys(MATERIALS).forEach(function(key){
     var mat=MATERIALS[key];
-    var taken=usedMaterials.indexOf(key)>=0 && key!==excludeMat;
+    var taken=usedMaterials.indexOf(key)>=0 && key!==currentMat;
     var grad='linear-gradient(135deg,'+mat.gs+' 0%,'+mat.ge+' 100%)';
     var sw=document.createElement('div');
     sw.dataset.mat=key;
-    sw.style.cssText='cursor:'+(taken?'not-allowed':'pointer')+';border-radius:var(--r-sm);overflow:hidden;border:2px solid '+(key===excludeMat?'var(--honey)':'transparent')+';opacity:'+(taken?'0.3':'1')+';transition:all 0.2s;';
-    sw.innerHTML='<div style="height:24px;background:'+grad+'"></div>'
-      +'<div style="padding:3px 5px;background:var(--glass-inner);font-size:7px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(mat.name)+'</div>';
+    sw.title=mat.name+' — '+mat.evoke;
+    sw.style.cssText='border-radius:var(--r-sm);overflow:hidden;border:2px solid '
+      +(key===currentMat?'var(--honey)':'transparent')+';opacity:'
+      +(taken?'0.25':'1')+';cursor:'+(taken?'not-allowed':'pointer')+';transition:border-color 0.15s;';
+    sw.innerHTML='<div style="height:30px;background:'+grad+'"></div>'
+      +'<div style="padding:3px 5px;font-size:7px;font-weight:800;color:var(--ink);background:var(--glass-inner);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(mat.name)+'</div>';
     if(!taken) sw.onclick=function(){
-      div.querySelectorAll('[data-mat]').forEach(function(x){x.style.borderColor='transparent';});
+      container.querySelectorAll('[data-mat]').forEach(function(x){x.style.borderColor='transparent';});
       this.style.borderColor='var(--honey)';
-      if(inputRef) inputRef.dataset.selectedMat=this.dataset.mat;
+      container.dataset.selected=this.dataset.mat;
     };
-    div.appendChild(sw);
+    container.appendChild(sw);
   });
-  return div;
+  container.dataset.selected=currentMat;
 }
 
 function openDomainsModal(){
   var m=document.getElementById('modal');
-  var editingId=null;
+  m.style.maxWidth='680px';
+  m.style.width='90vw';
 
-  function render(){
+  function render(expandId){
     var usedMaterials=state_domains.map(function(d){return d.material;});
-    m.innerHTML='<h2>⊞ Domains</h2>'
-      +'<div id="domainList" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;margin-bottom:14px"></div>'
-      +'<div style="border-top:1px solid var(--glass-brd);padding-top:12px">'
-        +'<div class="field-tile">'
-          +'<label>New Domain</label>'
-          +'<input id="nd-name" placeholder="Name (e.g. Health)" style="width:100%;background:transparent;border:none;color:var(--ink);font-size:15px;font-family:inherit;outline:none;margin-bottom:6px">'
-          +'<input id="nd-slug" placeholder="ID e.g. HLT" maxlength="4" style="width:100%;background:transparent;border:none;color:var(--honey);font-size:13px;font-weight:800;font-family:inherit;outline:none;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px">'
-          +'<label>Material</label>'
-          +'<div id="nd-picker"></div>'
-        +'</div>'
+    m.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'
+        +'<h2 style="margin:0">⊞ Domains</h2>'
+        +'<button id="mc" class="btn-cancel" style="padding:6px 12px">Close</button>'
       +'</div>'
-      +'<div class="modal-actions"><button id="mc" class="btn-cancel">Close</button><button id="nd-save" class="btn-save">Add Domain</button></div>';
+      +'<div id="domainList" style="display:flex;flex-direction:column;gap:4px;margin-bottom:16px"></div>'
+      +'<button id="addTriggerBtn" class="btn-cancel" style="width:100%;padding:10px;font-size:11px;letter-spacing:1px">＋ Add Domain</button>'
+      +'<div id="addForm" style="display:none;margin-top:12px;padding:12px;background:var(--glass);border-radius:var(--r-md)">'
+        +'<div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:10px">'
+          +'<div style="flex:2">'
+            +'<label style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--faded)">NAME</label>'
+            +'<input id="nd-name" placeholder="e.g. Health" style="display:block;width:100%;background:transparent;border:none;border-bottom:1px solid var(--glass-brd);color:var(--ink);font-size:15px;font-family:inherit;outline:none;padding-bottom:4px;margin-top:4px">'
+          +'</div>'
+          +'<div style="flex:1">'
+            +'<label style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--faded)">ID</label>'
+            +'<input id="nd-slug" maxlength="4" placeholder="HLT" style="display:block;width:100%;background:transparent;border:none;border-bottom:1px solid var(--glass-brd);color:var(--honey);font-size:15px;font-weight:900;font-family:inherit;outline:none;padding-bottom:4px;margin-top:4px;text-transform:uppercase;letter-spacing:3px">'
+          +'</div>'
+          +'<button id="nd-save" class="btn-save" style="flex-shrink:0;padding:8px 16px;font-size:11px">Add</button>'
+        +'</div>'
+        +'<label style="font-size:9px;font-weight:800;letter-spacing:1px;color:var(--faded)">MATERIAL</label>'
+        +'<div id="nd-picker"></div>'
+      +'</div>';
 
-    // Existing domains (editable: name + material only; slug is permanent)
+    // Render domain rows
     var list=document.getElementById('domainList');
     state_domains.forEach(function(d){
       var mat=MATERIALS[d.material]||MATERIALS['ink-stone'];
       var grad='linear-gradient(135deg,'+mat.gs+' 0%,'+mat.ge+' 100%)';
+      var isOpen=(expandId===d.id);
       var row=document.createElement('div');
       row.style.cssText='border-radius:var(--r-sm);background:var(--glass);overflow:hidden;';
-      var header=document.createElement('div');
-      header.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 10px;cursor:pointer;';
-      header.innerHTML='<div style="width:24px;height:24px;border-radius:3px;background:'+grad+';flex-shrink:0"></div>'
-        +'<div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--ink)">'+esc(d.name)+'</div>'
-        +'<div style="font-size:8px;font-weight:900;letter-spacing:2px;color:var(--faded)">'+esc(d.slug)+' · '+esc(mat.name)+'</div></div>'
-        +'<span style="font-size:10px;color:var(--faded)">✎</span>';
 
-      var editPanel=document.createElement('div');
-      editPanel.style.cssText='display:none;padding:10px;border-top:1px solid var(--glass-brd);';
+      // Header row
+      var hdr=document.createElement('div');
+      hdr.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;user-select:none;';
+      hdr.innerHTML='<div style="width:28px;height:28px;border-radius:4px;background:'+grad+';flex-shrink:0"></div>'
+        +'<div style="flex:1;min-width:0">'
+          +'<div style="font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(d.name)+'</div>'
+          +'<div style="font-size:8px;font-weight:900;letter-spacing:2px;color:var(--faded);margin-top:1px">'+esc(d.slug)+' · '+esc(mat.name)+'</div>'
+        +'</div>'
+        +'<span style="font-size:11px;color:'+(isOpen?'var(--honey)':'var(--faded)')+';transition:color 0.2s">'+(isOpen?'▲':'✎')+'</span>';
 
-      // Row 1: name + save always visible at top
-      var topRow=document.createElement('div');
-      topRow.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:10px;';
-      var nameInput=document.createElement('input');
-      nameInput.value=d.name;
-      nameInput.placeholder='Domain name';
-      nameInput.style.cssText='flex:1;background:transparent;border:none;border-bottom:1px solid var(--glass-brd);color:var(--ink);font-size:14px;font-family:inherit;outline:none;padding-bottom:4px;';
-      var saveBtn=document.createElement('button');
-      saveBtn.className='btn-save';
-      saveBtn.style.cssText='flex-shrink:0;padding:6px 14px;font-size:10px;';
-      saveBtn.textContent='Save';
-      var matRef={dataset:{mat:d.material}};
-      saveBtn.onclick=function(){
-        var newName=nameInput.value.trim();
-        var newMat=matRef.dataset.selectedMat||matRef.dataset.mat;
+      // Edit panel (shown when open)
+      var panel=document.createElement('div');
+      panel.style.cssText='display:'+(isOpen?'block':'none')+';padding:14px 14px 10px;border-top:1px solid var(--glass-brd);';
+
+      var nameRow=document.createElement('div');
+      nameRow.style.cssText='display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;';
+      var ni=document.createElement('input');
+      ni.value=d.name;
+      ni.placeholder='Domain name';
+      ni.style.cssText='flex:1;background:transparent;border:none;border-bottom:1px solid var(--glass-brd);color:var(--ink);font-size:15px;font-family:inherit;outline:none;padding-bottom:4px;';
+      var slugHint=document.createElement('div');
+      slugHint.style.cssText='flex-shrink:0;font-size:9px;font-weight:900;color:var(--honey);letter-spacing:3px;padding-bottom:6px;';
+      slugHint.textContent=d.slug;
+      var sb=document.createElement('button');
+      sb.className='btn-save';
+      sb.style.cssText='flex-shrink:0;padding:8px 18px;font-size:11px;';
+      sb.textContent='Save';
+      nameRow.appendChild(ni);
+      nameRow.appendChild(slugHint);
+      nameRow.appendChild(sb);
+
+      var matPickerEl=document.createElement('div');
+      panel.appendChild(nameRow);
+      panel.appendChild(matPickerEl);
+
+      if(isOpen) matSwatchGrid(matPickerEl, usedMaterials, d.material);
+
+      sb.onclick=function(){
+        var newName=ni.value.trim();
+        var newMat=matPickerEl.dataset.selected||d.material;
         if(!newName) return;
-        saveBtn.disabled=true; saveBtn.textContent='Saving…';
+        sb.disabled=true; sb.textContent='Saving…';
         api('PUT','/api/users/'+state.slug+'/domains/'+d.id,{name:newName,material:newMat})
-          .then(function(){ reloadDomains(function(){ render(); loadBoard(); }); })
-          .catch(function(e){ saveBtn.disabled=false; saveBtn.textContent='Save'; alert('Error: '+e.message); });
+          .then(function(){ reloadDomains(function(){ render(null); loadBoard(); }); })
+          .catch(function(e){ sb.disabled=false; sb.textContent='Save'; alert(e.message); });
       };
-      topRow.appendChild(nameInput);
-      topRow.appendChild(saveBtn);
 
-      // Row 2: slug label
-      var slugLabel=document.createElement('div');
-      slugLabel.style.cssText='font-size:7px;font-weight:900;color:var(--faded);letter-spacing:2px;margin-bottom:8px;';
-      slugLabel.textContent='SLUG: '+d.slug+' (permanent)';
-
-      // Row 3: material picker
-      var matLabel=document.createElement('div');
-      matLabel.style.cssText='font-size:9px;font-weight:700;color:var(--faded);margin-bottom:6px;';
-      matLabel.textContent='Material';
-      var picker=matPickerHtml(usedMaterials, d.material, matRef);
-
-      editPanel.appendChild(topRow);
-      editPanel.appendChild(slugLabel);
-      editPanel.appendChild(matLabel);
-      editPanel.appendChild(picker);
-
-      header.onclick=function(){
-        var open=editPanel.style.display!=='none';
-        // Close all other edit panels
-        list.querySelectorAll('[data-edit]').forEach(function(p){p.style.display='none';});
-        editPanel.style.display=open?'none':'block';
+      hdr.onclick=function(){
+        render(isOpen?null:d.id);
       };
-      row.appendChild(header);
-      row.appendChild(editPanel);
+
+      row.appendChild(hdr);
+      row.appendChild(panel);
       list.appendChild(row);
     });
 
-    // New domain picker
-    var ndSlugEl=document.getElementById('nd-slug');
-    var ndPickerEl=document.getElementById('nd-picker');
-    var ndMatRef={dataset:{mat:''}};
-    ndPickerEl.appendChild(matPickerHtml(usedMaterials,'',ndMatRef));
-    document.getElementById('nd-name').oninput=function(){
-      ndSlugEl.value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase().slice(0,4);
+    // Wire add form
+    var addTrigger=document.getElementById('addTriggerBtn');
+    var addForm=document.getElementById('addForm');
+    addTrigger.onclick=function(){
+      var open=addForm.style.display!=='none';
+      addForm.style.display=open?'none':'block';
+      addTrigger.textContent=open?'＋ Add Domain':'✕ Cancel';
+      if(!open){
+        var ndPicker=document.getElementById('nd-picker');
+        matSwatchGrid(ndPicker, usedMaterials, '');
+      }
     };
-    document.getElementById('mc').onclick=closeModal;
+    document.getElementById('nd-name').oninput=function(){
+      document.getElementById('nd-slug').value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase().slice(0,4);
+    };
+    document.getElementById('mc').onclick=function(){ m.style.maxWidth=''; m.style.width=''; closeModal(); };
     document.getElementById('nd-save').onclick=function(){
       var name=document.getElementById('nd-name').value.trim();
-      var slug=ndSlugEl.value.trim().toUpperCase();
-      var mat=ndMatRef.dataset.mat;
-      if(!name||!slug||!mat){alert('Fill name, ID, and pick a material');return;}
+      var slug=document.getElementById('nd-slug').value.toUpperCase();
+      var mat=document.getElementById('nd-picker').dataset.selected;
+      if(!name||!slug||!mat){ alert('Fill in name, ID and pick a material'); return; }
+      this.disabled=true; this.textContent='Adding…';
+      var btn=this;
       api('POST','/api/users/'+state.slug+'/domains',{name:name,slug:slug,material:mat})
-        .then(function(){ reloadDomains(function(){ render(); loadBoard(); }); })
-        .catch(function(e){ alert('Error: '+e.message); });
+        .then(function(){ reloadDomains(function(){ render(null); loadBoard(); }); })
+        .catch(function(e){ btn.disabled=false; btn.textContent='Add'; alert(e.message); });
     };
   }
-  render();
+
+  render(null);
   showModal();
 }
 
