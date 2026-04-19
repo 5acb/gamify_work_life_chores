@@ -1,3 +1,21 @@
+// Design token mirror — keep in sync with :root CSS vars
+var PALETTE = {
+  strategist: 'var(--clr-strategist)',
+  risk:        'var(--clr-risk)',
+  psyche:      'var(--clr-psyche)',
+  oracle:      'var(--clr-oracle)',
+  expert:      'var(--clr-expert)',
+  honey:       'var(--honey)',
+  lapis:       'var(--lapis)',
+  canyon:      'var(--canyon)',
+  amber:       'var(--amber)',
+  teal:        '#5E9C95',
+  cobalt:      '#3b6978',
+  indigo:      '#1f3b4d',
+  wood:        '#9b6a9b',
+  purple:      '#6b4e71'
+};
+
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
 var DM={CTI:{c:PALETTE.teal,l:'CTI',m:'mat-teal'},ECM:{c:PALETTE.wood,l:'ECM',m:'mat-wood'},CSD:{c:PALETTE.cobalt,l:'CSD',m:'mat-cobalt'},GRA:{c:PALETTE.purple,l:'GRA',m:'mat-purple'},Personal:{c:PALETTE.indigo,l:'PER',m:'mat-indigo'}};
