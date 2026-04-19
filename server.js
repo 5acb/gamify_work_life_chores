@@ -848,7 +848,22 @@ You have been given the council's initial briefings below. Synthesize them into 
   }
 };
 
+// Simple in-memory rate limiter for AI endpoints
+const aiRateLimit = new Map();
+function checkAIRateLimit(userId) {
+  const now = Date.now();
+  const key = `ai:${userId}`;
+  const entry = aiRateLimit.get(key) || { count: 0, resetAt: now + 60000 };
+  if (now > entry.resetAt) { entry.count = 0; entry.resetAt = now + 60000; }
+  entry.count++;
+  aiRateLimit.set(key, entry);
+  return entry.count <= 10; // 10 AI calls per minute per user
+}
+
 app.post('/api/council/invoke', ensureAuth, async (req, res) => {
+  if (!checkAIRateLimit(req.user.id)) {
+    return res.status(429).json({ error: 'Too many AI requests. Wait a moment.' });
+  }
   const { agent, message, history = [], focusTask, councilBriefings } = req.body;
   if (!agent || !COUNCIL_PERSONAS[agent]) return res.status(400).json({ error: 'unknown agent' });
   if (!message) return res.status(400).json({ error: 'message required' });

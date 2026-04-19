@@ -117,23 +117,24 @@ function renderApp(){
     +'<div class="panel-list">'
       +'<div class="hdr">'
         +'<div class="hdr-row1">'
-          +'<div class="hdr-date-etched">'+dateStr+'</div>'
+          +'<div class="hdr-date-etched">'
+            +'<span class="hdr-date-text">'+dateStr+'</span>'
+            +'<button class="hdr-logout-btn" id="logoutBtn">⏻ Sign Out</button>'
+          +'</div>'
         +'</div>'
         +'<div class="hdr-row2-icons">'
           +'<div class="hdr-icon-cluster">'
-            +'<button class="hdr-icon '+(state.mode==='plan'?'hdr-icon--plan':'hdr-icon--execute')+'" id="modeToggleBtn" title="'+(state.mode==='plan'?'Plan Mode':'Execute Mode')+'">'+(state.mode==='plan'?'◈':'▷')+'</button>'
-            +'<button class="hdr-icon '+(state.view==='current'?'hdr-icon--active':'hdr-icon--archived')+'" id="viewToggleBtn" title="'+(state.view==='current'?'Active tasks':'Archived tasks')+'">'+(state.view==='current'?'↑':'↓')+'</button>'
-            +'<button class="hdr-icon hdr-icon--council" id="aiBtn" title="'+(state.mode==='plan'?'Council':'Oracle')+'">'+(state.mode==='plan'?'⊛':'✦')+'</button>'
-            +'<button class="hdr-icon hdr-icon--add" id="addBtn" title="New task">＋</button>'
-            +'<button class="hdr-icon hdr-icon--logout" id="logoutBtn" title="Sign out">⏻</button>'
+            +'<button class="hdr-icon '+(state.mode==='plan'?'hdr-icon--plan':'hdr-icon--execute')+'" id="modeToggleBtn">'+(state.mode==='plan'?'◈ Plan':'▷ Execute')+'</button>'
+            +'<button class="hdr-icon '+(state.view==='current'?'hdr-icon--active':'hdr-icon--archived')+'" id="viewToggleBtn">'+(state.view==='current'?'↑ Active':'↓ Archived')+'</button>'
+            +'<button class="hdr-icon hdr-icon--council" id="aiBtn">'+(state.mode==='plan'?'⊛ Council':'✦ Oracle')+'</button>'
+            +'<button class="hdr-icon hdr-icon--add" id="addBtn">＋ Add</button>'
           +'</div>'
         +'</div>'
         +'<div style="display:flex;flex-direction:column;margin-top:10px;gap:10px;width:100%">'
           +'<div style="display:flex;justify-content:flex-end">'
             +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off">'
           +'</div>'
-          +'<div id="statusDots" style="width:100%"></div>'
-        +'</div>'
+                  +'</div>'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
     +'</div>';
@@ -180,7 +181,6 @@ function renderApp(){
   };
 
   renderCards();
-  updateStatusDots();
   if(state.selectedId) renderTree(state.selectedId);
 }
 
@@ -193,50 +193,7 @@ function getTaskHue(t){
   return '';
 }
 
-function updateStatusDots(){
-  var container = document.getElementById('statusDots'); if(!container) return;
-  var activeTasks = state.tasks.filter(t => !t.archived);
-  if(!activeTasks.length) { container.innerHTML = ''; return; }
 
-  var counts = {canyon:0, amber:0, marble:0, dim:0};
-  activeTasks.forEach(t => {
-    var h = getTaskHue(t);
-    if(h) counts[h]++;
-    else counts.dim++;
-  });
-
-  var total = activeTasks.length;
-  var dots = 20;
-  var h = '';
-  
-  // Calculate how many dots for each color
-  var types = ['canyon', 'amber', 'marble', 'dim'];
-  var dotCounts = types.map(type => Math.round((counts[type]/total) * dots));
-  
-  // Adjust to exactly 20 dots due to rounding errors
-  var currentTotal = dotCounts.reduce((a,b)=>a+b, 0);
-  // Distribute difference into the largest group or dim
-  if(currentTotal !== dots) {
-    var diff = dots - currentTotal;
-    dotCounts[3] += diff; // Adjust dim (most common)
-  }
-
-  // Build tooltip text
-  var tipParts=[];
-  if(counts.canyon) tipParts.push(counts.canyon+' canyon');
-  if(counts.amber) tipParts.push(counts.amber+' amber');
-  if(counts.marble) tipParts.push(counts.marble+' marble');
-  if(counts.dim) tipParts.push(counts.dim+' clear');
-  var tipText=tipParts.join(' · ')||'all clear';
-  h += '<div class="status-tile"><span class="status-tile-tooltip">'+tipText+'</span>';
-  types.forEach((type, idx) => {
-    for(var i=0; i<dotCounts[idx]; i++) {
-        h += '<div class="status-dot dot-'+type+'" title="'+type.toUpperCase()+'"></div>';
-    }
-  });
-  h += '</div>';
-  container.innerHTML = h;
-}
 
 function notifyError(msg){
   var el=document.getElementById('errorNotify'); if(!el) return;
@@ -351,7 +308,6 @@ function renderCards(){
     }
   });
   bindGlobalActionEvents();
-  updateStatusDots();
 }
 
 function bindGlobalActionEvents(){
@@ -535,7 +491,10 @@ function initConversations(){
   ALL_COUNCIL_AGENTS.forEach(function(a){ councilState.conversations[a.id] = []; });
 }
 
+var _councilActive = false;
 function openCouncil(){
+  if(_councilActive) return;
+  _councilActive = true;
   var overlay = document.getElementById('councilOverlay');
   if(!overlay){ overlay = buildCouncilOverlay(); document.body.appendChild(overlay); }
 

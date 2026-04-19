@@ -28,7 +28,7 @@
   /* Domain text — dark mode (luminous) */
   --clr-teal:   #99f6e4;
   --clr-cobalt: #93c5fd;
-  --clr-indigo: #60a5fa;
+  --clr-indigo: #8cb9ff;
   --clr-wood:   #EAE0DB;
   --clr-purple: #e9d5ff;
   --clr-canyon: #ff8888;
@@ -52,7 +52,7 @@
   --pill-shd: inset 1px 1px 3px rgba(0, 0, 0, 0.5);
 
   /* Faded label */
-  --faded: rgba(244, 240, 234, 0.25);
+  --faded: rgba(244, 240, 234, 0.45);
 
   /* RGB components for rgba() usage — avoids hardcoded values */
   --honey-rgb:   232, 176, 4;
@@ -82,7 +82,7 @@ body.mode-execute {
   --pill-brd:    rgba(0, 0, 0, 0.08);
   --pill-shd:    inset 1px 1px 3px rgba(0, 0, 0, 0.12);
   --ink:         var(--obsidian);
-  --faded:       rgba(9, 10, 15, 0.35);
+  --faded:       rgba(9, 10, 15, 0.50);
   --honey:       var(--lapis);
   --honey-rgb:   31, 82, 200;
   --ink-rgb:     9, 10, 15;
@@ -176,11 +176,22 @@ body {
 .hdr-row2-icons { display: contents; }
 
 .hdr-date-etched {
-  flex: 1; padding: 10px 14px; font-size: 10px; opacity: 0.4; font-weight: 800;
-  text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 1; padding: 6px 6px 6px 14px; display: flex; align-items: center; gap: 8px;
   background: var(--pill-bg); border: 1px solid var(--pill-brd);
-  box-shadow: var(--pill-shd); border-radius: var(--r-sm); letter-spacing: 1.5px;
+  box-shadow: var(--pill-shd); border-radius: var(--r-sm);
 }
+.hdr-date-text {
+  flex: 1; font-size: 10px; opacity: 0.4; font-weight: 800;
+  text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  letter-spacing: 1.5px;
+}
+.hdr-logout-btn {
+  background: var(--glass-inner); border: 1px solid var(--glass-brd);
+  color: var(--faded); font-size: 9px; font-weight: 800; letter-spacing: 1.5px;
+  text-transform: uppercase; padding: 5px 10px; border-radius: var(--r-sm);
+  cursor: pointer; font-family: inherit; transition: all 0.2s; white-space: nowrap;
+}
+.hdr-logout-btn:hover { color: var(--canyon); border-color: rgba(var(--canyon-rgb),0.4); }
 .hdr-icon-cluster {
   display: flex; align-items: center; flex-shrink: 0;
   background: var(--pill-bg); border: 1px solid var(--pill-brd);
@@ -188,20 +199,19 @@ body {
 }
 .hdr-icon {
   background: transparent; border: none; cursor: pointer;
-  color: rgba(var(--ink-rgb),0.3); font-size: 14px; line-height: 1;
-  padding: 8px 11px; transition: all 0.2s; font-family: inherit;
-  display: flex; align-items: center; justify-content: center; border-radius: 100px;
+  color: rgba(var(--ink-rgb),0.35); font-size: 9px; font-weight: 800; line-height: 1;
+  padding: 7px 10px; transition: all 0.2s; font-family: inherit; letter-spacing: 1px;
+  display: flex; align-items: center; gap: 5px; justify-content: center;
+  border-radius: 100px; text-transform: uppercase; white-space: nowrap;
 }
 .hdr-icon:hover { color: var(--ink); background: var(--glass-inner); }
 .hdr-icon:active { transform: scale(0.92); }
 .hdr-icon--plan    { color: var(--honey); }
 .hdr-icon--execute { color: var(--honey); }
-.hdr-icon--active  { color: rgba(var(--ink-rgb),0.45); }
-.hdr-icon--archived{ color: rgba(var(--ink-rgb),0.25); }
+.hdr-icon--active  { color: rgba(var(--ink-rgb),0.5); }
+.hdr-icon--archived{ color: rgba(var(--ink-rgb),0.3); }
 .hdr-icon--council { color: var(--honey); }
-.hdr-icon--add     { color: rgba(var(--ink-rgb),0.35); font-size: 16px; }
-.hdr-icon--logout  { color: rgba(var(--ink-rgb),0.2); }
-.hdr-icon--logout:hover { color: var(--canyon); background: rgba(var(--canyon-rgb),0.08); }
+.hdr-icon--add     { color: rgba(var(--ink-rgb),0.4); }
 
 .search {
   width: 100%; padding: 10px 15px; background: var(--glass);
@@ -251,28 +261,7 @@ body {
 .card.mat-wood::after   { background: var(--mat-wood); }
 .card.mat-purple::after { background: var(--mat-purple); }
 
-/* ── Status Tile ── */
-.status-tile {
-  background: var(--pill-bg); border: 1px solid var(--pill-brd); box-shadow: var(--pill-shd);
-  padding: 10px 16px; border-radius: var(--r-sm); display: flex; align-items: center;
-  justify-content: space-between; width: 100%; box-sizing: border-box;
-  position: relative; cursor: default;
-}
-.status-tile-tooltip {
-  display: none; position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-  background: rgba(var(--obsidian-rgb),0.95); border: 1px solid var(--glass-brd);
-  padding: 8px 14px; border-radius: var(--r-sm); font-size: 10px; font-weight: 700;
-  letter-spacing: 1px; white-space: nowrap; z-index: 1000; color: var(--ink);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-}
-.status-tile:hover .status-tile-tooltip { display: block; }
-.status-dot { height: 12px; width: 4px; border-radius: 1px; transition: all 0.3s; }
-.dot-canyon { background: var(--canyon); box-shadow: 0 0 8px rgba(var(--canyon-rgb),0.6); }
-.dot-amber  { background: var(--amber);  box-shadow: 0 0 8px rgba(var(--amber-rgb),0.55); }
-.dot-marble { background: rgba(var(--marble-rgb),0.3); }
-.dot-dim    { background: var(--glass-brd); }
-body.mode-execute .dot-canyon { box-shadow: none; }
-body.mode-execute .dot-amber  { box-shadow: none; }
+/* Status indicator removed — psychologist audit Apr 2026 */
 
 /* ── Donut ── */
 .card-hue-indicator {
