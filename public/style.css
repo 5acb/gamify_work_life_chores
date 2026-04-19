@@ -19,34 +19,12 @@
   --canyon:   #c15c3d;
 
   /* Domain representative accent colours (start of mat-* gradients) */
-  --dom-teal:   #5E9C95;
-  --dom-cobalt: #3b6978;
-  --dom-indigo: #1f3b4d;
-  --dom-wood:   #9b6a9b;
-  --dom-purple: #6b4e71;
 
   /* Domain material gradients */
-  --mat-teal:   linear-gradient(135deg, #5E9C95 0%, #2C5651 100%);
-  --mat-cobalt: linear-gradient(135deg, #3b6978 0%, #204051 100%);
-  --mat-indigo: linear-gradient(135deg, #1f3b4d 0%, #0d1b2a 100%);
-  --mat-wood:   linear-gradient(135deg, #5d4037 0%, #2b1d1d 100%);
-  --mat-purple: linear-gradient(135deg, #6b4e71 0%, #3a243e 100%);
-  --mat-canyon: linear-gradient(135deg, #c15c3d 0%, #4a2c2a 100%);
 
   /* Domain text — dark mode (luminous) */
-  --clr-teal:   #99f6e4;
-  --clr-cobalt: #93c5fd;
-  --clr-indigo: #8cb9ff;
-  --clr-wood:   #EAE0DB;
-  --clr-purple: #e9d5ff;
-  --clr-canyon: #ff8888;
 
   /* Domain text — execute mode (dark on washi) */
-  --clr-teal-x:   #1a6b60;
-  --clr-cobalt-x: #1e4f6b;
-  --clr-indigo-x: #1a3a6b;
-  --clr-wood-x:   #5d3a2a;
-  --clr-purple-x: #4a2e5a;
 
   /* Glass surfaces */
   --glass:       rgba(255, 255, 255, 0.05);
@@ -128,11 +106,6 @@ body.mode-execute {
   --honey-rgb:   31, 82, 200;
   --btn-save-text: var(--ink-static); /* light text on lapis */
   --ink-rgb:     9, 10, 15;
-  --clr-teal:    var(--clr-teal-x);
-  --clr-cobalt:  var(--clr-cobalt-x);
-  --clr-indigo:  var(--clr-indigo-x);
-  --clr-wood:    var(--clr-wood-x);
-  --clr-purple:  var(--clr-purple-x);
   background-color: var(--washi-base);
   color: var(--obsidian);
   background-image:
@@ -163,12 +136,6 @@ body.mode-execute .modal {
 }
 
 /* Tile text: domain gradient tiles keep white; generic tiles invert */
-body.mode-execute .tile { color: var(--obsidian) !important; }
-body.mode-execute .card.mat-teal .tile,
-body.mode-execute .card.mat-cobalt .tile,
-body.mode-execute .card.mat-indigo .tile,
-body.mode-execute .card.mat-wood .tile,
-body.mode-execute .card.mat-purple .tile { color: var(--ink-static) !important; }
 body.mode-execute .tile-domain { color: rgba(var(--obsidian-rgb),0.6) !important; }
 
 /* Donut glows invisible on light — solid ring instead */
@@ -327,10 +294,6 @@ body {
   pointer-events: none; z-index: 1; border-radius: var(--r-md);
 }
 .card.mat-teal::after   { background: var(--mat-teal); }
-.card.mat-cobalt::after { background: var(--mat-cobalt); }
-.card.mat-indigo::after { background: var(--mat-indigo); }
-.card.mat-wood::after   { background: var(--mat-wood); }
-.card.mat-purple::after { background: var(--mat-purple); }
 
 /* ── Status Tile ── */
 .status-tile {
@@ -703,3 +666,6 @@ body.mode-execute #bgLights {
 }
 /* Ensure .app sits above the light layer */
 .app { position: relative; z-index: 1; }
+
+/* Domains management button */
+.hdr-icon--domains { color: rgba(var(--ink-rgb),0.35); }

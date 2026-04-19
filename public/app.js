@@ -8,19 +8,62 @@ var PALETTE = {
   honey:       'var(--honey)',
   lapis:       'var(--lapis)',
   canyon:      'var(--canyon)',
-  amber:       'var(--amber)',
-  teal:        '#5E9C95',
-  cobalt:      '#3b6978',
-  indigo:      '#1f3b4d',
-  wood:        '#9b6a9b',
-  purple:      '#6b4e71'
+  amber:       'var(--amber)'
+};
+
+// Named material system — all domain colour comes from here, nothing hardcoded elsewhere
+var MATERIALS = {
+  'ink-stone':      { name:'Ink Stone',       gs:'#2C3E50', ge:'#1D2A38', lum:'#EAEFF5', exe:'#202A35', rgb:'44,62,80',    evoke:'Quiet focus of deep study' },
+  'granite-bedrock':{ name:'Granite Bedrock', gs:'#4E5055', ge:'#2D2E30', lum:'#D9DCE1', exe:'#38393B', rgb:'78,80,85',    evoke:'Solid foundation for great work' },
+  'hearthstone':    { name:'Hearthstone',     gs:'#8C2B1D', ge:'#5A1C12', lum:'#FF8D4D', exe:'#6E2B1F', rgb:'140,43,29',   evoke:'Warm energy of a passion project' },
+  'wild-orchid':    { name:'Wild Orchid',     gs:'#A2397B', ge:'#6B2551', lum:'#FFA0E5', exe:'#802D60', rgb:'162,57,123',  evoke:'Vibrant creative energy and joy' },
+  'mosswood':       { name:'Mosswood',        gs:'#3A643A', ge:'#213D21', lum:'#A8D17E', exe:'#2D4D2D', rgb:'58,100,58',   evoke:'Growth and steady wellbeing' },
+  'arctic-shore':   { name:'Arctic Shore',    gs:'#58707D', ge:'#3A4952', lum:'#E0F4FF', exe:'#43555F', rgb:'88,112,125',  evoke:'Calm clarity of vast open space' },
+  'sun-baked-clay': { name:'Sun-baked Clay',  gs:'#A15A38', ge:'#6B3B24', lum:'#FFCBA4', exe:'#7A4429', rgb:'161,90,56',   evoke:'Warmth of home and human connection' },
+  'aged-mahogany':  { name:'Aged Mahogany',   gs:'#712D3A', ge:'#4A1D25', lum:'#F2B8B3', exe:'#59242E', rgb:'113,45,58',   evoke:'Legacy and depth of family history' },
+  'cyberspace-grid':{ name:'Cyberspace Grid', gs:'#005F6B', ge:'#003C43', lum:'#66FBFB', exe:'#004850', rgb:'0,95,107',    evoke:'Precise interconnected logic of tech' },
+  'gilded-ore':     { name:'Gilded Ore',      gs:'#796A3D', ge:'#4A3F25', lum:'#FDE496', exe:'#605331', rgb:'121,106,61',  evoke:'Value and deliberate pursuit of growth' },
+  'amethyst-sky':   { name:'Amethyst Sky',    gs:'#6247AA', ge:'#3B2A66', lum:'#D5C6FF', exe:'#493680', rgb:'98,71,170',   evoke:'Introspection and connection to the mystical' },
+  'saffron-road':   { name:'Saffron Road',    gs:'#B5712B', ge:'#7A4C1C', lum:'#FFC96B', exe:'#905A22', rgb:'181,113,43',  evoke:'Adventure and richness of knowledge' },
+  'nebula':         { name:'Nebula',          gs:'#40469A', ge:'#26295D', lum:'#B3B8FF', exe:'#313678', rgb:'64,70,154',   evoke:'Wonder of the cosmos and ambitious ideas' },
+  'first-light':    { name:'First Light',     gs:'#C86259', ge:'#8A433D', lum:'#FFB3A3', exe:'#A14F47', rgb:'200,98,89',   evoke:'New beginnings and gentle optimism' },
+  'kingfisher':     { name:'Kingfisher',      gs:'#006E90', ge:'#00485E', lum:'#38B6FF', exe:'#005670', rgb:'0,110,144',   evoke:'Swift insight and brilliance in motion' },
 };
 
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
-var DM={CTI:{c:PALETTE.teal,l:'CTI',m:'mat-teal'},ECM:{c:PALETTE.wood,l:'ECM',m:'mat-wood'},CSD:{c:PALETTE.cobalt,l:'CSD',m:'mat-cobalt'},GRA:{c:PALETTE.purple,l:'GRA',m:'mat-purple'},Personal:{c:PALETTE.indigo,l:'PER',m:'mat-indigo'}};
+// DM built dynamically from user domains — populated by loadDomains()
+var DM = {};
+var state_domains = []; // full domain objects
+
+function buildDomainMap(domains) {
+  DM = {};
+  domains.forEach(function(d) {
+    var m = MATERIALS[d.material] || MATERIALS['ink-stone'];
+    DM[d.slug] = { c: m.gs, l: d.slug, m: 'dom-'+d.slug, name: d.name, material: d.material };
+  });
+}
+
+function injectDomainStyles(domains) {
+  var el = document.getElementById('domain-styles');
+  if (!el) { el = document.createElement('style'); el.id = 'domain-styles'; document.head.appendChild(el); }
+  var lines = [];
+  domains.forEach(function(d) {
+    var m = MATERIALS[d.material] || MATERIALS['ink-stone'];
+    var sel = '.dom-' + d.slug;
+    var grad = 'linear-gradient(135deg,' + m.gs + ' 0%,' + m.ge + ' 100%)';
+    lines.push(sel + '::after { background:' + grad + '; }');
+    lines.push(sel + ' .tile { background:' + grad + '; }');
+    lines.push(sel + ' .tile-name { color:' + m.lum + '; }');
+    lines.push(sel + ' .tile-domain { color:' + m.lum + ' !important; background:' + grad + '; }');
+    lines.push('body.mode-execute ' + sel + ' .tile-name { color:' + m.exe + '; }');
+    lines.push('body.mode-execute ' + sel + ' .tile { color:' + m.exe + ' !important; }');
+    lines.push('body.mode-execute ' + sel + ' .tile-domain { color:' + m.exe + ' !important; }');
+  });
+  el.textContent = lines.join(' ');
+}
 var SPEED_L=['snap','sesh','grind'],STAKES_L=['low','high','crit'];
-var DOMAINS=Object.keys(DM);
+var DOMAINS=[]; // populated after domain load
 
 var state={slug:null,user:null,tasks:[],taskById:{},view:'current',searchQuery:'',selectedId:null,mode:'plan'};
 
@@ -146,6 +189,7 @@ function renderApp(){
             +'<button class="hdr-icon '+(state.view==='current'?'hdr-icon--active':'hdr-icon--archived')+'" id="viewToggleBtn">'+(state.view==='current'?'↑ Active':'↓ Archived')+'</button>'
             +'<button class="hdr-icon hdr-icon--council" id="aiBtn">'+(state.mode==='plan'?'⊛ Council':'✦ Oracle')+'</button>'
             +'<button class="hdr-icon hdr-icon--add" id="addBtn">＋ Add</button>'
+            +'<button class="hdr-icon hdr-icon--domains" id="domainsBtn">⊞ Domains</button>'
           +'</div>'
         +'</div>'
         +'<div style="display:flex;flex-direction:column;margin-top:10px;gap:10px;width:100%">'
@@ -181,6 +225,7 @@ function renderApp(){
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
 
   document.getElementById('addBtn').addEventListener('click',openAddTask);
+  document.getElementById('domainsBtn').addEventListener('click',openDomainsModal);
   document.getElementById('aiBtn').addEventListener('click',function(){
     if(state.mode==='plan') openCouncil();
     else openAI();
@@ -360,33 +405,28 @@ function updateStatusDots(){
   container.innerHTML=h;
 }
 var _cardActionsBound = false;
+// Off-canvas light positions — assigned to domains by index
+var LIGHT_POSITIONS = [
+  {x:'112%',y:'38%'},{x:'-12%',y:'22%'},{x:'92%',y:'80%'},
+  {x:'18%',y:'112%'},{x:'52%',y:'-12%'},{x:'108%',y:'72%'},
+  {x:'-8%',y:'70%'},{x:'60%',y:'-15%'}
+];
+
 function updateDomainLights(){
   var el=document.getElementById('bgLights');
-  if(!el){
-    el=document.createElement('div');
-    el.id='bgLights';
-    document.body.insertBefore(el,document.body.firstChild);
-  }
+  if(!el){ el=document.createElement('div'); el.id='bgLights'; document.body.insertBefore(el,document.body.firstChild); }
+  if(!state_domains.length){ el.style.backgroundImage=''; return; }
   var tasks=state.tasks.filter(function(t){return !t.archived;});
   var total=Math.max(tasks.length,1);
-
-  // Off-canvas light positions + domain rgb (mat-* gradient starts)
-  var lights=[
-    {domain:'CTI',      rgb:'94,156,149',  x:'112%', y:'38%'},   // teal — right
-    {domain:'CSD',      rgb:'59,105,120',  x:'-12%', y:'22%'},   // cobalt — left
-    {domain:'GRA',      rgb:'107,78,113',  x:'92%',  y:'80%'},   // purple — bottom-right
-    {domain:'ECM',      rgb:'155,106,155', x:'18%',  y:'112%'},  // warm — bottom
-    {domain:'Personal', rgb:'31,59,77',    x:'52%',  y:'-12%'},  // indigo — top
-  ];
-
-  var grads=lights.map(function(l){
-    var count=tasks.filter(function(t){return t.domain===l.domain;}).length;
+  var grads=state_domains.map(function(d,i){
+    var m=MATERIALS[d.material]||MATERIALS['ink-stone'];
+    var pos=LIGHT_POSITIONS[i%LIGHT_POSITIONS.length];
+    var count=tasks.filter(function(t){return t.domain===d.slug;}).length;
     var pct=count/total;
     var op=(0.07+pct*0.20).toFixed(2);
     var spread=Math.round(38+pct*28);
-    return 'radial-gradient(ellipse at '+l.x+' '+l.y+',rgba('+l.rgb+','+op+') 0,transparent '+spread+'%)';
+    return 'radial-gradient(ellipse at '+pos.x+' '+pos.y+',rgba('+m.rgb+','+op+') 0,transparent '+spread+'%)';
   }).join(',');
-
   el.style.backgroundImage=grads;
 }
 
@@ -463,6 +503,89 @@ function taskForm(t){
       +'<div class="field-tile" style="flex:1"><label>Due</label><input id="f-dd" type="date" value="'+esc(t&&t.due_date?t.due_date:'')+'"></div>'
     +'</div>'
     +'<div class="field-tile"><label>Status</label><select id="f-done"><option value="0">Pending</option><option value="1" '+(t&&t.done?'selected':'')+'>Done</option></select></div>';
+}
+
+function openDomainsModal(){
+  var m=document.getElementById('modal');
+  var usedMaterials=state_domains.map(function(d){return d.material;});
+
+  function render(){
+    usedMaterials=state_domains.map(function(d){return d.material;});
+    m.innerHTML='<h2>⊞ Domains</h2>'
+      +'<div id="domainList" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;margin-bottom:16px"></div>'
+      +'<div style="border-top:1px solid var(--glass-brd);padding-top:14px">'
+        +'<div class="field-tile" id="newDomainForm">'
+          +'<label>New Domain</label>'
+          +'<input id="nd-name" placeholder="Domain name (e.g. Health)" style="width:100%;background:transparent;border:none;color:var(--ink);font-size:15px;font-family:inherit;outline:none;margin-bottom:8px">'
+          +'<input id="nd-slug" placeholder="3-4 letter ID (e.g. HLT)" maxlength="4" style="width:100%;background:transparent;border:none;color:var(--honey);font-size:13px;font-weight:800;font-family:inherit;outline:none;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">'
+          +'<label style="margin-top:4px">Pick a material</label>'
+          +'<div id="matPicker" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px"></div>'
+        +'</div>'
+      +'</div>'
+      +'<div class="modal-actions"><button id="mc" class="btn-cancel">Close</button><button id="nd-save" class="btn-save">Add Domain</button></div>';
+
+    // Render existing domains
+    var list=document.getElementById('domainList');
+    state_domains.forEach(function(d){
+      var mat=MATERIALS[d.material]||MATERIALS['ink-stone'];
+      var grad='linear-gradient(135deg,'+mat.gs+' 0%,'+mat.ge+' 100%)';
+      var row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--glass);border-radius:var(--r-sm);';
+      row.innerHTML='<div style="width:28px;height:28px;border-radius:3px;background:'+grad+';flex-shrink:0"></div>'
+        +'<div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ink)">'+esc(d.name)+'</div>'
+        +'<div style="font-size:9px;font-weight:900;letter-spacing:2px;color:var(--faded)">'+esc(d.slug)+' · '+esc(mat.name)+'</div></div>'
+        +'<button class="btn-danger" style="font-size:9px;padding:4px 8px;flex-shrink:0" data-did="'+d.id+'">×</button>';
+      row.querySelector('[data-did]').onclick=function(){
+        api('DELETE','/api/users/'+state.slug+'/domains/'+this.dataset.did).then(function(){
+          api('GET','/api/users/'+state.slug+'/domains').then(function(r){
+            state_domains=r.domains;buildDomainMap(state_domains);injectDomainStyles(state_domains);DOMAINS=state_domains.map(function(d){return d.slug;});
+            render();
+          });
+        });
+      };
+      list.appendChild(row);
+    });
+
+    // Render material swatches
+    var picker=document.getElementById('matPicker');
+    Object.keys(MATERIALS).forEach(function(key){
+      var mat=MATERIALS[key];
+      var taken=usedMaterials.indexOf(key)>=0;
+      var grad='linear-gradient(135deg,'+mat.gs+' 0%,'+mat.ge+' 100%)';
+      var sw=document.createElement('div');
+      sw.dataset.mat=key;
+      sw.style.cssText='cursor:'+(taken?'not-allowed':'pointer')+';border-radius:var(--r-sm);overflow:hidden;border:2px solid transparent;opacity:'+(taken?'0.35':'1')+';transition:all 0.2s;';
+      sw.innerHTML='<div style="height:28px;background:'+grad+'"></div>'
+        +'<div style="padding:4px 6px;background:var(--glass-inner);font-size:8px;font-weight:800;color:var(--ink);letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(mat.name)+'</div>';
+      if(!taken) sw.onclick=function(){
+        document.querySelectorAll('#matPicker [data-mat]').forEach(function(x){x.style.borderColor='transparent';});
+        this.style.borderColor='var(--honey)';
+        document.getElementById('nd-slug').dataset.mat=this.dataset.mat;
+      };
+      picker.appendChild(sw);
+    });
+
+    // Auto-slug from name
+    document.getElementById('nd-name').oninput=function(){
+      var slug=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase().slice(0,4);
+      document.getElementById('nd-slug').value=slug;
+    };
+    document.getElementById('mc').onclick=closeModal;
+    document.getElementById('nd-save').onclick=function(){
+      var name=document.getElementById('nd-name').value.trim();
+      var slug=document.getElementById('nd-slug').value.trim().toUpperCase();
+      var mat=document.getElementById('nd-slug').dataset.mat;
+      if(!name||!slug||!mat){alert('Fill in name, ID, and pick a material');return;}
+      api('POST','/api/users/'+state.slug+'/domains',{name:name,slug:slug,material:mat}).then(function(r){
+        api('GET','/api/users/'+state.slug+'/domains').then(function(rd){
+          state_domains=rd.domains;buildDomainMap(state_domains);injectDomainStyles(state_domains);DOMAINS=state_domains.map(function(d){return d.slug;});
+          render();loadBoard();
+        });
+      }).catch(function(e){alert('Error: '+e.message);});
+    };
+  }
+  render();
+  showModal();
 }
 
 function openEdit(id){

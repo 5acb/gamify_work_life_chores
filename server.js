@@ -64,6 +64,38 @@ const db = new Database(DB_PATH, { fileMustExist: true });
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+// Migrate: domains table
+db.exec(`
+  CREATE TABLE IF NOT EXISTS domains (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id),
+    name       TEXT NOT NULL,
+    slug       TEXT NOT NULL,
+    material   TEXT NOT NULL,
+    sort_order INTEGER DEFAULT 0,
+    UNIQUE(user_id, slug)
+  );
+`);
+
+// Seed default domains for any user who has tasks but no domains
+(function seedDefaultDomains(){
+  const DEFAULT_DOMAIN_SEEDS = [
+    { name:'Threat Intelligence', slug:'CTI', material:'cyberspace-grid', sort_order:0 },
+    { name:'Drone Security',      slug:'CSD', material:'kingfisher',       sort_order:1 },
+    { name:'Enterprise Security', slug:'ECM', material:'saffron-road',     sort_order:2 },
+    { name:'Graduate Research',   slug:'GRA', material:'amethyst-sky',     sort_order:3 },
+    { name:'Personal',            slug:'PER', material:'sun-baked-clay',   sort_order:4 },
+  ];
+  const users = db.prepare('SELECT id FROM users').all();
+  const insert = db.prepare('INSERT OR IGNORE INTO domains(user_id,name,slug,material,sort_order) VALUES(?,?,?,?,?)');
+  users.forEach(u => {
+    const hasDomains = db.prepare('SELECT 1 FROM domains WHERE user_id=?').get(u.id);
+    if (!hasDomains) {
+      DEFAULT_DOMAIN_SEEDS.forEach(d => insert.run(u.id, d.name, d.slug, d.material, d.sort_order));
+    }
+  });
+})();
+
 // Migrate: task_events audit log (idempotent)
 db.exec(`
   CREATE TABLE IF NOT EXISTS task_events (
@@ -589,6 +621,56 @@ app.get('/api/users', ensureAuth, (req, res) => {
 });
 
 // ---- UI State ----
+// ── Domains API ──
+app.get('/api/users/:slug/domains', ensureAuth, (req, res) => {
+  const user = db.prepare('SELECT id FROM users WHERE slug=?').get(req.params.slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+  const domains = db.prepare('SELECT * FROM domains WHERE user_id=? ORDER BY sort_order').all(user.id);
+  res.json({ domains });
+});
+
+app.post('/api/users/:slug/domains', ensureAuth, (req, res) => {
+  const user = db.prepare('SELECT id FROM users WHERE slug=?').get(req.params.slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+  const { name, slug, material } = req.body;
+  if (!name || !slug || !material) return res.status(400).json({ error: 'name, slug, material required' });
+  const cleanSlug = slug.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);
+  // Enforce unique material per user
+  const matTaken = db.prepare('SELECT 1 FROM domains WHERE user_id=? AND material=? AND slug!=?').get(user.id, material, cleanSlug);
+  if (matTaken) return res.status(409).json({ error: 'material already assigned to another domain' });
+  const maxOrder = db.prepare('SELECT MAX(sort_order) AS m FROM domains WHERE user_id=?').get(user.id)?.m ?? -1;
+  try {
+    const r = db.prepare('INSERT INTO domains(user_id,name,slug,material,sort_order) VALUES(?,?,?,?,?)').run(user.id, name, cleanSlug, material, maxOrder+1);
+    res.json({ domain: { id: r.lastInsertRowid, name, slug: cleanSlug, material, sort_order: maxOrder+1 } });
+  } catch(e) {
+    res.status(409).json({ error: 'slug already in use' });
+  }
+});
+
+app.put('/api/users/:slug/domains/:id', ensureAuth, (req, res) => {
+  const user = db.prepare('SELECT id FROM users WHERE slug=?').get(req.params.slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+  const { name, material } = req.body;
+  if (material) {
+    const matTaken = db.prepare('SELECT 1 FROM domains WHERE user_id=? AND material=? AND id!=?').get(user.id, material, +req.params.id);
+    if (matTaken) return res.status(409).json({ error: 'material already assigned to another domain' });
+  }
+  const fields = []; const vals = [];
+  if (name) { fields.push('name=?'); vals.push(name); }
+  if (material) { fields.push('material=?'); vals.push(material); }
+  if (!fields.length) return res.status(400).json({ error: 'nothing to update' });
+  vals.push(+req.params.id, user.id);
+  db.prepare(`UPDATE domains SET ${fields.join(',')} WHERE id=? AND user_id=?`).run(...vals);
+  res.json({ ok: true });
+});
+
+app.delete('/api/users/:slug/domains/:id', ensureAuth, (req, res) => {
+  const user = db.prepare('SELECT id FROM users WHERE slug=?').get(req.params.slug);
+  if (!user) return res.status(404).json({ error: 'user not found' });
+  db.prepare('DELETE FROM domains WHERE id=? AND user_id=?').run(+req.params.id, user.id);
+  res.json({ ok: true });
+});
+
 app.get('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
   if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
   const row = db.prepare('SELECT value FROM ui_state WHERE key = ?').get(req.user.id + ':state');
