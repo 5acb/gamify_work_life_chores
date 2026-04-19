@@ -82,7 +82,7 @@ function daysFrom(ds){if(!ds)return 999;return Math.round((new Date(ds+'T00:00:0
 function tLabel(n){
   if(n>=999) return '---';
   if(n>0)  return 'T-'+n;          // future: T-9 = 9 days until due
-  if(n===0) return 'T+0';          // due today
+  if(n===0) return 'T-0';          // due today
   return 'T+'+Math.abs(n);         // overdue: T+3 = 3 days past due
 }
 
