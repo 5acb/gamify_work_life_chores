@@ -40,7 +40,9 @@ function buildDomainMap(domains) {
   DM = {};
   domains.forEach(function(d) {
     var m = MATERIALS[d.material] || MATERIALS['ink-stone'];
-    DM[d.slug] = { c: m.gs, l: d.slug, m: 'dom-'+d.slug, name: d.name, material: d.material };
+    var entry = { c: m.gs, l: d.slug, m: 'dom-'+d.slug, name: d.name, material: d.material };
+    DM[d.slug] = entry;       // canonical key
+    DM[d.name] = entry;       // name alias — covers any unmigrated task data
   });
 }
 

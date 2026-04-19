@@ -96,6 +96,17 @@ db.exec(`
   });
 })();
 
+// Migrate: normalise task.domain values to slugs (idempotent)
+(function migrateTaskDomains(){
+  const domainMap = db.prepare('SELECT name, slug FROM domains').all();
+  domainMap.forEach(function(d){
+    if(d.name !== d.slug){
+      const n = db.prepare("UPDATE tasks SET domain=? WHERE domain=?").run(d.slug, d.name);
+      if(n.changes) console.log('[migrate] tasks.domain '+d.name+' → '+d.slug+' ('+n.changes+' rows)');
+    }
+  });
+})();
+
 // Migrate: task_events audit log (idempotent)
 db.exec(`
   CREATE TABLE IF NOT EXISTS task_events (
