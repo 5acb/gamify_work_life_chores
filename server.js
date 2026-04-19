@@ -911,6 +911,10 @@ const DECK_TOOLS = [
     parameters:{ type:'object', required:['task_id','reason'], properties:{
       task_id:{type:'integer'}, reason:{type:'string'}
     }}},
+  { name:'no_action', description:'Use when no change is needed for this task — signals review acknowledged.',
+    parameters:{ type:'object', required:['task_id'], properties:{
+      task_id:{type:'integer'}
+    }}},
 ];
 
 function deckActionDescription(tool, args, tasks) {
@@ -955,6 +959,7 @@ function executeDeckAction(userId, tool, args) {
     db.prepare("UPDATE tasks SET stakes=2,speed=2,updated_at=datetime('now') WHERE id=?").run(task.id);
     return 'Escalated "'+task.name+'" to critical';
   }
+  if(tool==='no_action') return 'Acknowledged "'+task.name+'" — no changes made';
   throw new Error('Unknown tool: '+tool);
 }
 
@@ -993,10 +998,13 @@ app.post('/api/deck-review', ensureAuth, async function(req, res) {
   ].join('\n');
 
   var sys = [
-    'You are '+user.name+"'s execution coach running a Deck Review — deliberate pass through every active task.",
-    'Per task: 2-3 sentences on the situation (overdue? blocked? misaligned? missing info?), then propose tool calls.',
-    'Respond to user feedback and revise proposals. Be direct and terse.',
-    'Today: '+today+'. Never propose actions you are uncertain about.'
+    'You are '+user.name+"'s execution coach in a Deck Review session.",
+    'ALWAYS respond with BOTH a text assessment AND a tool call when an action is warranted.',
+    'Text: 2-3 sentences max — situation analysis (overdue? blocked? wrong priority? missing info?).',
+    'Tool call: propose the most impactful single change via the provided tools.',
+    'If no change is needed, say so in text and call task_flag_critical with reason="no action needed" to signal review complete.',
+    'Never describe tool calls in prose — always use the structured function call mechanism.',
+    'Today: '+today
   ].join('\n');
 
   var contents = [];
@@ -1012,7 +1020,7 @@ app.post('/api/deck-review', ensureAuth, async function(req, res) {
     var body = {
       contents: contents,
       tools:[{function_declarations:DECK_TOOLS}],
-      tool_config:{function_calling_config:{mode:'AUTO'}},
+      tool_config:{function_calling_config:{mode:'ANY'}},
       system_instruction:{parts:[{text:sys}]}
     };
     var gRes = await fetch(
@@ -1023,7 +1031,7 @@ app.post('/api/deck-review', ensureAuth, async function(req, res) {
     if(!gRes.ok) throw new Error((gData.error&&gData.error.message)||'Gemini error');
     var parts = (gData.candidates&&gData.candidates[0]&&gData.candidates[0].content&&gData.candidates[0].content.parts)||[];
     var text = parts.filter(function(p){return p.text;}).map(function(p){return p.text;}).join('').trim();
-    var proposals = parts.filter(function(p){return p.functionCall;}).map(function(p){
+    var proposals = parts.filter(function(p){return p.functionCall && p.functionCall.name!=='no_action';}).map(function(p){
       return {
         tool: p.functionCall.name,
         args: p.functionCall.args,
