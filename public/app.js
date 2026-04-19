@@ -357,7 +357,16 @@ function bindGlobalActionEvents(){
     var id = +btn.dataset.id;
     if(id) {
       if(btn.classList.contains('act-edit')) openEdit(id);
-      if(btn.classList.contains('act-archive')) api('PATCH','/api/tasks/'+id+'/archive').then(loadBoard);
+      if(btn.classList.contains('act-archive')){
+        var rect=btn.getBoundingClientRect();
+        var flash=document.createElement('div');
+        flash.className='bamboo-flash';
+        flash.style.setProperty('--ripple-x',(rect.left+rect.width/2)+'px');
+        flash.style.setProperty('--ripple-y',(rect.top+rect.height/2)+'px');
+        document.body.appendChild(flash);
+        setTimeout(function(){flash.remove();},950);
+        api('PATCH','/api/tasks/'+id+'/archive').then(loadBoard);
+      }
       if(btn.classList.contains('act-restore')) api('PATCH','/api/tasks/'+id+'/unarchive').then(loadBoard);
     }
   }
