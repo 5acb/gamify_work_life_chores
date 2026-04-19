@@ -121,13 +121,19 @@ function loadBoard(){
   var vp=state.view==='archived'?'?view=archived':'';
   Promise.all([
     api('GET','/api/users/'+state.slug+'/tasks'+vp),
-    api('GET','/api/users/'+state.slug+'/ui-state')
+    api('GET','/api/users/'+state.slug+'/ui-state'),
+    api('GET','/api/users/'+state.slug+'/domains')
   ]).then(function(resArr){
-    var res=resArr[0], ui=resArr[1];
+    var res=resArr[0], ui=resArr[1], domRes=resArr[2];
+    // Domains must be ready before renderApp so cards get correct classes
+    state_domains = domRes.domains || [];
+    buildDomainMap(state_domains);
+    injectDomainStyles(state_domains);
+    DOMAINS = state_domains.map(function(d){return d.slug;});
+
     state.tasks=res.tasks;state.user=res.user;
     if(ui.mode) state.mode=ui.mode;
-    
-    // Apply custom sort order if present
+
     if(ui.order && ui.order.length){
       var map={}; ui.order.forEach(function(id,idx){map[id]=idx});
       state.tasks.sort(function(a,b){
