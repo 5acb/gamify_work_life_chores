@@ -143,6 +143,18 @@ body.mode-execute {
 
 /* Execute-only overrides that tokens cannot handle */
 
+/* Modal overlay lighter in execute mode — washi modal on washi bg */
+body.mode-execute .modal-bg {
+  background: rgba(var(--obsidian-rgb), 0.35);
+  backdrop-filter: blur(20px);
+}
+/* Modal itself needs a solid washi surface, not near-transparent glass */
+body.mode-execute .modal {
+  background: var(--washi-grad-a);
+  border-color: rgba(var(--obsidian-rgb), 0.12);
+  box-shadow: 0 20px 60px rgba(var(--obsidian-rgb), 0.25);
+}
+
 /* Tile text: domain gradient tiles keep white; generic tiles invert */
 body.mode-execute .tile { color: var(--obsidian) !important; }
 body.mode-execute .card.mat-teal .tile,
@@ -429,14 +441,6 @@ body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: r
 }
 .modal-bg.show { display: flex; }
 .modal {
-  /* Always dark — rendered against dark modal-bg overlay in both modes */
-  --ink:        #f4f0ea;
-  --faded:      rgba(244, 240, 234, 0.3);
-  --glass:      rgba(255, 255, 255, 0.04);
-  --glass-brd:  rgba(255, 255, 255, 0.12);
-  --glass-inner:rgba(255, 255, 255, 0.06);
-  --honey:      #e8b004;
-  --honey-rgb:  232, 176, 4;
   background: var(--glass); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px);
   border: 1px solid var(--glass-brd); padding: 40px; width: 100%; max-width: 500px;
   box-shadow: var(--shd-modal); border-radius: 24px; display: flex; flex-direction: column; gap: 20px;
