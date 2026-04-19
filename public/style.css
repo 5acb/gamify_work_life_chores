@@ -200,7 +200,7 @@ body {
 .hdr-icon {
   background: transparent; border: none; cursor: pointer;
   color: rgba(var(--ink-rgb),0.35); font-size: 9px; font-weight: 800; line-height: 1;
-  padding: 7px 10px; transition: all 0.2s; font-family: inherit; letter-spacing: 1px;
+  padding: 10px 14px; transition: all 0.2s; font-family: inherit; letter-spacing: 1px; min-height: 44px;
   display: flex; align-items: center; gap: 5px; justify-content: center;
   border-radius: 100px; text-transform: uppercase; white-space: nowrap;
 }
