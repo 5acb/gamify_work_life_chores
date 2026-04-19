@@ -614,83 +614,127 @@ function taskForm(t){
     +'<div class="field-tile"><label>Status</label><select id="f-done"><option value="0">Pending</option><option value="1" '+(t&&t.done?'selected':'')+'>Done</option></select></div>';
 }
 
+function reloadDomains(cb){
+  api('GET','/api/users/'+state.slug+'/domains').then(function(r){
+    state_domains=r.domains||[];
+    buildDomainMap(state_domains);
+    injectDomainStyles(state_domains);
+    DOMAINS=state_domains.map(function(d){return d.slug;});
+    if(cb) cb();
+  });
+}
+
+function matPickerHtml(usedMaterials, excludeMat, inputRef){
+  var div=document.createElement('div');
+  div.style.cssText='display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:8px';
+  Object.keys(MATERIALS).forEach(function(key){
+    var mat=MATERIALS[key];
+    var taken=usedMaterials.indexOf(key)>=0 && key!==excludeMat;
+    var grad='linear-gradient(135deg,'+mat.gs+' 0%,'+mat.ge+' 100%)';
+    var sw=document.createElement('div');
+    sw.dataset.mat=key;
+    sw.style.cssText='cursor:'+(taken?'not-allowed':'pointer')+';border-radius:var(--r-sm);overflow:hidden;border:2px solid '+(key===excludeMat?'var(--honey)':'transparent')+';opacity:'+(taken?'0.3':'1')+';transition:all 0.2s;';
+    sw.innerHTML='<div style="height:24px;background:'+grad+'"></div>'
+      +'<div style="padding:3px 5px;background:var(--glass-inner);font-size:7px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(mat.name)+'</div>';
+    if(!taken) sw.onclick=function(){
+      div.querySelectorAll('[data-mat]').forEach(function(x){x.style.borderColor='transparent';});
+      this.style.borderColor='var(--honey)';
+      if(inputRef) inputRef.dataset.mat=this.dataset.mat;
+    };
+    div.appendChild(sw);
+  });
+  return div;
+}
+
 function openDomainsModal(){
   var m=document.getElementById('modal');
-  var usedMaterials=state_domains.map(function(d){return d.material;});
+  var editingId=null;
 
   function render(){
-    usedMaterials=state_domains.map(function(d){return d.material;});
+    var usedMaterials=state_domains.map(function(d){return d.material;});
     m.innerHTML='<h2>⊞ Domains</h2>'
-      +'<div id="domainList" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto;margin-bottom:16px"></div>'
-      +'<div style="border-top:1px solid var(--glass-brd);padding-top:14px">'
-        +'<div class="field-tile" id="newDomainForm">'
+      +'<div id="domainList" style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto;margin-bottom:14px"></div>'
+      +'<div style="border-top:1px solid var(--glass-brd);padding-top:12px">'
+        +'<div class="field-tile">'
           +'<label>New Domain</label>'
-          +'<input id="nd-name" placeholder="Domain name (e.g. Health)" style="width:100%;background:transparent;border:none;color:var(--ink);font-size:15px;font-family:inherit;outline:none;margin-bottom:8px">'
-          +'<input id="nd-slug" placeholder="3-4 letter ID (e.g. HLT)" maxlength="4" style="width:100%;background:transparent;border:none;color:var(--honey);font-size:13px;font-weight:800;font-family:inherit;outline:none;text-transform:uppercase;letter-spacing:2px;margin-bottom:12px">'
-          +'<label style="margin-top:4px">Pick a material</label>'
-          +'<div id="matPicker" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px"></div>'
+          +'<input id="nd-name" placeholder="Name (e.g. Health)" style="width:100%;background:transparent;border:none;color:var(--ink);font-size:15px;font-family:inherit;outline:none;margin-bottom:6px">'
+          +'<input id="nd-slug" placeholder="ID e.g. HLT" maxlength="4" style="width:100%;background:transparent;border:none;color:var(--honey);font-size:13px;font-weight:800;font-family:inherit;outline:none;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px">'
+          +'<label>Material</label>'
+          +'<div id="nd-picker"></div>'
         +'</div>'
       +'</div>'
       +'<div class="modal-actions"><button id="mc" class="btn-cancel">Close</button><button id="nd-save" class="btn-save">Add Domain</button></div>';
 
-    // Render existing domains
+    // Existing domains (editable: name + material only; slug is permanent)
     var list=document.getElementById('domainList');
     state_domains.forEach(function(d){
       var mat=MATERIALS[d.material]||MATERIALS['ink-stone'];
       var grad='linear-gradient(135deg,'+mat.gs+' 0%,'+mat.ge+' 100%)';
       var row=document.createElement('div');
-      row.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--glass);border-radius:var(--r-sm);';
-      row.innerHTML='<div style="width:28px;height:28px;border-radius:3px;background:'+grad+';flex-shrink:0"></div>'
-        +'<div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--ink)">'+esc(d.name)+'</div>'
-        +'<div style="font-size:9px;font-weight:900;letter-spacing:2px;color:var(--faded)">'+esc(d.slug)+' · '+esc(mat.name)+'</div></div>'
-        +'<button class="btn-danger" style="font-size:9px;padding:4px 8px;flex-shrink:0" data-did="'+d.id+'">×</button>';
-      row.querySelector('[data-did]').onclick=function(){
-        api('DELETE','/api/users/'+state.slug+'/domains/'+this.dataset.did).then(function(){
-          api('GET','/api/users/'+state.slug+'/domains').then(function(r){
-            state_domains=r.domains;buildDomainMap(state_domains);injectDomainStyles(state_domains);DOMAINS=state_domains.map(function(d){return d.slug;});
-            render();
-          });
-        });
+      row.style.cssText='border-radius:var(--r-sm);background:var(--glass);overflow:hidden;';
+      var header=document.createElement('div');
+      header.style.cssText='display:flex;align-items:center;gap:10px;padding:8px 10px;cursor:pointer;';
+      header.innerHTML='<div style="width:24px;height:24px;border-radius:3px;background:'+grad+';flex-shrink:0"></div>'
+        +'<div style="flex:1"><div style="font-size:12px;font-weight:700;color:var(--ink)">'+esc(d.name)+'</div>'
+        +'<div style="font-size:8px;font-weight:900;letter-spacing:2px;color:var(--faded)">'+esc(d.slug)+' · '+esc(mat.name)+'</div></div>'
+        +'<span style="font-size:10px;color:var(--faded)">✎</span>';
+
+      var editPanel=document.createElement('div');
+      editPanel.style.cssText='display:none;padding:10px;border-top:1px solid var(--glass-brd);';
+      var nameInput=document.createElement('input');
+      nameInput.value=d.name;
+      nameInput.style.cssText='width:100%;background:transparent;border:none;border-bottom:1px solid var(--glass-brd);color:var(--ink);font-size:14px;font-family:inherit;outline:none;padding-bottom:6px;margin-bottom:10px;';
+      var slugLabel=document.createElement('div');
+      slugLabel.style.cssText='font-size:8px;font-weight:900;color:var(--faded);letter-spacing:2px;margin-bottom:8px;';
+      slugLabel.textContent='SLUG: '+d.slug+' (permanent — changing would break task links)';
+      var matRef={dataset:{mat:d.material}};
+      var picker=matPickerHtml(usedMaterials, d.material, matRef);
+      var saveBtn=document.createElement('button');
+      saveBtn.className='btn-save';
+      saveBtn.style.cssText='margin-top:10px;padding:8px 16px;font-size:10px;width:100%;';
+      saveBtn.textContent='Save Changes';
+      saveBtn.onclick=function(){
+        var newName=nameInput.value.trim();
+        var newMat=matRef.dataset.mat;
+        if(!newName) return;
+        api('PUT','/api/users/'+state.slug+'/domains/'+d.id,{name:newName,material:newMat})
+          .then(function(){ reloadDomains(function(){ render(); loadBoard(); }); })
+          .catch(function(e){ alert('Error: '+e.message); });
       };
+      editPanel.appendChild(nameInput);
+      editPanel.appendChild(slugLabel);
+      editPanel.appendChild(picker);
+      editPanel.appendChild(saveBtn);
+
+      header.onclick=function(){
+        var open=editPanel.style.display!=='none';
+        // Close all other edit panels
+        list.querySelectorAll('[data-edit]').forEach(function(p){p.style.display='none';});
+        editPanel.style.display=open?'none':'block';
+      };
+      editPanel.dataset.edit='1';
+      row.appendChild(header);
+      row.appendChild(editPanel);
       list.appendChild(row);
     });
 
-    // Render material swatches
-    var picker=document.getElementById('matPicker');
-    Object.keys(MATERIALS).forEach(function(key){
-      var mat=MATERIALS[key];
-      var taken=usedMaterials.indexOf(key)>=0;
-      var grad='linear-gradient(135deg,'+mat.gs+' 0%,'+mat.ge+' 100%)';
-      var sw=document.createElement('div');
-      sw.dataset.mat=key;
-      sw.style.cssText='cursor:'+(taken?'not-allowed':'pointer')+';border-radius:var(--r-sm);overflow:hidden;border:2px solid transparent;opacity:'+(taken?'0.35':'1')+';transition:all 0.2s;';
-      sw.innerHTML='<div style="height:28px;background:'+grad+'"></div>'
-        +'<div style="padding:4px 6px;background:var(--glass-inner);font-size:8px;font-weight:800;color:var(--ink);letter-spacing:0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(mat.name)+'</div>';
-      if(!taken) sw.onclick=function(){
-        document.querySelectorAll('#matPicker [data-mat]').forEach(function(x){x.style.borderColor='transparent';});
-        this.style.borderColor='var(--honey)';
-        document.getElementById('nd-slug').dataset.mat=this.dataset.mat;
-      };
-      picker.appendChild(sw);
-    });
-
-    // Auto-slug from name
+    // New domain picker
+    var ndSlugEl=document.getElementById('nd-slug');
+    var ndPickerEl=document.getElementById('nd-picker');
+    var ndMatRef={dataset:{mat:''}};
+    ndPickerEl.appendChild(matPickerHtml(usedMaterials,'',ndMatRef));
     document.getElementById('nd-name').oninput=function(){
-      var slug=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase().slice(0,4);
-      document.getElementById('nd-slug').value=slug;
+      ndSlugEl.value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase().slice(0,4);
     };
     document.getElementById('mc').onclick=closeModal;
     document.getElementById('nd-save').onclick=function(){
       var name=document.getElementById('nd-name').value.trim();
-      var slug=document.getElementById('nd-slug').value.trim().toUpperCase();
-      var mat=document.getElementById('nd-slug').dataset.mat;
-      if(!name||!slug||!mat){alert('Fill in name, ID, and pick a material');return;}
-      api('POST','/api/users/'+state.slug+'/domains',{name:name,slug:slug,material:mat}).then(function(r){
-        api('GET','/api/users/'+state.slug+'/domains').then(function(rd){
-          state_domains=rd.domains;buildDomainMap(state_domains);injectDomainStyles(state_domains);DOMAINS=state_domains.map(function(d){return d.slug;});
-          render();loadBoard();
-        });
-      }).catch(function(e){alert('Error: '+e.message);});
+      var slug=ndSlugEl.value.trim().toUpperCase();
+      var mat=ndMatRef.dataset.mat;
+      if(!name||!slug||!mat){alert('Fill name, ID, and pick a material');return;}
+      api('POST','/api/users/'+state.slug+'/domains',{name:name,slug:slug,material:mat})
+        .then(function(){ reloadDomains(function(){ render(); loadBoard(); }); })
+        .catch(function(e){ alert('Error: '+e.message); });
     };
   }
   render();

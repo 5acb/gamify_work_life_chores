@@ -675,13 +675,6 @@ app.put('/api/users/:slug/domains/:id', ensureAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-app.delete('/api/users/:slug/domains/:id', ensureAuth, (req, res) => {
-  const user = db.prepare('SELECT id FROM users WHERE slug=?').get(req.params.slug);
-  if (!user) return res.status(404).json({ error: 'user not found' });
-  db.prepare('DELETE FROM domains WHERE id=? AND user_id=?').run(+req.params.id, user.id);
-  res.json({ ok: true });
-});
-
 app.get('/api/users/:slug/ui-state', ensureAuth, (req, res) => {
   if (req.params.slug !== req.user.slug) return res.status(403).json({ error: 'forbidden' });
   const row = db.prepare('SELECT value FROM ui_state WHERE key = ?').get(req.user.id + ':state');
