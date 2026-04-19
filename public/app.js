@@ -700,7 +700,7 @@ function openDomainsModal(){
       var matRef={dataset:{mat:d.material}};
       saveBtn.onclick=function(){
         var newName=nameInput.value.trim();
-        var newMat=matRef.dataset.mat;
+        var newMat=matRef.dataset.selectedMat||matRef.dataset.mat;
         if(!newName) return;
         saveBtn.disabled=true; saveBtn.textContent='Saving…';
         api('PUT','/api/users/'+state.slug+'/domains/'+d.id,{name:newName,material:newMat})
