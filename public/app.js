@@ -240,6 +240,7 @@ function renderApp(){
         +'<div class="hdr-row1">'
           +'<div class="hdr-date-etched">'
             +'<span class="hdr-date-text">'+dateStr+'</span>'
+            +'<div id="statusDots" class="status-dots-etched"></div>'
             +'<button class="hdr-logout-btn" id="logoutBtn" title="Sign out">⏻</button>'
           +'</div>'
         +'</div>'
@@ -257,7 +258,6 @@ function renderApp(){
           +'<div style="display:flex;justify-content:flex-end">'
             +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off">'
           +'</div>'
-          +'<div id="statusDots" style="width:100%"></div>'
         +'</div>'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
@@ -501,7 +501,7 @@ function updateStatusDots(){
   if(!activeTasks.length) { container.innerHTML = ''; return; }
   var counts = {canyon:0, amber:0, marble:0, dim:0};
   activeTasks.forEach(t => { var h=getTaskHue(t); if(h) counts[h]++; else counts.dim++; });
-  var total = activeTasks.length; var dots = 20;
+  var total = activeTasks.length; var dots = 10;
   var types = ['canyon','amber','marble','dim'];
   var dotCounts = types.map(type => Math.round((counts[type]/total)*dots));
   var diff = dots - dotCounts.reduce((a,b)=>a+b,0);

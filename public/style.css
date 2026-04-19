@@ -710,3 +710,41 @@ body.mode-execute #bgLights {
 /* Compact cards-inner: tighter gap */
 .cards.compact-view .cards-inner { gap: 6px; }
 .cards.compact-view { padding-bottom: 60px; }
+
+/* ── Status dots etched into date tile ── */
+.status-dots-etched {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+}
+.status-dots-etched .status-tile {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  position: relative;
+}
+.status-dots-etched .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+.status-dots-etched .status-tile-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 10px;
+  background: var(--obsidian);
+  color: var(--ink);
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 100;
+}
+.status-dots-etched .status-tile:hover .status-tile-tooltip { opacity: 1; }
