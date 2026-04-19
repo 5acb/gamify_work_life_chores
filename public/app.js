@@ -119,6 +119,51 @@ function showPicker(){
   }).catch(function(){ location.href='/login'; });
 }
 
+// Topological sort: dependencies always above dependents in the card stack
+// Uses Kahn's algorithm, respecting user's drag order as tiebreaker
+function topoSort(tasks) {
+  if (!tasks.length) return tasks;
+  var byId = {};
+  tasks.forEach(function(t) { byId[t.id] = t; });
+
+  // in-degree = number of unresolved prerequisites still in the list
+  var inDeg = {}, deps = {};
+  tasks.forEach(function(t) { inDeg[t.id] = 0; deps[t.id] = []; });
+  tasks.forEach(function(t) {
+    (t.needs || []).forEach(function(nid) {
+      if (byId[nid]) {          // only count needs that are visible in this view
+        inDeg[t.id]++;
+        deps[nid].push(t.id);
+      }
+    });
+  });
+
+  // userRank: lower = earlier in user's drag order (tiebreaker)
+  var userRank = {};
+  tasks.forEach(function(t, i) { userRank[t.id] = i; });
+
+  // Queue starts with all tasks that have no unresolved prerequisites
+  var queue = tasks.filter(function(t) { return inDeg[t.id] === 0; });
+  queue.sort(function(a, b) { return userRank[a.id] - userRank[b.id]; });
+
+  var result = [];
+  while (queue.length) {
+    var t = queue.shift();
+    result.push(t);
+    deps[t.id].forEach(function(did) {
+      inDeg[did]--;
+      if (inDeg[did] === 0) {
+        queue.push(byId[did]);
+        queue.sort(function(a, b) { return userRank[a.id] - userRank[b.id]; });
+      }
+    });
+  }
+
+  // Append any tasks involved in dependency cycles (defensive)
+  tasks.forEach(function(t) { if (result.indexOf(t) < 0) result.push(t); });
+  return result;
+}
+
 function loadBoard(){
   var vp=state.view==='archived'?'?view=archived':'';
   Promise.all([
@@ -148,6 +193,7 @@ function loadBoard(){
     }
 
     state.taskById={};state.tasks.forEach(function(t){state.taskById[t.id]=t});
+    state.tasks = topoSort(state.tasks);
     renderApp();
   });
 }
