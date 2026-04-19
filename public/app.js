@@ -827,6 +827,35 @@ function openAddTask(){
   };
 }
 
+// ── Oracle modal: chat vs deck review choice ──────────────────────────────
+function openAI(){
+  var m=document.getElementById('modal');
+  m.innerHTML='<h2 style="margin-bottom:20px">✦ Oracle</h2>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">'
+      +'<button id="choiceChat" style="'
+        +'background:var(--glass);border:1px solid var(--glass-brd);border-radius:var(--r-md);'
+        +'padding:20px 16px;cursor:pointer;text-align:left;font-family:inherit;transition:all 0.2s;color:var(--ink)">'
+        +'<div style="font-size:18px;margin-bottom:8px">💬</div>'
+        +'<div style="font-size:11px;font-weight:800;letter-spacing:1px;margin-bottom:4px">CHAT</div>'
+        +'<div style="font-size:10px;opacity:0.5">Ask a question</div>'
+      +'</button>'
+      +'<button id="choiceDeck" style="'
+        +'background:linear-gradient(135deg,rgba(var(--lapis-rgb),0.15),rgba(var(--honey-rgb),0.08));'
+        +'border:1px solid var(--honey);border-radius:var(--r-md);'
+        +'padding:20px 16px;cursor:pointer;text-align:left;font-family:inherit;transition:all 0.2s;color:var(--ink)">'
+        +'<div style="font-size:18px;margin-bottom:8px">◈</div>'
+        +'<div style="font-size:11px;font-weight:800;letter-spacing:1px;margin-bottom:4px;color:var(--honey)">REVIEW DECK</div>'
+        +'<div style="font-size:10px;opacity:0.5">Go through every task</div>'
+      +'</button>'
+    +'</div>'
+    +'<div class="modal-actions"><button id="mc" class="btn-cancel">Close</button></div>';
+  showModal();
+  document.getElementById('mc').onclick=closeModal;
+  document.getElementById('choiceChat').onclick=function(){ closeModal(); openOracleChat(); };
+  document.getElementById('choiceDeck').onclick=function(){ closeModal(); openDeckReview(); };
+}
+
+// ── Oracle chat (moved from openAI) ──────────────────────────────────────
 var _oracleHistory = [];
 var _oracleLastQuery = null;
 
@@ -843,7 +872,7 @@ function renderOracleHistory(){
   feed.scrollTop=feed.scrollHeight;
 }
 
-function openAI(){
+function openOracleChat(){
   var m=document.getElementById('modal');
   m.innerHTML='<h2>✦ Oracle</h2>'
     +'<div class="oracle-chat-feed" id="oracle-chat-feed"></div>'
@@ -865,25 +894,15 @@ function openAI(){
   document.getElementById('mc').onclick=closeModal;
   function submitOracle(){
     var q=input.value.trim();if(!q)return;
-    // Dedup: reject if same as last query
-    if(q===_oracleLastQuery){
-      input.style.borderColor='var(--amber)';
-      setTimeout(function(){input.style.borderColor='';},800);
-      return;
-    }
-    _oracleLastQuery=q;
-    input.value='';
-    _oracleHistory.push({role:'user',text:q});
-    renderOracleHistory();
+    if(q===_oracleLastQuery){input.style.borderColor='var(--amber)';setTimeout(function(){input.style.borderColor='';},800);return;}
+    _oracleLastQuery=q; input.value='';
+    _oracleHistory.push({role:'user',text:q}); renderOracleHistory();
     send.disabled=true; send.textContent='…';
     api('POST','/api/agent/gemini',{question:q,slug:state.slug}).then(function(r){
-      _oracleHistory.push({role:'oracle',text:r.answer||r.error||'Oracle silent.'});
-      renderOracleHistory();
-      send.disabled=false; send.textContent='↑';
-      _oracleLastQuery=null; // allow re-ask after response
+      _oracleHistory.push({role:'oracle',text:r.answer||r.error||'Oracle silent.'}); renderOracleHistory();
+      send.disabled=false; send.textContent='↑'; _oracleLastQuery=null;
     }).catch(function(){
-      _oracleHistory.push({role:'oracle',text:'Oracle unreachable.'});
-      renderOracleHistory();
+      _oracleHistory.push({role:'oracle',text:'Oracle unreachable.'}); renderOracleHistory();
       send.disabled=false; send.textContent='↑';
     });
   }
@@ -892,6 +911,182 @@ function openAI(){
   setTimeout(function(){input.focus();},50);
 }
 
+// ── Deck Review overlay ───────────────────────────────────────────────────
+var deckReviewState = {
+  stack: [],        // tasks in topo priority order
+  currentIdx: 0,    // which task we're on
+  messages: [],     // full conversation history
+  executing: false,
+  proposals: []
+};
+
+function openDeckReview(){
+  var overlay = document.getElementById('deckReviewOverlay');
+  if(!overlay){ overlay=buildDeckReviewOverlay(); document.body.appendChild(overlay); }
+  deckReviewState.stack  = state.tasks.filter(function(t){return !t.archived;});
+  deckReviewState.currentIdx = 0;
+  deckReviewState.messages   = [];
+  deckReviewState.proposals  = [];
+  overlay.classList.add('open');
+  renderDeckStack();
+  startDeckTask();
+}
+
+function closeDeckReview(){
+  var overlay=document.getElementById('deckReviewOverlay');
+  if(overlay) overlay.classList.remove('open');
+  loadBoard(); // refresh the board after potential changes
+}
+
+function buildDeckReviewOverlay(){
+  var el=document.createElement('div');
+  el.id='deckReviewOverlay';
+  el.className='deck-overlay';
+  el.innerHTML=
+    '<div class="deck-header">'
+      +'<span class="deck-title">◈ DECK REVIEW</span>'
+      +'<span class="deck-progress" id="deckProgress"></span>'
+      +'<button class="deck-close" id="deckClose">✕ Exit</button>'
+    +'</div>'
+    +'<div class="deck-body">'
+      +'<div class="deck-stack-panel" id="deckStackPanel"></div>'
+      +'<div class="deck-agent-panel">'
+        +'<div class="deck-task-label" id="deckTaskLabel">Loading…</div>'
+        +'<div class="deck-feed" id="deckFeed"></div>'
+        +'<div id="deckProposals" class="deck-proposals"></div>'
+        +'<div class="deck-input-row">'
+          +'<input class="deck-input" id="deckInput" placeholder="Respond to the agent…" autocomplete="off">'
+          +'<button class="deck-send" id="deckSend">↑</button>'
+        +'</div>'
+        +'<div class="deck-nav">'
+          +'<button class="deck-nav-btn" id="deckSkip">Skip →</button>'
+          +'<button class="deck-nav-btn deck-nav-btn--done" id="deckDone">✓ Done with this task →</button>'
+        +'</div>'
+      +'</div>'
+    +'</div>';
+
+  el.querySelector('#deckClose').onclick=closeDeckReview;
+  el.querySelector('#deckSend').onclick=sendDeckMessage;
+  el.querySelector('#deckInput').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendDeckMessage();}});
+  el.querySelector('#deckSkip').onclick=function(){ advanceDeck(false); };
+  el.querySelector('#deckDone').onclick=function(){ advanceDeck(true); };
+  return el;
+}
+
+function renderDeckStack(){
+  var panel=document.getElementById('deckStackPanel'); if(!panel)return;
+  var cur=deckReviewState.stack[deckReviewState.currentIdx];
+  panel.innerHTML='';
+  deckReviewState.stack.forEach(function(t,i){
+    var dm=DM[t.domain]||{m:'',l:t.domain};
+    var dd=daysFrom(t.due_date);
+    var tStr=dd<999?tLabel(dd):'---';
+    var row=document.createElement('div');
+    var isCur=(i===deckReviewState.currentIdx);
+    var isDone=(i<deckReviewState.currentIdx);
+    row.className='deck-stack-row'+(isCur?' deck-stack-row--active':'')+(isDone?' deck-stack-row--done':'');
+    row.innerHTML='<span class="deck-stack-num">'+(isDone?'✓':(i+1))+'</span>'
+      +'<span class="deck-stack-name">'+esc(t.name)+'</span>'
+      +'<span class="deck-stack-t">'+esc(tStr)+'</span>';
+    row.onclick=function(){ deckReviewState.currentIdx=i; deckReviewState.messages=[]; deckReviewState.proposals=[]; renderDeckStack(); startDeckTask(); };
+    panel.appendChild(row);
+  });
+  var prog=document.getElementById('deckProgress');
+  if(prog) prog.textContent=deckReviewState.currentIdx+' / '+deckReviewState.stack.length+' reviewed';
+}
+
+function appendDeckMsg(role, text){
+  deckReviewState.messages.push({role:role,text:text});
+  var feed=document.getElementById('deckFeed'); if(!feed)return;
+  var el=document.createElement('div');
+  el.className='deck-msg deck-msg--'+role;
+  el.innerHTML=renderMd(text);
+  feed.appendChild(el);
+  feed.scrollTop=feed.scrollHeight;
+}
+
+function renderDeckProposals(proposals){
+  deckReviewState.proposals=proposals;
+  var container=document.getElementById('deckProposals'); if(!container)return;
+  container.innerHTML='';
+  proposals.forEach(function(p,i){
+    var card=document.createElement('div');
+    card.className='deck-proposal';
+    card.innerHTML='<div class="deck-proposal-desc">'+esc(p.description)+'</div>'
+      +'<div class="deck-proposal-actions">'
+        +'<button class="deck-proposal-confirm" data-i="'+i+'">✓ Confirm</button>'
+        +'<button class="deck-proposal-reject"  data-i="'+i+'">✕ Reject</button>'
+      +'</div>';
+    card.querySelector('.deck-proposal-confirm').onclick=function(){
+      confirmDeckProposal(i);
+    };
+    card.querySelector('.deck-proposal-reject').onclick=function(){
+      card.remove();
+    };
+    container.appendChild(card);
+  });
+}
+
+function confirmDeckProposal(i){
+  var p=deckReviewState.proposals[i]; if(!p)return;
+  api('POST','/api/deck-review/execute',{tool:p.tool,args:p.args}).then(function(r){
+    appendDeckMsg('agent','✓ Done: '+r.message);
+    var cards=document.querySelectorAll('.deck-proposal');
+    if(cards[i]) cards[i].remove();
+  }).catch(function(e){ appendDeckMsg('agent','Error: '+e.message); });
+}
+
+function startDeckTask(){
+  var cur=deckReviewState.stack[deckReviewState.currentIdx];
+  if(!cur){ appendDeckMsg('agent','All tasks reviewed. Deck is clear.'); return; }
+  var label=document.getElementById('deckTaskLabel');
+  if(label) label.textContent='Reviewing: '+cur.name;
+  var feed=document.getElementById('deckFeed'); if(feed) feed.innerHTML='';
+  var proposals=document.getElementById('deckProposals'); if(proposals) proposals.innerHTML='';
+  deckReviewState.messages=[];
+  setDeckLoading(true);
+  api('POST','/api/deck-review',{messages:[],currentTaskId:cur.id}).then(function(r){
+    setDeckLoading(false);
+    if(r.text) appendDeckMsg('agent',r.text);
+    if(r.proposals&&r.proposals.length) renderDeckProposals(r.proposals);
+  }).catch(function(e){ setDeckLoading(false); appendDeckMsg('agent','Error: '+e.message); });
+}
+
+function sendDeckMessage(){
+  var input=document.getElementById('deckInput'); if(!input)return;
+  var q=input.value.trim(); if(!q)return;
+  input.value='';
+  appendDeckMsg('user',q);
+  var cur=deckReviewState.stack[deckReviewState.currentIdx]; if(!cur)return;
+  setDeckLoading(true);
+  api('POST','/api/deck-review',{messages:deckReviewState.messages,currentTaskId:cur.id}).then(function(r){
+    setDeckLoading(false);
+    if(r.text) appendDeckMsg('agent',r.text);
+    if(r.proposals&&r.proposals.length) renderDeckProposals(r.proposals);
+  }).catch(function(e){ setDeckLoading(false); appendDeckMsg('agent','Error: '+e.message); });
+}
+
+function setDeckLoading(on){
+  var send=document.getElementById('deckSend'); if(send){ send.disabled=on; send.textContent=on?'…':'↑'; }
+  var input=document.getElementById('deckInput'); if(input) input.disabled=on;
+  deckReviewState.executing=on;
+}
+
+function advanceDeck(markDone){
+  if(markDone){
+    var cur=deckReviewState.stack[deckReviewState.currentIdx];
+    var remaining = deckReviewState.stack.length - deckReviewState.currentIdx - 1;
+    appendDeckMsg('agent','Moving on. '+remaining+' task'+(remaining===1?'':'s')+' remaining.');
+  }
+  deckReviewState.currentIdx++;
+  if(deckReviewState.currentIdx >= deckReviewState.stack.length){
+    appendDeckMsg('agent','Deck review complete. All '+deckReviewState.stack.length+' tasks addressed.');
+    document.getElementById('deckProgress').textContent='Complete ✓';
+    return;
+  }
+  renderDeckStack();
+  startDeckTask();
+}
 
 
 // ── Minimal markdown renderer ────────────────────────────────

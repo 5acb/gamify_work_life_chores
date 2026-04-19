@@ -893,6 +893,160 @@ User question: ${question}`;
     geminiInFlight.delete(key);
   }
 });
+// ── Execute Deck Review ───────────────────────────────────────────────────
+const DECK_TOOLS = [
+  { name:'task_update', description:'Update task fields. Only pass fields that need changing.',
+    parameters:{ type:'object', required:['task_id'], properties:{
+      task_id:   {type:'integer'}, name:{type:'string'},
+      due_date:  {type:'string',description:'YYYY-MM-DD'},
+      plan_date: {type:'string',description:'YYYY-MM-DD'},
+      speed:     {type:'integer',description:'0=snap,1=sesh,2=grind'},
+      stakes:    {type:'integer',description:'0=low,1=high,2=critical'}
+    }}},
+  { name:'task_archive', description:'Mark task done and archive it.',
+    parameters:{ type:'object', required:['task_id'], properties:{ task_id:{type:'integer'} }}},
+  { name:'task_clear_blockers', description:'Remove all blocking prerequisites from task.',
+    parameters:{ type:'object', required:['task_id'], properties:{ task_id:{type:'integer'} }}},
+  { name:'task_flag_critical', description:'Escalate task to critical stakes + grind speed.',
+    parameters:{ type:'object', required:['task_id','reason'], properties:{
+      task_id:{type:'integer'}, reason:{type:'string'}
+    }}},
+];
+
+function deckActionDescription(tool, args, tasks) {
+  var t = tasks && tasks.find(function(x){ return x.id === args.task_id; });
+  var n = t ? '"'+t.name+'"' : 'Task #'+args.task_id;
+  if(tool==='task_update'){
+    var parts=[];
+    if(args.name)            parts.push('rename to "'+args.name+'"');
+    if(args.due_date)        parts.push('due -> '+args.due_date);
+    if(args.plan_date)       parts.push('plan -> '+args.plan_date);
+    if(args.speed!==undefined) parts.push('speed -> '+(['snap','sesh','grind'][args.speed]||args.speed));
+    if(args.stakes!==undefined) parts.push('stakes -> '+(['low','high','critical'][args.stakes]||args.stakes));
+    return 'Update '+n+': '+parts.join(', ');
+  }
+  if(tool==='task_archive')       return 'Archive '+n+' as done';
+  if(tool==='task_clear_blockers') return 'Clear all blockers on '+n;
+  if(tool==='task_flag_critical')  return 'Escalate '+n+' to CRITICAL: '+args.reason;
+  return tool+' on '+n;
+}
+
+function executeDeckAction(userId, tool, args) {
+  var task = db.prepare('SELECT * FROM tasks WHERE id=? AND user_id=?').get(args.task_id, userId);
+  if(!task) throw new Error('Task '+args.task_id+' not found');
+  if(tool==='task_update'){
+    var allowed=['name','due_date','plan_date','speed','stakes'];
+    var fields=[]; var vals=[];
+    allowed.forEach(function(f){ if(args[f]!==undefined){ fields.push(f+'=?'); vals.push(args[f]); } });
+    if(!fields.length) return 'nothing to update';
+    vals.push(task.id);
+    db.prepare('UPDATE tasks SET '+fields.join(',')+",updated_at=datetime('now') WHERE id=?").run(...vals);
+    return 'Updated "'+task.name+'"';
+  }
+  if(tool==='task_archive'){
+    db.prepare("UPDATE tasks SET archived=1,done=1,archived_at=datetime('now') WHERE id=?").run(task.id);
+    return 'Archived "'+task.name+'"';
+  }
+  if(tool==='task_clear_blockers'){
+    db.prepare('DELETE FROM blockers WHERE task_id=?').run(task.id);
+    return 'Cleared blockers on "'+task.name+'"';
+  }
+  if(tool==='task_flag_critical'){
+    db.prepare("UPDATE tasks SET stakes=2,speed=2,updated_at=datetime('now') WHERE id=?").run(task.id);
+    return 'Escalated "'+task.name+'" to critical';
+  }
+  throw new Error('Unknown tool: '+tool);
+}
+
+app.post('/api/deck-review', ensureAuth, async function(req, res) {
+  var msgs = req.body.messages || [];
+  var currentTaskId = req.body.currentTaskId || null;
+  var user = req.user;
+  var tasks = getTasksForUser(user.id);
+  var stack = tasks.filter(function(t){ return !t.archived; });
+  var cur = currentTaskId ? stack.find(function(t){ return t.id===currentTaskId; }) : stack[0];
+
+  if(!cur) return res.json({ text:'Deck is clear.', proposals:[] });
+
+  var today = new Date().toISOString().split('T')[0];
+  var dd = cur.due_date ? Math.round((new Date(cur.due_date)-new Date())/86400000) : null;
+  var ddStr = dd===null ? 'no due date'
+    : dd>0  ? 'T-'+dd+' ('+dd+'d future)'
+    : dd===0 ? 'T-0 (due today)'
+    : 'T+'+Math.abs(dd)+' ('+Math.abs(dd)+'d OVERDUE)';
+
+  var stackLines = stack.slice(0,8).map(function(t,i){
+    var d = t.due_date ? Math.round((new Date(t.due_date)-new Date())/86400000) : null;
+    var ts = d===null?'---':d>0?'T-'+d:d===0?'T-0':'T+'+Math.abs(d);
+    return '  '+(i+1)+'. ['+t.id+'] '+t.name+' | '+ts+' | '+(['low','hi','CRIT'][t.stakes]||'?');
+  }).join('\n');
+
+  var taskCtx = [
+    'TASK UNDER REVIEW',
+    'ID: '+cur.id, 'Name: '+cur.name, 'Domain: '+cur.domain,
+    'Due: '+ddStr,
+    'Speed: '+(['snap','sesh','grind'][cur.speed]||'?')+' | Stakes: '+(['low','high','critical'][cur.stakes]||'?'),
+    'Blocked by: '+((cur.needs||[]).length)+' prereqs | Subtasks: '+((cur.subs||[]).length),
+    '',
+    'FULL STACK (top '+Math.min(8,stack.length)+' of '+stack.length+'):',
+    stackLines
+  ].join('\n');
+
+  var sys = [
+    'You are '+user.name+"'s execution coach running a Deck Review — deliberate pass through every active task.",
+    'Per task: 2-3 sentences on the situation (overdue? blocked? misaligned? missing info?), then propose tool calls.',
+    'Respond to user feedback and revise proposals. Be direct and terse.',
+    'Today: '+today+'. Never propose actions you are uncertain about.'
+  ].join('\n');
+
+  var contents = [];
+  if(msgs.length===0){
+    contents.push({ role:'user', parts:[{text:'Begin review.\n\n'+taskCtx}] });
+  } else {
+    msgs.forEach(function(m){
+      contents.push({ role:m.role==='agent'?'model':'user', parts:[{text:m.text}] });
+    });
+  }
+
+  try {
+    var body = {
+      contents: contents,
+      tools:[{function_declarations:DECK_TOOLS}],
+      tool_config:{function_calling_config:{mode:'AUTO'}},
+      system_instruction:{parts:[{text:sys}]}
+    };
+    var gRes = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/'+GEMINI_MODEL+':generateContent?key='+GEMINI_API_KEY,
+      {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}
+    );
+    var gData = await gRes.json();
+    if(!gRes.ok) throw new Error((gData.error&&gData.error.message)||'Gemini error');
+    var parts = (gData.candidates&&gData.candidates[0]&&gData.candidates[0].content&&gData.candidates[0].content.parts)||[];
+    var text = parts.filter(function(p){return p.text;}).map(function(p){return p.text;}).join('').trim();
+    var proposals = parts.filter(function(p){return p.functionCall;}).map(function(p){
+      return {
+        tool: p.functionCall.name,
+        args: p.functionCall.args,
+        description: deckActionDescription(p.functionCall.name, p.functionCall.args, tasks)
+      };
+    });
+    res.json({ text:text||'(analysing\u2026)', proposals:proposals });
+  } catch(e) {
+    console.error('Deck review error:', e.message);
+    res.status(500).json({ error:e.message });
+  }
+});
+
+app.post('/api/deck-review/execute', ensureAuth, function(req, res) {
+  var tool = req.body.tool; var args = req.body.args;
+  if(!tool||!args) return res.status(400).json({ error:'tool and args required' });
+  try {
+    var msg = executeDeckAction(req.user.id, tool, args);
+    res.json({ ok:true, message:msg });
+  } catch(e) { res.status(400).json({ error:e.message }); }
+});
+
+
 // SEC-11: bind to localhost only — nginx handles external traffic
 
 // ── Task context builder ─────────────────────────────────────

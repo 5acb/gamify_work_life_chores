@@ -759,3 +759,119 @@ body.mode-execute #bgLights {
   text-shadow: 0 1px 8px rgba(0,0,0,0.8);
 }
 .status-dots-etched .status-tile:hover .status-tile-tooltip { opacity: 1; }
+
+/* ── Deck Review Overlay ── */
+.deck-overlay {
+  position: fixed; inset: 0; z-index: 400;
+  background: var(--obsidian);
+  display: flex; flex-direction: column;
+  opacity: 0; pointer-events: none; transition: opacity 0.25s;
+}
+.deck-overlay.open { opacity: 1; pointer-events: all; }
+body.mode-execute .deck-overlay { background: var(--washi-base); }
+
+/* Header */
+.deck-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 20px; border-bottom: 1px solid var(--glass-brd);
+  flex-shrink: 0;
+}
+.deck-title { font-size: 11px; font-weight: 900; letter-spacing: 2px; color: var(--honey); }
+.deck-progress { flex:1; font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--faded); text-align: center; }
+.deck-close { background: none; border: 1px solid var(--glass-brd); color: var(--faded); padding: 6px 12px; border-radius: var(--r-sm); cursor: pointer; font-size: 9px; font-weight: 800; letter-spacing: 1px; font-family: inherit; transition: all 0.2s; }
+.deck-close:hover { color: var(--canyon); border-color: var(--canyon); }
+
+/* Body: two-panel on desktop, stacked on mobile */
+.deck-body {
+  flex: 1; display: flex; overflow: hidden;
+  flex-direction: row;
+}
+
+/* Left panel: task stack */
+.deck-stack-panel {
+  width: 260px; flex-shrink: 0;
+  border-right: 1px solid var(--glass-brd);
+  overflow-y: auto; padding: 12px 8px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.deck-stack-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  cursor: pointer; transition: background 0.15s;
+  border: 1px solid transparent;
+}
+.deck-stack-row:hover { background: var(--glass); }
+.deck-stack-row--active { background: rgba(var(--honey-rgb),0.1); border-color: var(--honey); }
+.deck-stack-row--done { opacity: 0.4; }
+.deck-stack-num { font-size: 9px; font-weight: 900; color: var(--faded); width: 16px; flex-shrink: 0; }
+.deck-stack-row--active .deck-stack-num { color: var(--honey); }
+.deck-stack-name { flex: 1; font-size: 11px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.deck-stack-t { font-size: 9px; font-weight: 800; color: var(--faded); flex-shrink: 0; }
+
+/* Right panel: agent */
+.deck-agent-panel {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 16px 20px; gap: 12px;
+}
+.deck-task-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--honey);
+  text-transform: uppercase; flex-shrink: 0;
+}
+.deck-feed {
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
+  padding-right: 4px;
+}
+.deck-msg { font-size: 13px; line-height: 1.7; max-width: 94%; }
+.deck-msg--agent { align-self: flex-start; color: var(--ink); }
+.deck-msg--user { align-self: flex-end; color: var(--honey); font-weight: 700; background: rgba(var(--honey-rgb),0.08); padding: 8px 12px; border-radius: var(--r-sm); }
+
+/* Proposal cards */
+.deck-proposals { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+.deck-proposal {
+  background: rgba(var(--lapis-rgb),0.08); border: 1px solid rgba(var(--lapis-rgb),0.25);
+  border-radius: var(--r-sm); padding: 10px 14px;
+  display: flex; align-items: center; gap: 12px;
+}
+body.mode-execute .deck-proposal { background: rgba(var(--lapis-rgb),0.06); }
+.deck-proposal-desc { flex: 1; font-size: 12px; color: var(--ink); }
+.deck-proposal-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.deck-proposal-confirm { background: var(--bamboo); border: none; color: #fff; padding: 5px 10px; border-radius: var(--r-sm); font-size: 10px; font-weight: 800; cursor: pointer; font-family: inherit; }
+.deck-proposal-reject  { background: none; border: 1px solid var(--glass-brd); color: var(--faded); padding: 5px 10px; border-radius: var(--r-sm); font-size: 10px; font-weight: 800; cursor: pointer; font-family: inherit; }
+
+/* Input row */
+.deck-input-row { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.deck-input {
+  flex: 1; background: var(--glass); border: 1px solid var(--glass-brd); color: var(--ink);
+  padding: 10px 14px; border-radius: var(--r-sm); font-family: inherit; font-size: 13px; outline: none;
+  transition: border-color 0.2s;
+}
+.deck-input:focus { border-color: var(--honey); }
+.deck-send {
+  background: var(--honey); border: none; color: var(--btn-save-text);
+  padding: 10px 16px; border-radius: var(--r-sm); font-size: 14px; font-weight: 900;
+  cursor: pointer; font-family: inherit; transition: all 0.2s; flex-shrink: 0;
+}
+.deck-send:disabled { opacity: 0.4; cursor: default; }
+
+/* Navigation */
+.deck-nav { display: flex; gap: 8px; justify-content: flex-end; flex-shrink: 0; }
+.deck-nav-btn {
+  background: none; border: 1px solid var(--glass-brd); color: var(--faded);
+  padding: 7px 14px; border-radius: var(--r-sm); font-size: 10px; font-weight: 800;
+  letter-spacing: 0.5px; cursor: pointer; font-family: inherit; transition: all 0.2s;
+}
+.deck-nav-btn:hover { border-color: var(--honey); color: var(--honey); }
+.deck-nav-btn--done { border-color: var(--bamboo); color: var(--bamboo); }
+
+/* Mobile: stack across top, agent below */
+@media (max-width: 768px) {
+  .deck-body { flex-direction: column; }
+  .deck-stack-panel {
+    width: auto; border-right: none; border-bottom: 1px solid var(--glass-brd);
+    flex-direction: row; overflow-x: auto; overflow-y: hidden;
+    max-height: 70px; padding: 8px; scrollbar-width: none;
+  }
+  .deck-stack-panel::-webkit-scrollbar { display: none; }
+  .deck-stack-row { flex-shrink: 0; min-width: 140px; flex-direction: column; align-items: flex-start; gap: 2px; }
+  .deck-stack-name { font-size: 10px; white-space: nowrap; }
+  .deck-agent-panel { padding: 12px; }
+}
