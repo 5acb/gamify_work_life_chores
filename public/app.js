@@ -139,13 +139,15 @@ function topoSort(tasks) {
     });
   });
 
-  // userRank: lower = earlier in user's drag order (tiebreaker)
-  var userRank = {};
-  tasks.forEach(function(t, i) { userRank[t.id] = i; });
+  // urgencyRank: sort by due date ascending (overdue first, no-date last)
+  function urgencyRank(t) {
+    var dd = daysFrom(t.due_date);
+    return dd >= 999 ? 99999 : dd;
+  }
 
   // Queue starts with all tasks that have no unresolved prerequisites
   var queue = tasks.filter(function(t) { return inDeg[t.id] === 0; });
-  queue.sort(function(a, b) { return userRank[a.id] - userRank[b.id]; });
+  queue.sort(function(a, b) { return urgencyRank(a) - urgencyRank(b); });
 
   var result = [];
   while (queue.length) {
@@ -155,7 +157,7 @@ function topoSort(tasks) {
       inDeg[did]--;
       if (inDeg[did] === 0) {
         queue.push(byId[did]);
-        queue.sort(function(a, b) { return userRank[a.id] - userRank[b.id]; });
+        queue.sort(function(a, b) { return urgencyRank(a) - urgencyRank(b); });
       }
     });
   }
@@ -378,7 +380,7 @@ function makeCardCompact(t){
   h+='</div>';
 
   // Name (flex:1)
-  h+='<div class="tile-name" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;position:static;width:auto;letter-spacing:-0.2px">'+esc(t.name)+'</div>';
+  h+='<div class="tile-name" style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;position:static;width:auto;letter-spacing:-0.2px">'+esc(t.name)+'</div>';
 
   // Right: T-X due tile only
   if(tLabel){
