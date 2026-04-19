@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2026-05-22
+# Last updated: 2024-06-03
 
 project:
   name: gamify_work_life_chores
@@ -9,7 +9,8 @@ project:
     Personal task organizer with dependency tracking, subtasks, progress bars,
     timeline view, multi-user boards, and advanced Gemini AI orchestration.
     The interface is an **Atmospheric Sanctuary**—a 2:1 split-pane interface 
-    fusing skeuomorphic glass aesthetics with an oceanic palette.
+    fusing skeuomorphic glass aesthetics with an oceanic palette and 
+    domain-specific materials (e.g., Kingfisher, Cyberspace Grid).
   repo: https://github.com/5acb/gamify_work_life_chores
   infra_repo: https://github.com/5acb/7ay_de_infra (private)
 
@@ -25,22 +26,24 @@ server:
 architecture:
   overview: >
     Split-file SPA frontend (Vanilla JS/CSS) + Express REST API + SQLite WAL. 
-    AI integration is dual-layered: direct invoke for chat/UI (Gemini 2.5 Pro) 
-    and an MCP Server (Gemini 3 Flash Preview) for complex planning sessions, 
-    terminal access, and autonomous subagents.
+    AI integration uses Gemini 3 Flash Preview across all layers: direct 
+    invocation for UI chat and a dedicated MCP Server for complex planning, 
+    terminal access, and autonomous agent workflows.
   ui_paradigm: >
     Atmospheric Sanctuary. Uses 2:1 split pane (Worktree vs Task List). 
-    Features Donut Indicators for temporal frequency and a Sanctuary Indicator Line 
-    for global status. Custom reordering via Sortable.js with ui-state persistence.
+    Features Donut Indicators for temporal frequency and a Sanctuary Indicator Line. 
+    Custom reordering via Sortable.js. Domains utilize specific "Materials" 
+    (kingfisher, cyberspace-grid, amethyst-sky) for visual identity.
   ai_orchestration: >
     A dedicated MCP server provides a tool-augmented environment. It features:
-    1. Subagent framework for specialized tasks.
-    2. Plan Sessions: multi-step AI-driven workflows for task decomposition and optimization.
-    3. Memory: Integrated with Mem0 knowledge base for long-term project context.
-    4. Auto-Commit: A commit-daemon logs changes to a blockchain-style changelog for auditability.
+    1. Subagent framework: Specialized personas (Plan, Execute, Review).
+    2. Plan Sessions: Multi-step AI-driven workflows for task decomposition.
+    3. Knowledge Base: Integration with Mem0 for long-term project context.
+    4. Auto-Commit: A commit-daemon (socat+bash) logs changes to a blockchain-style 
+       cryptographic changelog (changelog.js) for auditability.
   ports:
     3000: "App server (Express + SQLite) — proxied by Nginx on /"
-    3001: "commit-daemon (socat + bash, localhost-only) — proxied on /api/commit"
+    3001: "commit-daemon (localhost-only) — proxied on /api/commit"
     3002: "MCP server (SSE transport, token auth) — proxied on /mcp"
   auth_flow: >
     Modern passwordless-first authentication. Supports WebAuthn (Passkeys) for primary access.
@@ -57,24 +60,34 @@ architecture:
     engine: SQLite (WAL mode, foreign_keys ON)
     path: /opt/organizer/data/organizer.db
     orm: none — raw SQL via better-sqlite3
-    backup: "cron every 7min → sqlite3 .dump → /opt/organizer/data/backups/"
+    backup: "cron every 7min → scripts/backup.sh → /opt/organizer/data/backups/"
 
 files:
   JOURNEY.md: "Narrative chronicle of the Sanctuary UI evolution"
   DESIGN.md: "Foundational Design Laws for the Sanctuary"
+  GEMINI.md: "AI integration and prompt engineering documentation"
   mcp-server/server.js: "MCP Server — SSE transport, Tool definitions, Gemini Agent logic"
   mcp-server/subagents.js: "Specialized AI personas (Plan, Execute, Review)"
   mcp-server/changelog.js: "Cryptographic audit trail for AI actions"
   public/app.js: "Frontend JS — routing, Sanctuary rendering, AI chat interface"
-  server.js: "Express API — WebAuthn, task persistence, Gemini Direct Invoke (2.5 Pro)"
+  server.js: "Express API — WebAuthn, task persistence, Gemini Direct Invoke (3 Flash)"
   scripts/kb.py: "Knowledge base / Mem0 integration scripts"
+  terrain/S36E149.DAT: "HGT Digital Elevation Model data for atmospheric rendering"
 
 database_schema:
   users:
     columns: [id, name, slug, password_hash, created_at]
+  domains:
+    columns: [id, user_id, name, slug, material, sort_order]
+    notes: "Slugs: CTI, ECM, CSD, GRA, PER. Materials define UI aesthetics."
   tasks:
     columns: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, archived, user_id]
-    notes: "Domains: CTI, ECM, CSD, GRA, Personal. Supports natural language date labels."
+    notes: "Supports natural language date labels and visual priority metrics."
+  subtasks:
+    columns: [id, task_id, label, done, sort_order]
+  blockers:
+    columns: [task_id, blocked_by]
+    notes: "Self-referencing tasks table for dependency graphing."
   credentials:
     columns: [id, user_id, public_key, counter, transports, created_at]
     notes: "WebAuthn / Passkey storage."
@@ -83,19 +96,22 @@ database_schema:
     notes: "Encapsulates AI planning sessions."
   session_events:
     columns: [id, session_id, ts, agent, event_type, task_id, content]
-    notes: "Granular audit log for AI plan execution."
   session_decisions:
     columns: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
-    notes: "Tracks AI-proposed changes vs user acceptance."
+  task_observations:
+    columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
+    notes: "AI-generated qualitative analysis of task progress."
   meta_insights:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
-    notes: "Long-term AI observations about productivity/patterns."
   task_events:
     columns: [id, task_id, user_id, action, detail, ts]
     notes: "Audit log for mutations."
+  ui_state:
+    columns: [key, value]
+    notes: "Persistent client-side state (e.g., expanded folders)."
 
 orientation_commands:
   - "cat project-context.yaml"
-  - "cat JOURNEY.md"
-  - "systemctl status organizer*"
+  - "systemctl status organizer.service organizer-mcp.service organizer-commit.service"
   - "ls -R mcp-server/"
+  - "tail -n 20 /opt/organizer/data/backups/latest.sql"
