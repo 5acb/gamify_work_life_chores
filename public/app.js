@@ -360,29 +360,30 @@ function makeCardCompact(t){
   var dm=DM[t.domain]||{c:'var(--faded)',l:t.domain,m:''};
   var hue=getTaskHue(t);
   var archived=!!t.archived;
-  var blocked=isBlocked(t);
-  var needsCount=(t.needs||[]).length;
+  var dd=daysFrom(t.due_date);
+  var tLabel=dd!==null?'T'+(dd>=0?'+':'')+dd:'';
 
   var el=document.createElement('div');
   el.className='card compact '+dm.m+' '+(hue?'hue-'+hue:'')+(archived?' archived':'')+(state.selectedId===t.id?' selected':'');
   el.dataset.id=t.id;
 
   var h='';
-  // Inline actions
-  h+='<div class="tile-actions" style="position:static;background:transparent;border:none;box-shadow:none;padding:0;height:auto;flex-shrink:0;gap:4px">'
-    +(archived||state.view==='archived'
-      ?'<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>'
-      :'<button class="cbtn act-archive" data-id="'+t.id+'" title="Done" aria-label="Mark as done"></button>')
-    +'<button class="cbtn act-edit" data-id="'+t.id+'" title="Edit">✎</button>'
-  +'</div>';
-  // Name
-  h+='<div class="tile-name" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;position:static;width:auto">'+esc(t.name)+'</div>';
-  // Meta right
-  h+='<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">';
-  if(needsCount&&!archived) h+='<span style="font-size:8px;font-weight:900;color:var(--canyon);letter-spacing:1px">'+needsCount+'⊞</span>';
-  h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
-  if(hue) h+='<div class="card-hue-indicator dot-'+hue+'" style="width:10px;height:10px"></div>';
+  // Done tick immediately followed by status donut
+  h+='<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">';
+  h+=(archived||state.view==='archived'
+    ?'<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore" style="opacity:0.6">↑</button>'
+    :'<button class="cbtn act-archive" data-id="'+t.id+'" title="Done" aria-label="Mark as done"></button>');
+  if(hue) h+='<div class="card-hue-indicator dot-'+hue+'" style="width:10px;height:10px;flex-shrink:0"></div>';
   h+='</div>';
+
+  // Name (flex:1)
+  h+='<div class="tile-name" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;position:static;width:auto;letter-spacing:-0.2px">'+esc(t.name)+'</div>';
+
+  // Right: T-X due tile only
+  if(tLabel){
+    var tileColour=dd!==null&&dd<=0?'var(--canyon)':dd<=3?'var(--amber)':'rgba(var(--ink-rgb),0.4)';
+    h+='<div class="tile" style="flex-shrink:0;font-size:8px;color:'+tileColour+'">'+esc(tLabel)+'</div>';
+  }
 
   el.innerHTML=h;
   el.onclick=function(e){
