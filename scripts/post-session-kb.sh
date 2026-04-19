@@ -52,7 +52,7 @@ PYEOF
 [[ -z "$CONTENT" ]] && exit 0
 
 # Determine source label from cwd
-PROJECT=$(basename "$CWD" 2>/dev/null || echo "unknown")
+PROJECT=$(basename "$CWD" 2>/dev/null | tr -dc "a-zA-Z0-9_-" | head -c 40 || echo "unknown")
 SOURCE="session-${DATE}-${PROJECT}-${SESSION_ID}"
 
 # SSH to server and add to KB

@@ -267,7 +267,7 @@ function makeCardEl(t, isList){
   h+='<div class="tile-actions" style="position:absolute; top:10px; left:10px; display:flex; gap:8px; z-index:10; align-items:center">'
     +(archived || state.view === 'archived' 
       ? '<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>' 
-      : '<button class="cbtn act-archive" data-id="'+t.id+'" title="Done"></button>')
+      : '<button class="cbtn act-archive" data-id="'+t.id+'" title="Done" aria-label="Mark as done"></button>')
     +'<button class="cbtn act-edit" data-id="'+t.id+'" title="Edit">✎</button>'
     +'<button class="cbtn act-drag" data-id="'+t.id+'" title="Drag to reorder" style="cursor:grab">⠿</button>'
     +(hue ? '<div class="card-hue-indicator dot-'+hue+'" title="Status: '+hue.toUpperCase()+'"></div>' : '')
@@ -364,7 +364,7 @@ function bindGlobalActionEvents(){
     var btn = e.target.closest('.cbtn'); if(!btn) return;
     e.stopPropagation();
     var id = +btn.dataset.id;
-    if(!id) return;
+    if(!btn.dataset.id || isNaN(id)) return;
     if(btn.classList.contains('act-edit')) openEdit(id);
     if(btn.classList.contains('act-archive')){
       var rect=btn.getBoundingClientRect();
@@ -483,6 +483,7 @@ var _oracleHistory = [];
 var _oracleLastQuery = null;
 
 function renderOracleHistory(){
+  if(_oracleHistory.length>50) _oracleHistory=_oracleHistory.slice(-50);
   var feed=document.getElementById('oracle-chat-feed');if(!feed)return;
   feed.innerHTML='';
   _oracleHistory.forEach(function(msg){

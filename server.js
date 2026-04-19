@@ -2,10 +2,10 @@ const express = require('express');
 const Database = require('better-sqlite3');
 const path = require('path');
 const crypto = require('crypto');
-const { spawn, spawnSync } = require('child_process');
+const { spawnSync } = require('child_process');
 // ── Gemini Direct Invoke ─────────────────────────────────────
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL   = 'gemini-2.5-pro';
+const GEMINI_MODEL   = 'gemini-2.5-flash-preview-05-20';
 
 async function geminiInvoke(prompt, systemPrompt = '', history = [], timeout = 90000) {
   if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not set');
@@ -29,7 +29,6 @@ async function geminiInvoke(prompt, systemPrompt = '', history = [], timeout = 9
 
 
 const fs = require('fs');
-const argon2 = require('argon2');
 const { 
   generateRegistrationOptions, 
   verifyRegistrationResponse, 
