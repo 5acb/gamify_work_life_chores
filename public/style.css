@@ -197,7 +197,7 @@ body {
 .hdr-icon-cluster {
   display: flex; align-items: center; gap: 4px; flex-shrink: 0;
   background: var(--pill-bg); border: 1px solid var(--pill-brd);
-  box-shadow: var(--pill-shd); border-radius: 100px; padding: 4px 6px;
+  box-shadow: var(--pill-shd); border-radius: var(--r-sm); padding: 4px 6px;
 }
 /* Each control = a subtile, exactly matching card .tile style */
 .hdr-icon {
