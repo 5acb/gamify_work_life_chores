@@ -446,6 +446,12 @@ function makeCardEl(t, isList){
     if(dd<999) h+='<span class="u-pill">'+tLabel(dd)+'</span>';
   } else h+='<span style="opacity:0.2">---</span>';
   h+='</div>';
+  // Effort + Impact: right below the time indicators
+  h+='<div class="tile tile-meta">';
+  if(t.speed!==undefined&&t.speed!==null) h+='<span class="tile-effort">'+esc(SPEED_L[t.speed]||'')+'</span>';
+  if(t.speed!==undefined&&t.stakes!==undefined&&t.speed!==null&&t.stakes!==null) h+='<span class="u-dots">·</span>';
+  if(t.stakes!==undefined&&t.stakes!==null) h+='<span class="tile-stakes tile-stakes-'+t.stakes+'">'+esc(STAKES_L[t.stakes]||'')+'</span>';
+  h+='</div>';
   h+='</div>'; // end card-grid
 
   // Footer Group (Name + Blocker)
@@ -456,11 +462,7 @@ function makeCardEl(t, isList){
   h+='</div>';
 
   // Domain Identifier (STRICT BOTTOM RIGHT)
-  // Effort + Impact tiles bottom-left
-  h+='<div style="position:absolute;bottom:14px;left:14px;display:flex;gap:5px;align-items:center">';
-  if(t.speed!==undefined&&t.speed!==null) h+='<div class="tile tile-effort">'+esc(SPEED_L[t.speed]||'')+'</div>';
-  if(t.stakes!==undefined&&t.stakes!==null) h+='<div class="tile tile-stakes tile-stakes-'+t.stakes+'">'+esc(STAKES_L[t.stakes]||'')+'</div>';
-  h+='</div>';
+
   h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
 
   el.innerHTML=h;
