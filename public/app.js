@@ -81,9 +81,9 @@ function daysFrom(ds){if(!ds)return 999;return Math.round((new Date(ds+'T00:00:0
 
 function tLabel(n){
   if(n>=999) return '---';
-  if(n>0) return 'T+'+n;    // future: T+9 means due in 9 days
-  if(n===0) return 'T+0';   // due today
-  return 'T'+n;              // overdue: T-2 means 2 days past due (n is already negative)
+  if(n>0)  return 'T-'+n;          // future: T-9 = 9 days until due
+  if(n===0) return 'T+0';          // due today
+  return 'T+'+Math.abs(n);         // overdue: T+3 = 3 days past due
 }
 
 function isBlocked(t){
@@ -364,7 +364,7 @@ function makeCardCompact(t){
   var hue=getTaskHue(t);
   var archived=!!t.archived;
   var dd=daysFrom(t.due_date);
-  var tLabel=dd<999?'T'+(dd>0?'+':dd===0?'+':'')+dd:'';
+  var tDue=dd<999?tLabel(dd):'';
 
   var el=document.createElement('div');
   el.className='card compact '+dm.m+' '+(hue?'hue-'+hue:'')+(archived?' archived':'')+(state.selectedId===t.id?' selected':'');
@@ -384,8 +384,8 @@ function makeCardCompact(t){
 
   // Right: T-X due tile only
   if(tLabel){
-    var tileColour=dd<=0?'var(--canyon)':dd<=3?'var(--amber)':'rgba(var(--ink-rgb),0.4)';
-    h+='<div class="tile" style="flex-shrink:0;font-size:8px;color:'+tileColour+'">'+esc(tLabel)+'</div>';
+    var tileColour=dd<=0?'var(--canyon)':dd<=3?'var(--amber)':'rgba(var(--ink-rgb),0.45)';
+    h+='<div class="tile" style="flex-shrink:0;font-size:8px;color:'+tileColour+'">'+esc(tDue)+'</div>';
   }
 
   el.innerHTML=h;
