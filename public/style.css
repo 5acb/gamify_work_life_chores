@@ -136,11 +136,16 @@ body.mode-execute {
   background-color: var(--washi-base);
   color: var(--obsidian);
   background-image:
-    radial-gradient(ellipse at 15% 10%, rgba(var(--washi-fog-warm-rgb),0.45) 0, transparent 55%),
-    radial-gradient(ellipse at 85% 5%,  rgba(var(--washi-fog-rust-rgb),0.12)  0, transparent 45%),
-    radial-gradient(ellipse at 50% 90%, rgba(var(--honey-rgb),0.07) 0, transparent 55%),
-    radial-gradient(ellipse at 30% 60%, rgba(var(--washi-fog-cool-rgb),0.08) 0, transparent 40%),
-    linear-gradient(160deg, var(--washi-grad-a) 0%, var(--washi-grad-b) 40%, var(--washi-grad-c) 100%);
+    /* Warm parchment bloom — top-left */
+    radial-gradient(ellipse at 10% 5%, rgba(210,185,145,0.6) 0, transparent 52%),
+    /* Dusty rust — top-right */
+    radial-gradient(ellipse at 95% 8%, rgba(var(--washi-fog-rust-rgb),0.28) 0, transparent 40%),
+    /* Amber warmth — bottom (uses amber-rgb not honey-rgb, avoids lapis in exec) */
+    radial-gradient(ellipse at 55% 100%, rgba(var(--amber-rgb),0.10) 0, transparent 50%),
+    /* Cool slate shadow — bottom-left depth */
+    radial-gradient(ellipse at 0% 90%, rgba(var(--washi-fog-cool-rgb),0.22) 0, transparent 45%),
+    /* Paper grain gradient — base */
+    linear-gradient(150deg, #ece4d6 0%, #e0d8c8 35%, #d6ccba 70%, #cec3ae 100%);
 }
 
 /* Execute-only overrides that tokens cannot handle */
@@ -203,10 +208,15 @@ body {
   color: var(--ink);
   height: 100vh; width: 100vw; overflow: hidden; -webkit-font-smoothing: antialiased;
   background-image:
-    radial-gradient(at 0% 0%, rgba(var(--obsidian-mist-rgb),0.4) 0, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(var(--obsidian-rust-rgb),0.05) 0, transparent 40%),
-    radial-gradient(at 50% 100%, rgba(var(--honey-rgb),0.05) 0, transparent 50%),
-    linear-gradient(180deg, var(--obsidian-surface) 0%, var(--obsidian-deep) 100%);
+    /* Cold deep-navy haze — top-left atmosphere */
+    radial-gradient(ellipse at -5% -10%, rgba(18,35,70,0.95) 0, transparent 55%),
+    /* Warm ember — top-right, subtle */
+    radial-gradient(ellipse at 105% 0%, rgba(var(--obsidian-rust-rgb),0.25) 0, transparent 45%),
+    /* Honey amber warmth — bottom centre */
+    radial-gradient(ellipse at 50% 105%, rgba(var(--honey-rgb),0.12) 0, transparent 52%),
+    /* Blue-slate depth — mid-left */
+    radial-gradient(ellipse at 0% 55%, rgba(25,45,80,0.45) 0, transparent 42%),
+    linear-gradient(170deg, #0c1220 0%, var(--obsidian-deep) 60%, #030405 100%);
 }
 
 .app { display: grid; grid-template-columns: 2fr 1fr; height: 100vh; width: 100vw; }
