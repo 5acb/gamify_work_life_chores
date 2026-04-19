@@ -123,6 +123,19 @@ body.mode-execute .field-tile label { color: rgba(244,240,234,0.4); }
 body.mode-execute .field-tile input, body.mode-execute .field-tile select { color: #f4f0ea; }
 body.mode-execute .btn-cancel { background: rgba(255,255,255,0.08); color: #f4f0ea; border-color: rgba(255,255,255,0.1); }
 
+/* Hardcoded honey rgba → lapis equivalents in execute mode */
+body.mode-execute .card:hover {
+  border-color: rgba(31,82,200,0.3);
+  box-shadow: 0 0 30px rgba(31,82,200,0.18), var(--glass-shd);
+}
+body.mode-execute .card.selected {
+  box-shadow: inset 0 0 0 1px var(--lapis), 0 0 80px rgba(31,82,200,0.3), var(--glass-shd);
+  border-color: rgba(31,82,200,0.6) !important;
+}
+body.mode-execute .status-tile-tooltip {
+  background: rgba(9,10,15,0.92); color: #f4f0ea;
+}
+
 /* hdr icon colours on washi */
 body.mode-execute .hdr-icon { color: rgba(9,10,15,0.3); }
 body.mode-execute .hdr-icon:hover { color: var(--obsidian); }

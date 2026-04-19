@@ -130,7 +130,7 @@ function renderApp(){
         +'</div>'
         +'<div style="display:flex;flex-direction:column;margin-top:10px;gap:10px;width:100%">'
           +'<div style="display:flex;justify-content:flex-end">'
-            +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off" style="width:100%;max-width:400px">'
+            +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off">'
           +'</div>'
           +'<div id="statusDots" style="width:100%"></div>'
         +'</div>'
