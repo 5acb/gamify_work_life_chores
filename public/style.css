@@ -17,6 +17,13 @@
   --amber:    #d4830a;
   --canyon:   #c15c3d;
 
+  /* Domain representative accent colours (start of mat-* gradients) */
+  --dom-teal:   #5E9C95;
+  --dom-cobalt: #3b6978;
+  --dom-indigo: #1f3b4d;
+  --dom-wood:   #9b6a9b;
+  --dom-purple: #6b4e71;
+
   /* Domain material gradients */
   --mat-teal:   linear-gradient(135deg, #5E9C95 0%, #2C5651 100%);
   --mat-cobalt: linear-gradient(135deg, #3b6978 0%, #204051 100%);
@@ -63,6 +70,39 @@
   --ink-rgb:     244, 240, 234;
   --marble-rgb:  215, 225, 235;
 
+  /* Washi (execute mode) background palette */
+  --washi-base:          #e8e2d9;
+  --washi-grad-a:        #ede6da;
+  --washi-grad-b:        #e2dace;
+  --washi-grad-c:        #ddd5c8;
+  --washi-fog-warm-rgb:  180, 165, 140;
+  --washi-fog-rust-rgb:  160, 100, 80;
+  --washi-fog-cool-rgb:  150, 160, 170;
+
+  /* Obsidian (plan mode) background palette */
+  --obsidian-surface:    #0f1217;
+  --obsidian-deep:       #050608;
+  --obsidian-mist-rgb:   30, 36, 44;
+  --obsidian-rust-rgb:   169, 104, 104;
+
+  /* Agent / persona colours */
+  --clr-strategist:  #93c5fd;   /* = clr-cobalt */
+  --clr-risk:        #ff8888;   /* = clr-canyon text */
+  --clr-psyche:      #e9d5ff;   /* = clr-purple */
+  --clr-oracle:      #fcd34d;   /* warm amber — plan oracle */
+  --clr-expert:      #99f6e4;   /* = clr-teal */
+
+  /* Marble cool tint for indicators */
+  --marble-cool-rgb: 100, 120, 150;
+
+  /* Stable light — for text always on dark surfaces (domain gradients) */
+  --ink-static: #f4f0ea;
+
+  /* Shadows */
+  --shd-tooltip:  0 4px 20px rgba(0,0,0,0.6);
+  --shd-modal:    0 40px 100px rgba(0,0,0,0.8);
+  --overlay-bg:   rgba(0,0,0,0.85);
+
   --r-md: 8px;
   --r-sm: 4px;
   --card-w: 480px;
@@ -91,14 +131,14 @@ body.mode-execute {
   --clr-indigo:  var(--clr-indigo-x);
   --clr-wood:    var(--clr-wood-x);
   --clr-purple:  var(--clr-purple-x);
-  background-color: #e8e2d9;
+  background-color: var(--washi-base);
   color: var(--obsidian);
   background-image:
-    radial-gradient(ellipse at 15% 10%, rgba(180,165,140,0.45) 0, transparent 55%),
-    radial-gradient(ellipse at 85% 5%,  rgba(160,100,80,0.12)  0, transparent 45%),
+    radial-gradient(ellipse at 15% 10%, rgba(var(--washi-fog-warm-rgb),0.45) 0, transparent 55%),
+    radial-gradient(ellipse at 85% 5%,  rgba(var(--washi-fog-rust-rgb),0.12)  0, transparent 45%),
     radial-gradient(ellipse at 50% 90%, rgba(var(--honey-rgb),0.07) 0, transparent 55%),
-    radial-gradient(ellipse at 30% 60%, rgba(150,160,170,0.08) 0, transparent 40%),
-    linear-gradient(160deg, #ede6da 0%, #e2dace 40%, #ddd5c8 100%);
+    radial-gradient(ellipse at 30% 60%, rgba(var(--washi-fog-cool-rgb),0.08) 0, transparent 40%),
+    linear-gradient(160deg, var(--washi-grad-a) 0%, var(--washi-grad-b) 40%, var(--washi-grad-c) 100%);
 }
 
 /* Execute-only overrides that tokens cannot handle */
@@ -109,13 +149,13 @@ body.mode-execute .card.mat-teal .tile,
 body.mode-execute .card.mat-cobalt .tile,
 body.mode-execute .card.mat-indigo .tile,
 body.mode-execute .card.mat-wood .tile,
-body.mode-execute .card.mat-purple .tile { color: #fff !important; }
+body.mode-execute .card.mat-purple .tile { color: var(--ink-static) !important; }
 body.mode-execute .tile-domain { color: rgba(var(--obsidian-rgb),0.6) !important; }
 
 /* Donut glows invisible on light — solid ring instead */
 body.mode-execute .card-hue-indicator.dot-canyon { filter: none; box-shadow: 0 0 0 1px rgba(var(--canyon-rgb),0.5); }
 body.mode-execute .card-hue-indicator.dot-amber  { filter: none; box-shadow: 0 0 0 1px rgba(var(--amber-rgb),0.5); }
-body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: rgba(100,120,150,0.4); }
+body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: rgba(var(--marble-cool-rgb),0.4); }
 body.mode-execute .dot-canyon { box-shadow: none; }
 body.mode-execute .dot-amber  { box-shadow: none; }
 
@@ -149,10 +189,10 @@ body {
   color: var(--ink);
   height: 100vh; width: 100vw; overflow: hidden; -webkit-font-smoothing: antialiased;
   background-image:
-    radial-gradient(at 0% 0%, rgba(30,36,44,0.4) 0, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(169,104,104,0.05) 0, transparent 40%),
+    radial-gradient(at 0% 0%, rgba(var(--obsidian-mist-rgb),0.4) 0, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(var(--obsidian-rust-rgb),0.05) 0, transparent 40%),
     radial-gradient(at 50% 100%, rgba(var(--honey-rgb),0.05) 0, transparent 50%),
-    linear-gradient(180deg, #0f1217 0%, #050608 100%);
+    linear-gradient(180deg, var(--obsidian-surface) 0%, var(--obsidian-deep) 100%);
 }
 
 .app { display: grid; grid-template-columns: 2fr 1fr; height: 100vh; width: 100vw; }
@@ -280,7 +320,7 @@ body {
   background: rgba(var(--obsidian-rgb),0.95); border: 1px solid var(--glass-brd);
   padding: 8px 14px; border-radius: var(--r-sm); font-size: 10px; font-weight: 700;
   letter-spacing: 1px; white-space: nowrap; z-index: 1000; color: var(--ink);
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  box-shadow: var(--shd-tooltip);
 }
 .status-tile:hover .status-tile-tooltip { display: block; }
 .status-dot { height: 12px; width: 4px; border-radius: 1px; transition: all 0.3s; }
@@ -309,7 +349,7 @@ body.mode-execute .dot-amber  { box-shadow: none; }
 .card-hue-indicator.dot-marble { border-color: rgba(var(--marble-rgb),0.5); }
 body.mode-execute .card-hue-indicator.dot-canyon { filter: none; box-shadow: 0 0 0 1px rgba(var(--canyon-rgb),0.5); }
 body.mode-execute .card-hue-indicator.dot-amber  { filter: none; box-shadow: 0 0 0 1px rgba(var(--amber-rgb),0.5); }
-body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: rgba(100,120,150,0.4); }
+body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: rgba(var(--marble-cool-rgb),0.4); }
 
 /* ── Card internals ── */
 .card-footer {
@@ -372,7 +412,7 @@ body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: r
 
 /* ── Modal ── */
 .modal-bg {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+  position: fixed; inset: 0; background: var(--overlay-bg);
   backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
   z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px;
 }
@@ -388,7 +428,7 @@ body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: r
   --honey-rgb:  232, 176, 4;
   background: var(--glass); backdrop-filter: blur(50px); -webkit-backdrop-filter: blur(50px);
   border: 1px solid var(--glass-brd); padding: 40px; width: 100%; max-width: 500px;
-  box-shadow: 0 40px 100px rgba(0,0,0,0.8); border-radius: 24px; display: flex; flex-direction: column; gap: 20px;
+  box-shadow: var(--shd-modal); border-radius: 24px; display: flex; flex-direction: column; gap: 20px;
 }
 .modal h2 { font-size: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: -1px; color: var(--honey); margin-bottom: 10px; text-align: center; }
 
@@ -419,12 +459,12 @@ body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: r
 .modal-actions { display: flex; gap: 12px; margin-top: 10px; }
 .modal-actions button { flex: 1; padding: 14px; border-radius: var(--r-md); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; }
 .btn-cancel { background: var(--glass); color: var(--ink); border: 1px solid var(--glass-brd); }
-.btn-save   { background: var(--honey); color: #000; border: none; }
+.btn-save   { background: var(--honey); color: var(--obsidian); border: none; }
 .btn-save:hover { filter: brightness(1.1); box-shadow: 0 0 20px var(--honey); }
 .btn-danger { background: transparent; color: var(--canyon); border: 1px solid rgba(var(--canyon-rgb),0.35); font-weight: 800; }
 .btn-danger:hover { border-color: rgba(var(--canyon-rgb),0.7); background: rgba(var(--canyon-rgb),0.06); }
 
-.u-pill { color: #fff; font-size: 10px; margin: 0 6px; font-weight: 900; }
+.u-pill { color: var(--ink); font-size: 10px; margin: 0 6px; font-weight: 900; }
 .u-dots { opacity: 0.4; letter-spacing: 4px; }
 .inline-edit { background: transparent; border: none; color: var(--honey); font-family: inherit; font-size: inherit; font-weight: 900; width: 100%; text-align: left; outline: none; }
 .mobile-back-btn { display: none; }
@@ -445,7 +485,7 @@ body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: r
 .oracle-input-row { display: flex; gap: 10px; padding: 8px 24px 12px; border-top: 1px solid rgba(0,0,0,0.07); }
 .oracle-input { flex: 1; background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.1); border-radius: var(--r-sm); padding: 8px 14px; font-family: inherit; font-size: 12px; outline: none; color: var(--obsidian); }
 .oracle-input:focus { border-color: var(--lapis); }
-.oracle-send { background: var(--lapis); border: none; color: #fff; padding: 8px 18px; border-radius: var(--r-sm); font-family: inherit; font-weight: 800; font-size: 10px; letter-spacing: 1px; cursor: pointer; }
+.oracle-send { background: var(--lapis); border: none; color: var(--ink); padding: 8px 18px; border-radius: var(--r-sm); font-family: inherit; font-weight: 800; font-size: 10px; letter-spacing: 1px; cursor: pointer; }
 
 /* ═══════════════════════════════════════════════════
    MOBILE
@@ -512,7 +552,7 @@ body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: r
 }
 .council-close:hover { border-color: rgba(255,255,255,0.2); color: var(--ink); }
 .council-extract {
-  background: rgba(var(--honey-rgb),0.1); border: 1px solid rgba(var(--honey-rgb),0.3); color: #e8b004;
+  background: rgba(var(--honey-rgb),0.1); border: 1px solid rgba(var(--honey-rgb),0.3); color: var(--honey);
   font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
   padding: 8px 20px; cursor: pointer; border-radius: var(--r-sm); font-family: inherit; transition: all 0.2s;
 }
@@ -536,11 +576,11 @@ body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: r
 .council-agent-tile .cat-dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: 0; transition: opacity 0.3s; }
 .council-agent-tile.briefed .cat-dot { opacity: 0.8; }
 .council-agent-tile[data-agent="moderator"]    { color: var(--honey); }
-.council-agent-tile[data-agent="strategist"]   { color: #93c5fd; }
-.council-agent-tile[data-agent="risk_scout"]   { color: #ff8888; }
-.council-agent-tile[data-agent="psychologist"] { color: #e9d5ff; }
-.council-agent-tile[data-agent="plan_oracle"]  { color: #fcd34d; }
-.council-agent-tile[data-agent="domain_expert"]{ color: #99f6e4; }
+.council-agent-tile[data-agent="strategist"]   { color: var(--clr-strategist); }
+.council-agent-tile[data-agent="risk_scout"]   { color: var(--clr-risk); }
+.council-agent-tile[data-agent="psychologist"] { color: var(--clr-psyche); }
+.council-agent-tile[data-agent="plan_oracle"]  { color: var(--clr-oracle); }
+.council-agent-tile[data-agent="domain_expert"]{ color: var(--clr-expert); }
 
 .council-chat { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .council-active-label { padding: 6px 28px; font-size: 9px; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; opacity: 0.4; flex-shrink: 0; }
@@ -565,8 +605,8 @@ body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: r
 .extract-label { font-size: 9px; font-weight: 900; letter-spacing: 4px; text-transform: uppercase; color: var(--honey); margin-bottom: 12px; }
 .extract-item { font-size: 12.5px; line-height: 1.7; color: rgba(var(--ink-rgb),0.8); padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
 .extract-item:last-child { border-bottom: none; }
-.extract-risk-high { color: #ff8888; }
-.extract-risk-medium { color: #d4830a; }
+.extract-risk-high { color: var(--clr-risk); }
+.extract-risk-medium { color: var(--amber); }
 
 /* Status dots visibility in execute mode */
 body.mode-execute .status-tile { background: rgba(var(--obsidian-rgb),0.06); border-color: rgba(var(--obsidian-rgb),0.12); }

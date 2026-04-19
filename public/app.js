@@ -1,6 +1,6 @@
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 var TODAY=new Date();TODAY.setHours(0,0,0,0);
-var DM={CTI:{c:'#5E9C95',l:'CTI',m:'mat-teal'},ECM:{c:'#9b6a9b',l:'ECM',m:'mat-wood'},CSD:{c:'#3b6978',l:'CSD',m:'mat-cobalt'},GRA:{c:'#6b4e71',l:'GRA',m:'mat-purple'},Personal:{c:'#1f3b4d',l:'PER',m:'mat-indigo'}};
+var DM={CTI:{c:PALETTE.teal,l:'CTI',m:'mat-teal'},ECM:{c:PALETTE.wood,l:'ECM',m:'mat-wood'},CSD:{c:PALETTE.cobalt,l:'CSD',m:'mat-cobalt'},GRA:{c:PALETTE.purple,l:'GRA',m:'mat-purple'},Personal:{c:PALETTE.indigo,l:'PER',m:'mat-indigo'}};
 var SPEED_L=['snap','sesh','grind'],STAKES_L=['low','high','crit'];
 var DOMAINS=Object.keys(DM);
 
@@ -219,7 +219,7 @@ function openLogoutConfirm(){
 function makeCardEl(t, isList){
   var blocked=isBlocked(t), archived=!!t.archived;
   var dp=daysFrom(t.plan_date), dd=daysFrom(t.due_date);
-  var dm=DM[t.domain]||{c:'#71717a',l:t.domain,m:''};
+  var dm=DM[t.domain]||{c:'var(--faded)',l:t.domain,m:''};
 
   // DEDUP: archived is the state of completion/done
   var isUrgent = (dd <= 1 && !archived) || blocked;
@@ -490,10 +490,10 @@ function renderMd(text){
 
 var ALL_COUNCIL_AGENTS = [
   { id:'moderator',    icon:'⊛', label:'Moderator',    color:'var(--honey)' },
-  { id:'strategist',   icon:'◈', label:'Strategist',   color:'#93c5fd' },
-  { id:'risk_scout',   icon:'⚑', label:'Risk Scout',   color:'#ff8888' },
-  { id:'psychologist', icon:'⟡', label:'Psychologist', color:'#e9d5ff' },
-  { id:'plan_oracle',  icon:'◎', label:'Plan Oracle',  color:'#fcd34d' }
+  { id:'strategist',   icon:'◈', label:'Strategist',   color:PALETTE.strategist },
+  { id:'risk_scout',   icon:'⚑', label:'Risk Scout',   color:PALETTE.risk },
+  { id:'psychologist', icon:'⟡', label:'Psychologist', color:PALETTE.psyche },
+  { id:'plan_oracle',  icon:'◎', label:'Plan Oracle',  color:PALETTE.oracle }
 ];
 
 var councilState = {
@@ -527,12 +527,12 @@ function openCouncil(){
     last.id    = 'domain_expert';
     last.icon  = '◉';
     last.label = DOMAIN_EXPERT_LABELS[focusTask.domain] || 'Domain Expert';
-    last.color = '#99f6e4';
+    last.color = PALETTE.expert;
   } else {
     last.id    = 'plan_oracle';
     last.icon  = '◎';
     last.label = 'Plan Oracle';
-    last.color = '#fcd34d';
+    last.color = PALETTE.oracle;
   }
 
   // Rebuild symbol row
