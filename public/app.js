@@ -310,6 +310,28 @@ function renderCards(){
   bindGlobalActionEvents();
 }
 
+function updateStatusDots(){
+  var container = document.getElementById('statusDots'); if(!container) return;
+  var activeTasks = state.tasks.filter(t => !t.archived);
+  if(!activeTasks.length) { container.innerHTML = ''; return; }
+  var counts = {canyon:0, amber:0, marble:0, dim:0};
+  activeTasks.forEach(t => { var h=getTaskHue(t); if(h) counts[h]++; else counts.dim++; });
+  var total = activeTasks.length; var dots = 20;
+  var types = ['canyon','amber','marble','dim'];
+  var dotCounts = types.map(type => Math.round((counts[type]/total)*dots));
+  var diff = dots - dotCounts.reduce((a,b)=>a+b,0);
+  dotCounts[3] += diff;
+  var tipParts=[];
+  if(counts.canyon) tipParts.push(counts.canyon+' canyon');
+  if(counts.amber) tipParts.push(counts.amber+' amber');
+  if(counts.marble) tipParts.push(counts.marble+' marble');
+  if(counts.dim) tipParts.push(counts.dim+' clear');
+  var tipText=tipParts.join(' · ')||'all clear';
+  var h='<div class="status-tile"><span class="status-tile-tooltip">'+tipText+'</span>';
+  types.forEach((type,idx)=>{ for(var i=0;i<dotCounts[idx];i++) h+='<div class="status-dot dot-'+type+'"></div>'; });
+  h+='</div>';
+  container.innerHTML=h;
+}
 function bindGlobalActionEvents(){
   var list = document.getElementById('cardList');
   list.onclick = function(e){
