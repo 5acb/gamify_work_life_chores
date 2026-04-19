@@ -381,6 +381,8 @@ function makeCardCompact(t){
     ?'<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>'
     :'<button class="cbtn act-archive" data-id="'+t.id+'" title="Done" aria-label="Mark as done"></button>');
   h+='</div>';
+  // Drag handle (spans both rows, between action and content)
+  h+='<div class="act-drag compact-drag" data-id="'+t.id+'" title="Drag to reorder">⠿</div>';
   // Two-row content
   h+='<div class="compact-content">';
   // Row 1: name
