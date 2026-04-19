@@ -189,7 +189,7 @@ body {
   background: var(--glass-inner); border: 1px solid var(--glass-brd);
   color: var(--faded); font-size: 9px; font-weight: 800; letter-spacing: 1.5px;
   text-transform: uppercase; padding: 5px 10px; border-radius: var(--r-sm);
-  cursor: pointer; font-family: inherit; transition: all 0.2s; white-space: nowrap;
+  cursor: pointer; font-family: inherit; transition: all 0.2s; white-space: nowrap; min-height: 44px;
 }
 .hdr-logout-btn:hover { color: var(--canyon); border-color: rgba(var(--canyon-rgb),0.4); }
 .hdr-icon-cluster {
