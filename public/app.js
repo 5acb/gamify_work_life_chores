@@ -59,8 +59,10 @@ function injectDomainStyles(domains) {
     lines.push(sel + ' .tile-name { color:' + m.lum + '; }');
     lines.push(sel + ' .tile-domain { color:' + m.lum + ' !important; background:' + grad + '; }');
     lines.push('body.mode-execute ' + sel + ' .tile-name { color:' + m.exe + '; }');
-    lines.push('body.mode-execute ' + sel + ' .tile { color:' + m.exe + ' !important; }');
-    lines.push('body.mode-execute ' + sel + ' .tile-domain { color:' + m.exe + ' !important; }');
+    // Parse gradient start colour into rgba for light tint background
+    var rgb = m.rgb; // already "r,g,b" string
+    lines.push('body.mode-execute ' + sel + ' .tile { background:rgba(' + rgb + ',0.14) !important; color:' + m.exe + ' !important; }');
+    lines.push('body.mode-execute ' + sel + ' .tile-domain { background:rgba(' + rgb + ',0.14) !important; color:' + m.exe + ' !important; }');
   });
   el.textContent = lines.join(' ');
 }
