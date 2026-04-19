@@ -155,6 +155,7 @@ function renderApp(){
     document.querySelector('.app').classList.remove('mobile-tree-active');
     state.selectedId = null;
     document.querySelectorAll('.card').forEach(function(c){ c.classList.remove('selected'); });
+    renderTree(null);
   };
 
   document.getElementById('search').addEventListener('input',function(){state.searchQuery=this.value;renderCards()});
@@ -369,8 +370,9 @@ function bindGlobalActionEvents(){
 
 function renderTree(id){
   var container=document.getElementById('treeContainer');if(!container)return;
-  var task=state.taskById[id];if(!task)return;
   container.innerHTML='';
+  if(!id) return;
+  var task=state.taskById[id];if(!task)return;
   var isMobile=window.innerWidth<=1024;
 
   function makeSection(label, cards, opts){
