@@ -189,8 +189,14 @@ function renderApp(){
     state.mode = state.mode==='plan' ? 'execute' : 'plan';
     api('PUT','/api/users/'+state.slug+'/ui-state',{mode:state.mode});
     applyMode();
-    // Re-render header button label
-    document.getElementById('modeToggleBtn').textContent = state.mode==='plan'?'◈ PLAN':'▶ EXECUTE';
+    // Sync both header buttons without full re-render
+    var modeBtn = document.getElementById('modeToggleBtn');
+    if(modeBtn){
+      modeBtn.textContent = state.mode==='plan' ? '◈ Plan' : '▷ Execute';
+      modeBtn.className = 'hdr-icon ' + (state.mode==='plan' ? 'hdr-icon--plan' : 'hdr-icon--execute');
+    }
+    var aiBtn = document.getElementById('aiBtn');
+    if(aiBtn) aiBtn.textContent = state.mode==='plan' ? '⊛ Council' : '✦ Oracle';
   });
 
   document.getElementById('viewToggleBtn').onclick = function(){
@@ -794,6 +800,7 @@ function sendCouncilMsg(){
 }
 
 function closeCouncil(){
+  _councilActive = false;
   var overlay = document.getElementById('councilOverlay');
   if(overlay) overlay.classList.remove('open');
 }
