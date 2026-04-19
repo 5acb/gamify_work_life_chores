@@ -643,7 +643,7 @@ function matPickerHtml(usedMaterials, excludeMat, inputRef){
     if(!taken) sw.onclick=function(){
       div.querySelectorAll('[data-mat]').forEach(function(x){x.style.borderColor='transparent';});
       this.style.borderColor='var(--honey)';
-      if(inputRef) inputRef.dataset.mat=this.dataset.mat;
+      if(inputRef) inputRef.dataset.selectedMat=this.dataset.mat;
     };
     div.appendChild(sw);
   });
@@ -732,7 +732,6 @@ function openDomainsModal(){
         list.querySelectorAll('[data-edit]').forEach(function(p){p.style.display='none';});
         editPanel.style.display=open?'none':'block';
       };
-      editPanel.dataset.edit='1';
       row.appendChild(header);
       row.appendChild(editPanel);
       list.appendChild(row);
