@@ -356,7 +356,48 @@ function openLogoutConfirm(){
 
 // ── Cards ─────────────────────────────────────────────────────
 
+function makeCardCompact(t){
+  var dm=DM[t.domain]||{c:'var(--faded)',l:t.domain,m:''};
+  var hue=getTaskHue(t);
+  var archived=!!t.archived;
+  var blocked=isBlocked(t);
+  var needsCount=(t.needs||[]).length;
+
+  var el=document.createElement('div');
+  el.className='card compact '+dm.m+' '+(hue?'hue-'+hue:'')+(archived?' archived':'')+(state.selectedId===t.id?' selected':'');
+  el.dataset.id=t.id;
+
+  var h='';
+  // Inline actions
+  h+='<div class="tile-actions" style="position:static;background:transparent;border:none;box-shadow:none;padding:0;height:auto;flex-shrink:0;gap:4px">'
+    +(archived||state.view==='archived'
+      ?'<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>'
+      :'<button class="cbtn act-archive" data-id="'+t.id+'" title="Done" aria-label="Mark as done"></button>')
+    +'<button class="cbtn act-edit" data-id="'+t.id+'" title="Edit">✎</button>'
+  +'</div>';
+  // Name
+  h+='<div class="tile-name" style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;position:static;width:auto">'+esc(t.name)+'</div>';
+  // Meta right
+  h+='<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">';
+  if(needsCount&&!archived) h+='<span style="font-size:8px;font-weight:900;color:var(--canyon);letter-spacing:1px">'+needsCount+'⊞</span>';
+  h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
+  if(hue) h+='<div class="card-hue-indicator dot-'+hue+'" style="width:10px;height:10px"></div>';
+  h+='</div>';
+
+  el.innerHTML=h;
+  el.onclick=function(e){
+    if(e.target.closest('.cbtn,input'))return;
+    e.stopPropagation();
+    state.selectedId=(state.selectedId===t.id)?null:t.id;
+    document.querySelectorAll('.card').forEach(function(c){c.classList.toggle('selected',+c.dataset.id===state.selectedId);});
+    renderTree(state.selectedId);
+    if(window.innerWidth<=1024&&state.selectedId) document.querySelector('.app').classList.add('mobile-tree-active');
+  };
+  return el;
+}
+
 function makeCardEl(t, isList){
+  if(state.compact && isList !== false) return makeCardCompact(t);
   var blocked=isBlocked(t), archived=!!t.archived;
   var dp=daysFrom(t.plan_date), dd=daysFrom(t.due_date);
   var dm=DM[t.domain]||{c:'var(--faded)',l:t.domain,m:''};
