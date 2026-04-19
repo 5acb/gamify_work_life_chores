@@ -152,7 +152,8 @@ function renderApp(){
           +'<div style="display:flex;justify-content:flex-end">'
             +'<input class="search" id="search" placeholder="Filter sanctuary..." autocomplete="off">'
           +'</div>'
-                  +'</div>'
+          +'<div id="statusDots" style="width:100%"></div>'
+        +'</div>'
       +'</div>'
       +'<div class="cards" id="cardScroll"><div class="cards-inner" id="cardList"></div></div>'
     +'</div>';
@@ -206,6 +207,8 @@ function renderApp(){
 
   renderCards();
   if(state.selectedId) renderTree(state.selectedId);
+  updateStatusDots();
+  updateDomainLights();
 }
 
 function getTaskHue(t){
@@ -357,6 +360,36 @@ function updateStatusDots(){
   container.innerHTML=h;
 }
 var _cardActionsBound = false;
+function updateDomainLights(){
+  var el=document.getElementById('bgLights');
+  if(!el){
+    el=document.createElement('div');
+    el.id='bgLights';
+    document.body.insertBefore(el,document.body.firstChild);
+  }
+  var tasks=state.tasks.filter(function(t){return !t.archived;});
+  var total=Math.max(tasks.length,1);
+
+  // Off-canvas light positions + domain rgb (mat-* gradient starts)
+  var lights=[
+    {domain:'CTI',      rgb:'94,156,149',  x:'112%', y:'38%'},   // teal — right
+    {domain:'CSD',      rgb:'59,105,120',  x:'-12%', y:'22%'},   // cobalt — left
+    {domain:'GRA',      rgb:'107,78,113',  x:'92%',  y:'80%'},   // purple — bottom-right
+    {domain:'ECM',      rgb:'155,106,155', x:'18%',  y:'112%'},  // warm — bottom
+    {domain:'Personal', rgb:'31,59,77',    x:'52%',  y:'-12%'},  // indigo — top
+  ];
+
+  var grads=lights.map(function(l){
+    var count=tasks.filter(function(t){return t.domain===l.domain;}).length;
+    var pct=count/total;
+    var op=(0.07+pct*0.20).toFixed(2);
+    var spread=Math.round(38+pct*28);
+    return 'radial-gradient(ellipse at '+l.x+' '+l.y+',rgba('+l.rgb+','+op+') 0,transparent '+spread+'%)';
+  }).join(',');
+
+  el.style.backgroundImage=grads;
+}
+
 function bindGlobalActionEvents(){
   if(_cardActionsBound) return;
   _cardActionsBound = true;

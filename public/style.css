@@ -690,3 +690,16 @@ body.mode-execute .dot-marble { background: rgba(var(--obsidian-rgb),0.12); }
 }
 .oracle-chat-send:hover { filter: brightness(1.1); }
 .oracle-chat-send:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Domain light sources (off-canvas, data-driven) ── */
+#bgLights {
+  position: fixed; inset: 0; pointer-events: none;
+  z-index: 0; /* behind .app panels which are z-index:auto */
+  mix-blend-mode: screen; /* additive on dark — luminous domain glows */
+  transition: background-image 1.2s cubic-bezier(0.23, 1, 0.32, 1);
+}
+body.mode-execute #bgLights {
+  mix-blend-mode: multiply; /* on washi light bg — darkens subtly */
+}
+/* Ensure .app sits above the light layer */
+.app { position: relative; z-index: 1; }
