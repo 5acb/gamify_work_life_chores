@@ -15,18 +15,18 @@ var PALETTE = {
 var MATERIALS = {
   'ink-stone':      { name:'Ink Stone',       gs:'#2C3E50', ge:'#1D2A38', lum:'#EAEFF5', exe:'#202A35', rgb:'44,62,80',    evoke:'Quiet focus of deep study' },
   'granite-bedrock':{ name:'Granite Bedrock', gs:'#4E5055', ge:'#2D2E30', lum:'#D9DCE1', exe:'#38393B', rgb:'78,80,85',    evoke:'Solid foundation for great work' },
-  'hearthstone':    { name:'Hearthstone',     gs:'#8C2B1D', ge:'#5A1C12', lum:'#FF8D4D', exe:'#6E2B1F', rgb:'140,43,29',   evoke:'Warm energy of a passion project' },
+  'hearthstone':    { name:'Hearthstone',     gs:'#7A1F2E', ge:'#4A1220', lum:'#FF9EB4', exe:'#5E1825', rgb:'122,31,46',   evoke:'Warm energy of a passion project' },
   'wild-orchid':    { name:'Wild Orchid',     gs:'#A2397B', ge:'#6B2551', lum:'#FFA0E5', exe:'#802D60', rgb:'162,57,123',  evoke:'Vibrant creative energy and joy' },
-  'mosswood':       { name:'Mosswood',        gs:'#3A643A', ge:'#213D21', lum:'#A8D17E', exe:'#2D4D2D', rgb:'58,100,58',   evoke:'Growth and steady wellbeing' },
+  'mosswood':       { name:'Mosswood',        gs:'#2A5E4A', ge:'#163828', lum:'#C4E869', exe:'#1E4030', rgb:'42,94,74',    evoke:'Growth and steady wellbeing' },
   'arctic-shore':   { name:'Arctic Shore',    gs:'#58707D', ge:'#3A4952', lum:'#E0F4FF', exe:'#43555F', rgb:'88,112,125',  evoke:'Calm clarity of vast open space' },
   'sun-baked-clay': { name:'Sun-baked Clay',  gs:'#A15A38', ge:'#6B3B24', lum:'#FFCBA4', exe:'#7A4429', rgb:'161,90,56',   evoke:'Warmth of home and human connection' },
   'aged-mahogany':  { name:'Aged Mahogany',   gs:'#712D3A', ge:'#4A1D25', lum:'#F2B8B3', exe:'#59242E', rgb:'113,45,58',   evoke:'Legacy and depth of family history' },
   'cyberspace-grid':{ name:'Cyberspace Grid', gs:'#005F6B', ge:'#003C43', lum:'#66FBFB', exe:'#004850', rgb:'0,95,107',    evoke:'Precise interconnected logic of tech' },
-  'gilded-ore':     { name:'Gilded Ore',      gs:'#796A3D', ge:'#4A3F25', lum:'#FDE496', exe:'#605331', rgb:'121,106,61',  evoke:'Value and deliberate pursuit of growth' },
+  'gilded-ore':     { name:'Gilded Ore',      gs:'#796A3D', ge:'#4A3F25', lum:'#C8A96A', exe:'#4A3D26', rgb:'121,106,61',  evoke:'Value and deliberate pursuit of growth' },
   'amethyst-sky':   { name:'Amethyst Sky',    gs:'#6247AA', ge:'#3B2A66', lum:'#D5C6FF', exe:'#493680', rgb:'98,71,170',   evoke:'Introspection and connection to the mystical' },
-  'saffron-road':   { name:'Saffron Road',    gs:'#B5712B', ge:'#7A4C1C', lum:'#FFC96B', exe:'#905A22', rgb:'181,113,43',  evoke:'Adventure and richness of knowledge' },
+  'saffron-road':   { name:'Saffron Road',    gs:'#7A3B28', ge:'#4A2218', lum:'#E8C4A0', exe:'#5E2E1C', rgb:'122,59,40',   evoke:'Adventure and richness of knowledge' },
   'nebula':         { name:'Nebula',          gs:'#40469A', ge:'#26295D', lum:'#B3B8FF', exe:'#313678', rgb:'64,70,154',   evoke:'Wonder of the cosmos and ambitious ideas' },
-  'first-light':    { name:'First Light',     gs:'#C86259', ge:'#8A433D', lum:'#FFB3A3', exe:'#A14F47', rgb:'200,98,89',   evoke:'New beginnings and gentle optimism' },
+  'first-light':    { name:'First Light',     gs:'#9E4A6A', ge:'#65304A', lum:'#FFB3D4', exe:'#7A3852', rgb:'158,74,106',  evoke:'New beginnings and gentle optimism' },
   'kingfisher':     { name:'Kingfisher',      gs:'#006E90', ge:'#00485E', lum:'#38B6FF', exe:'#005670', rgb:'0,110,144',   evoke:'Swift insight and brilliance in motion' },
 };
 
