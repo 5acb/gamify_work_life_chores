@@ -6,6 +6,7 @@
   --mist: #1e242c;
   --honey: #e8b004;         /* Reserved for Selection/Focus/Interaction ONLY */
   --amber: #d4830a;         /* Urgency/Temporal — 3-day deadline signal */
+  --lapis: #1F52C8;         /* Execute mode accent — lapis lazuli on washi */
   --ink: #f4f0ea;           /* Washi contrast */
   --faded: rgba(244, 240, 234, 0.25);
   
@@ -370,8 +371,8 @@ body.mode-execute .panel-list { background: rgba(0,0,0,0.03); }
 body.mode-execute .hdr-date-etched { background: rgba(0,0,0,0.05); border-color: rgba(0,0,0,0.06); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.1); color: var(--obsidian); opacity: 0.6; }
 body.mode-execute .card { background: rgba(0,0,0,0.03); border-color: rgba(0,0,0,0.07); box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
 body.mode-execute .card:hover { background: rgba(0,0,0,0.06); box-shadow: 0 0 24px rgba(232,176,4,0.2), 0 4px 20px rgba(0,0,0,0.08); }
-body.mode-execute .status-tile { background: rgba(0,0,0,0.06); border-color: rgba(0,0,0,0.06); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.08); }
-body.mode-execute .status-tile-tooltip { background: rgba(244,240,234,0.98); color: var(--obsidian); border-color: rgba(0,0,0,0.1); }
+body.mode-execute .status-tile { background: rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.14); box-shadow: inset 1px 1px 3px rgba(0,0,0,0.12); }
+body.mode-execute .status-tile-tooltip { background: rgba(9,10,15,0.9); color: var(--ink); border-color: rgba(0,0,0,0.2); }
 body.mode-execute .tile { color: rgba(9,10,15,0.85) !important; }
 body.mode-execute .card.mat-teal .tile, body.mode-execute .card.mat-cobalt .tile,
 body.mode-execute .card.mat-indigo .tile, body.mode-execute .card.mat-wood .tile,
@@ -386,8 +387,15 @@ body.mode-execute .hdr-icon-cluster { background: rgba(0,0,0,0.06); border-color
 body.mode-execute .hdr-icon { color: rgba(9,10,15,0.3); }
 body.mode-execute .hdr-icon:hover { color: var(--obsidian); background: rgba(0,0,0,0.04); }
 body.mode-execute .hdr-icon--plan, body.mode-execute .hdr-icon--execute,
-body.mode-execute .hdr-icon--council { color: var(--honey); }
-body.mode-execute .search { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); color: var(--obsidian); }
+body.mode-execute .hdr-icon--council { color: var(--lapis); }
+/* Lapis lazuli replaces honey as interactive accent in execute mode */
+body.mode-execute .card:hover { border-color: rgba(31,82,200,0.3); box-shadow: 0 0 24px rgba(31,82,200,0.12), var(--glass-shd); }
+body.mode-execute .card.selected { box-shadow: inset 0 0 0 1px var(--lapis), 0 0 60px rgba(31,82,200,0.2), var(--glass-shd); border-color: rgba(31,82,200,0.5) !important; }
+body.mode-execute .card.selected::after { background: var(--lapis); }
+body.mode-execute .search:focus { border-color: var(--lapis); }
+body.mode-execute .field-tile:focus-within { border-color: var(--lapis); box-shadow: 0 0 12px rgba(31,82,200,0.15); }
+body.mode-execute .hdr-btn:hover, body.mode-execute .ai-btn:hover { border-color: var(--lapis); color: var(--lapis); }
+body.mode-execute .search { background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.12); color: var(--obsidian); max-width: 100%; }
 body.mode-execute .cbtn { color: var(--obsidian); }
 body.mode-execute .tile-domain { color: rgba(9,10,15,0.65) !important; }
 
@@ -595,3 +603,11 @@ body.mode-execute .tile-domain { color: rgba(9,10,15,0.65) !important; }
 .extract-risk-high { color: #ff8888; }
 .extract-risk-medium { color: var(--amber); }
 
+
+/* Execute mode donut overrides — shadows invisible on light bg */
+body.mode-execute .card-hue-indicator.dot-canyon { border-color: #c15c3d; filter: none; box-shadow: 0 0 0 1px rgba(193,92,61,0.4); }
+body.mode-execute .card-hue-indicator.dot-amber  { border-color: var(--amber); filter: none; box-shadow: 0 0 0 1px rgba(212,131,10,0.4); }
+body.mode-execute .card-hue-indicator.dot-marble { border-color: rgba(100,120,150,0.5); filter: none; }
+body.mode-execute .dot-canyon { background: #c15c3d; box-shadow: none; border: 1px solid rgba(193,92,61,0.3); }
+body.mode-execute .dot-amber  { background: var(--amber); box-shadow: none; border: 1px solid rgba(212,131,10,0.3); }
+body.mode-execute .dot-marble { background: rgba(100,120,150,0.35); }
