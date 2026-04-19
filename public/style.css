@@ -187,32 +187,36 @@ body {
   letter-spacing: 1.5px;
 }
 .hdr-logout-btn {
-  background: var(--glass-inner); border: 1px solid var(--glass-brd);
-  color: var(--faded); font-size: 9px; font-weight: 800; letter-spacing: 1.5px;
-  text-transform: uppercase; padding: 5px 10px; border-radius: var(--r-sm);
-  cursor: pointer; font-family: inherit; transition: all 0.2s; white-space: nowrap; min-height: 44px;
+  background: transparent; border: none;
+  color: rgba(var(--ink-rgb),0.25); font-size: 14px; line-height: 1;
+  padding: 0 8px 0 4px; border-radius: var(--r-sm);
+  cursor: pointer; font-family: inherit; transition: all 0.2s;
+  display: flex; align-items: center; flex-shrink: 0; min-height: 36px;
 }
-.hdr-logout-btn:hover { color: var(--canyon); border-color: rgba(var(--canyon-rgb),0.4); }
+.hdr-logout-btn:hover { color: var(--canyon); }
 .hdr-icon-cluster {
-  display: flex; align-items: center; flex-shrink: 0;
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
   background: var(--pill-bg); border: 1px solid var(--pill-brd);
-  box-shadow: var(--pill-shd); border-radius: 100px; padding: 0 4px;
+  box-shadow: var(--pill-shd); border-radius: 100px; padding: 4px 6px;
 }
+/* Each control = a subtile, exactly matching card .tile style */
 .hdr-icon {
-  background: transparent; border: none; cursor: pointer;
-  color: rgba(var(--ink-rgb),0.35); font-size: 9px; font-weight: 800; line-height: 1;
-  padding: 10px 14px; transition: all 0.2s; font-family: inherit; letter-spacing: 1px; min-height: 44px;
-  display: flex; align-items: center; gap: 5px; justify-content: center;
-  border-radius: 100px; text-transform: uppercase; white-space: nowrap;
+  background: var(--glass-inner); border: none; cursor: pointer;
+  color: rgba(var(--ink-rgb),0.5); font-size: 9px; font-weight: 800; line-height: 1;
+  padding: 8px 12px; min-height: 36px; transition: all 0.2s; font-family: inherit;
+  letter-spacing: 0.8px; display: flex; align-items: center; gap: 4px;
+  justify-content: center; border-radius: var(--r-sm); text-transform: uppercase;
+  white-space: nowrap;
 }
-.hdr-icon:hover { color: var(--ink); background: var(--glass-inner); }
-.hdr-icon:active { transform: scale(0.92); }
-.hdr-icon--plan    { color: var(--honey); }
-.hdr-icon--execute { color: var(--honey); }
-.hdr-icon--active  { color: rgba(var(--ink-rgb),0.5); }
-.hdr-icon--archived{ color: rgba(var(--ink-rgb),0.3); }
-.hdr-icon--council { color: var(--honey); }
-.hdr-icon--add     { color: rgba(var(--ink-rgb),0.4); }
+.hdr-icon:hover { color: var(--ink); background: var(--glass-brd); }
+.hdr-icon:active { transform: scale(0.95); }
+/* Accent state: mode + council use honey tint like a selected tile */
+.hdr-icon--plan    { background: rgba(var(--honey-rgb),0.15); color: var(--honey); }
+.hdr-icon--execute { background: rgba(var(--honey-rgb),0.15); color: var(--honey); }
+.hdr-icon--active  { color: rgba(var(--ink-rgb),0.55); }
+.hdr-icon--archived{ color: rgba(var(--ink-rgb),0.35); }
+.hdr-icon--council { background: rgba(var(--honey-rgb),0.12); color: var(--honey); }
+.hdr-icon--add     { color: rgba(var(--ink-rgb),0.45); }
 
 .search {
   width: 100%; padding: 10px 15px; background: var(--glass);
@@ -227,9 +231,11 @@ body {
   background: var(--glass); backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
   border: 1px solid var(--glass-brd); padding: 15px; cursor: pointer;
   transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-  display: flex; flex-direction: column; box-shadow: var(--glass-shd);
+  box-shadow: var(--glass-shd), inset 0 1px 0 rgba(255,255,255,0.06);
+  display: flex; flex-direction: column;
   position: relative; height: 220px; border-radius: var(--r-md);
   width: 100%; max-width: var(--card-w); overflow: hidden;
+  isolation: isolate;
 }
 .card.hue-canyon { background: linear-gradient(135deg, rgba(var(--canyon-rgb),0.14) 0%, rgba(var(--canyon-rgb),0.04) 60%, var(--glass) 100%); }
 .card.hue-amber  { background: linear-gradient(135deg, rgba(var(--amber-rgb),0.10) 0%, rgba(var(--amber-rgb),0.03) 60%, var(--glass) 100%); }
@@ -561,3 +567,8 @@ body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: r
 .extract-item:last-child { border-bottom: none; }
 .extract-risk-high { color: #ff8888; }
 .extract-risk-medium { color: #d4830a; }
+
+/* Status dots visibility in execute mode */
+body.mode-execute .status-tile { background: rgba(var(--obsidian-rgb),0.06); border-color: rgba(var(--obsidian-rgb),0.12); }
+body.mode-execute .dot-dim { background: rgba(var(--obsidian-rgb),0.15); }
+body.mode-execute .dot-marble { background: rgba(var(--obsidian-rgb),0.12); }

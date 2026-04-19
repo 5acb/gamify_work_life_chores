@@ -119,7 +119,7 @@ function renderApp(){
         +'<div class="hdr-row1">'
           +'<div class="hdr-date-etched">'
             +'<span class="hdr-date-text">'+dateStr+'</span>'
-            +'<button class="hdr-logout-btn" id="logoutBtn">⏻ Sign Out</button>'
+            +'<button class="hdr-logout-btn" id="logoutBtn" title="Sign out">⏻</button>'
           +'</div>'
         +'</div>'
         +'<div class="hdr-row2-icons">'
