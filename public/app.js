@@ -390,9 +390,9 @@ function makeCardCompact(t){
   // Row 2: urgency dot + T-X + effort + impact
   h+='<div class="compact-tiles">';
   if(hue) h+='<div class="card-hue-indicator dot-'+hue+'" style="width:7px;height:7px;border-radius:50%;flex-shrink:0"></div>';
-  if(tDue)      h+='<div class="tile compact-tile" style="color:'+tileColour+'">'+esc(tDue)+'</div>';
-  if(speedStr)  h+='<div class="tile compact-tile tile-effort">'+esc(speedStr)+'</div>';
-  if(stakesStr) h+='<div class="tile compact-tile '+stakesCls+'">'+esc(stakesStr)+'</div>';
+  if(tDue)      h+='<span class="compact-label" style="color:'+tileColour+'">'+esc(tDue)+'</span>';
+  if(speedStr)  h+='<span class="compact-label tile-effort">'+esc(speedStr)+'</span>';
+  if(stakesStr) h+='<span class="compact-label '+stakesCls+'">'+esc(stakesStr)+'</span>';
   h+='</div>';
   h+='</div>';
 
@@ -456,7 +456,7 @@ function makeCardEl(t, isList){
   } else h+='<span style="opacity:0.2">---</span>';
   h+='</div>';
   // Effort + Impact: right below the time indicators
-  h+='<div class="tile tile-meta">';
+  h+='<div class="tile-meta">';
   if(t.speed!==undefined&&t.speed!==null) h+='<span class="tile-effort">'+esc(SPEED_L[t.speed]||'')+'</span>';
   if(t.speed!==undefined&&t.stakes!==undefined&&t.speed!==null&&t.stakes!==null) h+='<span class="u-dots">·</span>';
   if(t.stakes!==undefined&&t.stakes!==null) h+='<span class="tile-stakes tile-stakes-'+t.stakes+'">'+esc(STAKES_L[t.stakes]||'')+'</span>';

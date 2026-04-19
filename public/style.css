@@ -912,3 +912,9 @@ body.mode-execute .tile-stakes-2 { color: var(--canyon); }
 }
 .compact-drag:hover { color: rgba(var(--ink-rgb),0.5); }
 .compact-drag:active { cursor: grabbing; }
+
+/* ── Compact row 2 labels — no box, plain coloured text ── */
+.compact-label {
+  font-size: 8px; font-weight: 800; letter-spacing: 0.5px;
+  text-transform: uppercase; white-space: nowrap; flex-shrink: 0;
+}
