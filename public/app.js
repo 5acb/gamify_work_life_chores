@@ -685,30 +685,46 @@ function openDomainsModal(){
 
       var editPanel=document.createElement('div');
       editPanel.style.cssText='display:none;padding:10px;border-top:1px solid var(--glass-brd);';
+
+      // Row 1: name + save always visible at top
+      var topRow=document.createElement('div');
+      topRow.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:10px;';
       var nameInput=document.createElement('input');
       nameInput.value=d.name;
-      nameInput.style.cssText='width:100%;background:transparent;border:none;border-bottom:1px solid var(--glass-brd);color:var(--ink);font-size:14px;font-family:inherit;outline:none;padding-bottom:6px;margin-bottom:10px;';
-      var slugLabel=document.createElement('div');
-      slugLabel.style.cssText='font-size:8px;font-weight:900;color:var(--faded);letter-spacing:2px;margin-bottom:8px;';
-      slugLabel.textContent='SLUG: '+d.slug+' (permanent — changing would break task links)';
-      var matRef={dataset:{mat:d.material}};
-      var picker=matPickerHtml(usedMaterials, d.material, matRef);
+      nameInput.placeholder='Domain name';
+      nameInput.style.cssText='flex:1;background:transparent;border:none;border-bottom:1px solid var(--glass-brd);color:var(--ink);font-size:14px;font-family:inherit;outline:none;padding-bottom:4px;';
       var saveBtn=document.createElement('button');
       saveBtn.className='btn-save';
-      saveBtn.style.cssText='margin-top:10px;padding:8px 16px;font-size:10px;width:100%;';
-      saveBtn.textContent='Save Changes';
+      saveBtn.style.cssText='flex-shrink:0;padding:6px 14px;font-size:10px;';
+      saveBtn.textContent='Save';
+      var matRef={dataset:{mat:d.material}};
       saveBtn.onclick=function(){
         var newName=nameInput.value.trim();
         var newMat=matRef.dataset.mat;
         if(!newName) return;
+        saveBtn.disabled=true; saveBtn.textContent='Saving…';
         api('PUT','/api/users/'+state.slug+'/domains/'+d.id,{name:newName,material:newMat})
           .then(function(){ reloadDomains(function(){ render(); loadBoard(); }); })
-          .catch(function(e){ alert('Error: '+e.message); });
+          .catch(function(e){ saveBtn.disabled=false; saveBtn.textContent='Save'; alert('Error: '+e.message); });
       };
-      editPanel.appendChild(nameInput);
+      topRow.appendChild(nameInput);
+      topRow.appendChild(saveBtn);
+
+      // Row 2: slug label
+      var slugLabel=document.createElement('div');
+      slugLabel.style.cssText='font-size:7px;font-weight:900;color:var(--faded);letter-spacing:2px;margin-bottom:8px;';
+      slugLabel.textContent='SLUG: '+d.slug+' (permanent)';
+
+      // Row 3: material picker
+      var matLabel=document.createElement('div');
+      matLabel.style.cssText='font-size:9px;font-weight:700;color:var(--faded);margin-bottom:6px;';
+      matLabel.textContent='Material';
+      var picker=matPickerHtml(usedMaterials, d.material, matRef);
+
+      editPanel.appendChild(topRow);
       editPanel.appendChild(slugLabel);
+      editPanel.appendChild(matLabel);
       editPanel.appendChild(picker);
-      editPanel.appendChild(saveBtn);
 
       header.onclick=function(){
         var open=editPanel.style.display!=='none';
