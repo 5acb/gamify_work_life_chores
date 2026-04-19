@@ -9,6 +9,7 @@
   --lapis: #1F52C8;         /* Execute mode accent — lapis lazuli on washi */
   --ink: #f4f0ea;           /* Washi contrast */
   --faded: rgba(244, 240, 234, 0.25);
+  --faded-execute: rgba(9, 10, 15, 0.35);  /* Washi faded — obsidian equivalent of --faded */
   
   /* Material Gradient Borders & Backgrounds */
   --mat-teal: linear-gradient(135deg, #5E9C95 0%, #2C5651 100%);  /* Asagi (Teal) */
@@ -613,4 +614,4 @@ body.mode-execute .dot-amber  { background: var(--amber); box-shadow: none; bord
 body.mode-execute .dot-marble { background: rgba(100,120,150,0.35); }
 
 /* Execute mode tree labels — same structure, obsidian colour */
-body.mode-execute .tree-label { color: rgba(9,10,15,0.45); }
+body.mode-execute .tree-label { color: var(--faded-execute); }
