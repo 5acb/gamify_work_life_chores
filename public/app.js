@@ -456,6 +456,11 @@ function makeCardEl(t, isList){
   h+='</div>';
 
   // Domain Identifier (STRICT BOTTOM RIGHT)
+  // Effort + Impact tiles bottom-left
+  h+='<div style="position:absolute;bottom:14px;left:14px;display:flex;gap:5px;align-items:center">';
+  if(t.speed!==undefined&&t.speed!==null) h+='<div class="tile tile-effort">'+esc(SPEED_L[t.speed]||'')+'</div>';
+  if(t.stakes!==undefined&&t.stakes!==null) h+='<div class="tile tile-stakes tile-stakes-'+t.stakes+'">'+esc(STAKES_L[t.stakes]||'')+'</div>';
+  h+='</div>';
   h+='<div class="tile tile-domain">'+esc(dm.l)+'</div>';
 
   el.innerHTML=h;
