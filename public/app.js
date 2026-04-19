@@ -261,7 +261,7 @@ function makeCardEl(t, isList){
   h+='<div class="tile-actions" style="position:absolute; top:10px; left:10px; display:flex; gap:8px; z-index:10; align-items:center">'
     +(archived || state.view === 'archived' 
       ? '<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>' 
-      : '<button class="cbtn act-archive" data-id="'+t.id+'" title="Done">✓</button>')
+      : '<button class="cbtn act-archive" data-id="'+t.id+'" title="Done"></button>')
     +'<button class="cbtn act-edit" data-id="'+t.id+'" title="Edit">✎</button>'
     +'<button class="cbtn act-drag" data-id="'+t.id+'" title="Drag to reorder" style="cursor:grab">⠿</button>'
     +(hue ? '<div class="card-hue-indicator dot-'+hue+'" title="Status: '+hue.toUpperCase()+'"></div>' : '')
@@ -350,30 +350,28 @@ function updateStatusDots(){
   h+='</div>';
   container.innerHTML=h;
 }
+var _cardActionsBound = false;
 function bindGlobalActionEvents(){
-  function handleCardAction(e){
+  if(_cardActionsBound) return;
+  _cardActionsBound = true;
+  document.addEventListener('click', function(e){
     var btn = e.target.closest('.cbtn'); if(!btn) return;
     e.stopPropagation();
     var id = +btn.dataset.id;
-    if(id) {
-      if(btn.classList.contains('act-edit')) openEdit(id);
-      if(btn.classList.contains('act-archive')){
-        var rect=btn.getBoundingClientRect();
-        var flash=document.createElement('div');
-        flash.className='bamboo-flash';
-        flash.style.setProperty('--ripple-x',(rect.left+rect.width/2)+'px');
-        flash.style.setProperty('--ripple-y',(rect.top+rect.height/2)+'px');
-        document.body.appendChild(flash);
-        setTimeout(function(){flash.remove();},950);
-        api('PATCH','/api/tasks/'+id+'/archive').then(loadBoard);
-      }
-      if(btn.classList.contains('act-restore')) api('PATCH','/api/tasks/'+id+'/unarchive').then(loadBoard);
+    if(!id) return;
+    if(btn.classList.contains('act-edit')) openEdit(id);
+    if(btn.classList.contains('act-archive')){
+      var rect=btn.getBoundingClientRect();
+      var flash=document.createElement('div');
+      flash.className='bamboo-flash';
+      flash.style.setProperty('--ripple-x',(rect.left+rect.width/2)+'px');
+      flash.style.setProperty('--ripple-y',(rect.top+rect.height/2)+'px');
+      document.body.appendChild(flash);
+      setTimeout(function(){flash.remove();},950);
+      api('PATCH','/api/tasks/'+id+'/archive').then(loadBoard);
     }
-  }
-  var list = document.getElementById('cardList');
-  if(list) list.onclick = handleCardAction;
-  var tree = document.getElementById('treeContainer');
-  if(tree) tree.onclick = handleCardAction;
+    if(btn.classList.contains('act-restore')) api('PATCH','/api/tasks/'+id+'/unarchive').then(loadBoard);
+  });
 }
 
 function renderTree(id){
