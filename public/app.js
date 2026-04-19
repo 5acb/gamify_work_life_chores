@@ -365,28 +365,34 @@ function makeCardCompact(t){
   var archived=!!t.archived;
   var dd=daysFrom(t.due_date);
   var tDue=dd<999?tLabel(dd):'';
+  var tileColour=dd<=0?'var(--canyon)':dd<=3?'var(--amber)':'rgba(var(--ink-rgb),0.4)';
+  var speedStr=SPEED_L[t.speed]||'';
+  var stakesStr=STAKES_L[t.stakes]||'';
+  var stakesCls='tile-stakes-'+(t.stakes||0);
 
   var el=document.createElement('div');
   el.className='card compact '+dm.m+' '+(hue?'hue-'+hue:'')+(archived?' archived':'')+(state.selectedId===t.id?' selected':'');
   el.dataset.id=t.id;
 
   var h='';
-  // Done tick immediately followed by status donut
-  h+='<div style="display:flex;align-items:center;gap:4px;flex-shrink:0">';
+  // Action column (just the done/restore button)
+  h+='<div class="compact-action">';
   h+=(archived||state.view==='archived'
-    ?'<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore" style="opacity:0.6">↑</button>'
+    ?'<button class="cbtn act-restore" data-id="'+t.id+'" title="Restore">↑</button>'
     :'<button class="cbtn act-archive" data-id="'+t.id+'" title="Done" aria-label="Mark as done"></button>');
-  if(hue) h+='<div class="card-hue-indicator dot-'+hue+'" style="width:10px;height:10px;flex-shrink:0"></div>';
   h+='</div>';
-
-  // Name (flex:1)
-  h+='<div class="tile-name" style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;position:static;width:auto;letter-spacing:-0.2px">'+esc(t.name)+'</div>';
-
-  // Right: T-X due tile only
-  if(tLabel){
-    var tileColour=dd<=0?'var(--canyon)':dd<=3?'var(--amber)':'rgba(var(--ink-rgb),0.45)';
-    h+='<div class="tile" style="flex-shrink:0;font-size:8px;color:'+tileColour+'">'+esc(tDue)+'</div>';
-  }
+  // Two-row content
+  h+='<div class="compact-content">';
+  // Row 1: name
+  h+='<div class="compact-name">'+esc(t.name)+'</div>';
+  // Row 2: urgency dot + T-X + effort + impact
+  h+='<div class="compact-tiles">';
+  if(hue) h+='<div class="card-hue-indicator dot-'+hue+'" style="width:7px;height:7px;border-radius:50%;flex-shrink:0"></div>';
+  if(tDue)      h+='<div class="tile compact-tile" style="color:'+tileColour+'">'+esc(tDue)+'</div>';
+  if(speedStr)  h+='<div class="tile compact-tile tile-effort">'+esc(speedStr)+'</div>';
+  if(stakesStr) h+='<div class="tile compact-tile '+stakesCls+'">'+esc(stakesStr)+'</div>';
+  h+='</div>';
+  h+='</div>';
 
   el.innerHTML=h;
   el.onclick=function(e){
@@ -399,6 +405,7 @@ function makeCardCompact(t){
   };
   return el;
 }
+
 
 function makeCardEl(t, isList){
   if(state.compact && isList !== false) return makeCardCompact(t);
