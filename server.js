@@ -321,6 +321,32 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
 </body>
 </html>`;
 
+// ── Potato test user (dev/render testing) ──
+(function seedPotatoUser(){
+  let u = db.prepare('SELECT id FROM users WHERE slug=?').get('potato');
+  if (!u) {
+    const r = db.prepare("INSERT INTO users(name,slug) VALUES('Potato','potato')").run();
+    u = { id: r.lastInsertRowid };
+    console.log('[seed] potato user created id='+u.id);
+    const now = new Date().toISOString().split('T')[0];
+    [
+      { name:'Write lit review intro', domain:'GRA', due_date: now },
+      { name:'Review ICS firmware logs', domain:'CTI', due_date: null },
+      { name:'Prep council slides', domain:'ECM', due_date: null },
+    ].forEach(t => {
+      db.prepare("INSERT INTO tasks(user_id,name,domain,due_date) VALUES(?,?,?,?)").run(u.id,t.name,t.domain,t.due_date);
+    });
+  }
+})();
+
+// Dev-only: issue a session for potato (headless render tests)
+app.get('/api/dev/potato', (req, res) => {
+  if (process.env.NODE_ENV === 'production') return res.status(404).end();
+  const token = signSession('potato');
+  res.setHeader('Set-Cookie', `sid=${encodeURIComponent(token)}; Path=/; Max-Age=3600; HttpOnly; SameSite=Strict`);
+  res.json({ ok: true, slug: 'potato' });
+});
+
 app.get('/login', (req, res) => {
   if (getSessionUser(req)) return res.redirect('/');
   res.send(LOGIN_HTML(res.locals.nonce));
@@ -729,36 +755,59 @@ app.delete('/api/blockers', ensureAuth, (req, res) => {
 });
 
 // ---- Agent Proxy ----
+const geminiCache    = new Map();  // key -> { answer, ts }
+const geminiInFlight = new Map();  // key -> Promise (dedup concurrent identical)
+const GEMINI_CACHE_TTL = 30000;    // 30s
+
+function geminiCacheKey(uid, q) {
+  return uid + ':' + q.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
 app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
   const { question } = req.body;
   if (!question) return res.status(400).json({ error: 'question required' });
   if (question.length > 2000) return res.status(400).json({ error: 'question too long' });
 
-  const user = req.user;
-  const tasks = getTasksForUser(user.id);
-  const events = db.prepare('SELECT * FROM task_events WHERE user_id = ? AND ts > datetime(\'now\', \'-30 days\') ORDER BY ts DESC LIMIT 100').all(user.id);
+  const key = geminiCacheKey(req.user.id, question);
 
-  const prompt = `You are a scheduling assistant for ${user.name}.
+  // Cache hit (30s TTL)
+  const cached = geminiCache.get(key);
+  if (cached && Date.now() - cached.ts < GEMINI_CACHE_TTL)
+    return res.json({ answer: cached.answer, cached: true });
+
+  // Dedup identical concurrent requests
+  if (geminiInFlight.has(key)) {
+    try { return res.json({ answer: await geminiInFlight.get(key), cached: true }); }
+    catch { return res.status(500).json({ error: 'Oracle unreachable' }); }
+  }
+
+  const tasks = getTasksForUser(req.user.id);
+  const prompt = `You are a scheduling assistant for ${req.user.name}.
 Current tasks: ${JSON.stringify(tasks)}
-Recent events: ${JSON.stringify(events)}
 User question: ${question}`;
 
+  const inflight = new Promise((resolve, reject) => {
+    try {
+      const r = spawnSync('/opt/organizer/repo/scripts/gemini-ask.sh', [prompt], {
+        encoding: 'utf-8', timeout: 90000,
+      });
+      if (r.status !== 0) return reject(new Error(r.stderr));
+      resolve(r.stdout.trim());
+    } catch (e) { reject(e); }
+  });
+
+  geminiInFlight.set(key, inflight);
   try {
-    const spawnRes = spawnSync('/opt/organizer/repo/scripts/gemini-ask.sh', [prompt], {
-      encoding: 'utf-8',
-      timeout: 90000,
-    });
-    if (spawnRes.status !== 0) {
-      console.error('Gemini error:', spawnRes.stderr);
-      return res.status(500).json({ error: 'Oracle unreachable' });
-    }
-    res.json({ answer: spawnRes.stdout.trim() });
+    const answer = await inflight;
+    geminiCache.set(key, { answer, ts: Date.now() });
+    res.json({ answer });
   } catch (e) {
     console.error('Gemini agent error:', e.message);
-    res.status(500).json({ error: 'gemini request failed' });
+    res.status(500).json({ error: 'Oracle unreachable' });
+  } finally {
+    geminiInFlight.delete(key);
   }
 });
-
 // SEC-11: bind to localhost only — nginx handles external traffic
 
 // ── Task context builder ─────────────────────────────────────

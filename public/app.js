@@ -479,29 +479,68 @@ function openAddTask(){
   };
 }
 
+var _oracleHistory = [];
+var _oracleLastQuery = null;
+
+function renderOracleHistory(){
+  var feed=document.getElementById('oracle-chat-feed');if(!feed)return;
+  feed.innerHTML='';
+  _oracleHistory.forEach(function(msg){
+    var el=document.createElement('div');
+    el.className='oracle-chat-msg oracle-chat-msg--'+msg.role;
+    el.innerHTML=renderMd(msg.text);
+    feed.appendChild(el);
+  });
+  feed.scrollTop=feed.scrollHeight;
+}
+
 function openAI(){
-  var SUGG=['Prioritize my garden','Weekly critical path'];
   var m=document.getElementById('modal');
   m.innerHTML='<h2>✦ Oracle</h2>'
-    +'<div class="ai-chips">'+SUGG.map(function(s){return'<span class="ai-chip">'+esc(s)+'</span>'}).join('')+'</div>'
-    +'<div class="field"><label>Inquiry</label><textarea id="ai-q" rows="4" placeholder="Seek wisdom..."></textarea></div>'
-    +'<div class="modal-actions">'
-      +'<button id="mc" class="btn-cancel">Back</button>'
-      +'<button class="btn-save" id="ms" style="background:var(--honey);color:#000">Ask Oracle</button>'
+    +'<div class="oracle-chat-feed" id="oracle-chat-feed"></div>'
+    +'<div class="oracle-chat-row">'
+      +'<input class="oracle-chat-input" id="oracle-q" placeholder="Ask the Oracle..." autocomplete="off">'
+      +'<button class="oracle-chat-send" id="oracle-send">↑</button>'
     +'</div>'
-    +'<div class="ai-response" id="ai-resp" style="display:none"></div>';
+    +'<div class="modal-actions" style="margin-top:8px">'
+      +'<button id="mc" class="btn-cancel">Close</button>'
+    +'</div>';
   showModal();
-  var qa=document.getElementById('ai-q');
-  document.querySelectorAll('.ai-chip').forEach(function(c){c.onclick=function(){qa.value=this.textContent;qa.focus()}});
+  renderOracleHistory();
+  if(_oracleHistory.length===0){
+    _oracleHistory.push({role:'oracle',text:'Oracle ready. What are you working on?'});
+    renderOracleHistory();
+  }
+  var input=document.getElementById('oracle-q');
+  var send=document.getElementById('oracle-send');
   document.getElementById('mc').onclick=closeModal;
-  document.getElementById('ms').onclick=function(){
-    var q=qa.value.trim();if(!q)return;
-    this.disabled=true;
+  function submitOracle(){
+    var q=input.value.trim();if(!q)return;
+    // Dedup: reject if same as last query
+    if(q===_oracleLastQuery){
+      input.style.borderColor='var(--amber)';
+      setTimeout(function(){input.style.borderColor='';},800);
+      return;
+    }
+    _oracleLastQuery=q;
+    input.value='';
+    _oracleHistory.push({role:'user',text:q});
+    renderOracleHistory();
+    send.disabled=true; send.textContent='…';
     api('POST','/api/agent/gemini',{question:q,slug:state.slug}).then(function(r){
-      var el=document.getElementById('ai-resp');el.textContent=r.answer||r.error;el.style.display='block';
-      document.getElementById('ms').disabled=false;
+      _oracleHistory.push({role:'oracle',text:r.answer||r.error||'Oracle silent.'});
+      renderOracleHistory();
+      send.disabled=false; send.textContent='↑';
+      _oracleLastQuery=null; // allow re-ask after response
+    }).catch(function(){
+      _oracleHistory.push({role:'oracle',text:'Oracle unreachable.'});
+      renderOracleHistory();
+      send.disabled=false; send.textContent='↑';
     });
-  };
+  }
+  send.onclick=submitOracle;
+  input.addEventListener('keydown',function(e){if(e.key==='Enter')submitOracle();});
+  setTimeout(function(){input.focus();},50);
 }
 
 
