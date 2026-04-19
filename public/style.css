@@ -672,3 +672,41 @@ body.mode-execute #bgLights {
 
 /* Domains management button */
 .hdr-icon--domains { color: rgba(var(--ink-rgb),0.35); }
+
+/* ── Compact card mode (RHS only) ── */
+.card.compact {
+  height: 56px; flex-direction: row; align-items: center;
+  padding: 0 12px 0 10px; gap: 10px; overflow: visible;
+}
+/* Suppress absolute-positioned children in compact */
+.card.compact .tile-actions,
+.card.compact .card-grid,
+.card.compact .card-footer { position: static !important; width: auto; }
+
+/* Inline action cluster */
+.card.compact .tile-actions {
+  background: transparent; border: none; box-shadow: none;
+  padding: 0; height: auto; flex-shrink: 0; gap: 2px;
+}
+
+/* Name inline */
+.card.compact .tile-name {
+  font-size: 13px; flex: 1; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; letter-spacing: 0;
+}
+
+/* Meta: domain slug + donut */
+.card.compact .card-compact-meta {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+
+/* Blocker badge — hide in compact (shown via donut urgency) */
+.card.compact .tile-blocked { display: none; }
+
+/* Compact indicator tile in status bar */
+.hdr-icon--compact { color: rgba(var(--ink-rgb),0.35); }
+.hdr-icon--compact.active-compact { color: var(--honey); background: rgba(var(--honey-rgb),0.12); }
+
+/* Compact cards-inner: tighter gap */
+.cards.compact-view .cards-inner { gap: 6px; }
+.cards.compact-view { padding-bottom: 60px; }

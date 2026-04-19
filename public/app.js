@@ -69,7 +69,7 @@ function injectDomainStyles(domains) {
 var SPEED_L=['snap','sesh','grind'],STAKES_L=['low','high','crit'];
 var DOMAINS=[]; // populated after domain load
 
-var state={slug:null,user:null,tasks:[],taskById:{},view:'current',searchQuery:'',selectedId:null,mode:'plan'};
+var state={slug:null,user:null,tasks:[],taskById:{},view:'current',searchQuery:'',selectedId:null,mode:'plan',compact:false};
 
 function api(m,u,b){
   var o={method:m,headers:{'Content-Type':'application/json','X-Requested-With':'XMLHttpRequest'}};
@@ -180,6 +180,7 @@ function loadBoard(){
 
     state.tasks=res.tasks;state.user=res.user;
     if(ui.mode) state.mode=ui.mode;
+    if(ui.compact !== undefined) state.compact=ui.compact;
 
     if(ui.order && ui.order.length){
       var map={}; ui.order.forEach(function(id,idx){map[id]=idx});
@@ -245,6 +246,7 @@ function renderApp(){
             +'<button class="hdr-icon '+(state.view==='current'?'hdr-icon--active':'hdr-icon--archived')+'" id="viewToggleBtn">'+(state.view==='current'?'↑ Active':'↓ Archived')+'</button>'
             +'<button class="hdr-icon hdr-icon--council" id="aiBtn">'+(state.mode==='plan'?'⊛ Council':'✦ Oracle')+'</button>'
             +'<button class="hdr-icon hdr-icon--add" id="addBtn">＋ Add</button>'
+            +'<button class="hdr-icon hdr-icon--compact'+(state.compact?' active-compact':'')+'" id="compactBtn">'+(state.compact?'▤ Cards':'⊟ List')+'</button>'
             +'<button class="hdr-icon hdr-icon--domains" id="domainsBtn">⊞ Domains</button>'
           +'</div>'
         +'</div>'
@@ -269,6 +271,7 @@ function renderApp(){
     document.getElementById('oracleInput').addEventListener('keydown',function(e){if(e.key==='Enter')sendOracleMsg()});
   }
   applyMode();
+  document.getElementById('cardScroll').classList.toggle('compact-view', state.compact);
   document.getElementById('userName').textContent=state.user?state.user.name.toUpperCase():'';
   var backBtn = document.getElementById('mobileBackBtn');
   if(backBtn) backBtn.onclick = function(){
@@ -282,6 +285,15 @@ function renderApp(){
 
   document.getElementById('addBtn').addEventListener('click',openAddTask);
   document.getElementById('domainsBtn').addEventListener('click',openDomainsModal);
+  document.getElementById('compactBtn').addEventListener('click',function(){
+    state.compact = !state.compact;
+    api('PUT','/api/users/'+state.slug+'/ui-state',{compact:state.compact});
+    document.getElementById('cardScroll').classList.toggle('compact-view', state.compact);
+    renderCards();
+    // Update button class
+    var btn=document.getElementById('compactBtn');
+    if(btn){ btn.classList.toggle('active-compact',state.compact); }
+  });
   document.getElementById('aiBtn').addEventListener('click',function(){
     if(state.mode==='plan') openCouncil();
     else openAI();
