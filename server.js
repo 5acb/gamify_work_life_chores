@@ -344,7 +344,7 @@ app.get('/api/dev/potato', (req, res) => {
   if (process.env.NODE_ENV === 'production') return res.status(404).end();
   const token = signSession('potato');
   res.setHeader('Set-Cookie', `sid=${encodeURIComponent(token)}; Path=/; Max-Age=3600; HttpOnly; SameSite=Strict`);
-  res.json({ ok: true, slug: 'potato' });
+  res.redirect('/potato');
 });
 
 app.get('/login', (req, res) => {
