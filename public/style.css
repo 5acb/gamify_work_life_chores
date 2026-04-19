@@ -228,10 +228,13 @@ body {
 }
 .hdr-logout-btn:hover { color: var(--canyon); }
 .hdr-icon-cluster {
-  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+  display: flex; align-items: center; gap: 4px;
   background: var(--pill-bg); border: 1px solid var(--pill-brd);
   box-shadow: var(--pill-shd); border-radius: var(--r-sm); padding: 4px 6px;
+  flex-wrap: nowrap; overflow-x: auto; overflow-y: visible;
+  scrollbar-width: none; -ms-overflow-style: none; width: 100%;
 }
+.hdr-icon-cluster::-webkit-scrollbar { display: none; }
 /* Each control = a subtile, exactly matching card .tile style */
 .hdr-icon {
   background: var(--glass-inner); border: none; cursor: pointer;
@@ -711,40 +714,48 @@ body.mode-execute #bgLights {
 .cards.compact-view .cards-inner { gap: 6px; }
 .cards.compact-view { padding-bottom: 60px; }
 
-/* ── Status dots etched into date tile ── */
+/* ── Status marks etched into date tile — no box, no bounding surface ── */
 .status-dots-etched {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 10px;
+  padding: 0 8px;
 }
+/* The .status-tile wrapper loses all its box styling in this context */
 .status-dots-etched .status-tile {
-  display: flex;
-  gap: 3px;
-  align-items: center;
-  position: relative;
+  background: none !important; border: none !important;
+  box-shadow: none !important; padding: 0 !important;
+  width: auto !important; border-radius: 0 !important;
+  display: flex; gap: 4px; align-items: center; position: relative;
 }
+/* Marks: wider, short — like a chisel cut */
 .status-dots-etched .status-dot {
-  width: 6px;
-  height: 6px;
+  width: 15px;
+  height: 3px;
   border-radius: 1px;
   flex-shrink: 0;
+  box-shadow: none !important;   /* no glow — etching is flat */
+  opacity: 0.7;
 }
+/* Dim marks blend into glass */
+.status-dots-etched .dot-dim    { background: rgba(var(--ink-rgb),0.18); opacity: 0.5; }
+.status-dots-etched .dot-marble { background: rgba(var(--ink-rgb),0.28); opacity: 0.55; }
+/* Tooltip: no border, no box — just text floating above */
 .status-dots-etched .status-tile-tooltip {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 10px);
   left: 50%;
   transform: translateX(-50%);
   white-space: nowrap;
-  font-size: 10px;
-  background: var(--obsidian);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1px;
   color: var(--ink);
-  padding: 4px 8px;
-  border-radius: var(--r-sm);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.15s;
   z-index: 100;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.8);
 }
 .status-dots-etched .status-tile:hover .status-tile-tooltip { opacity: 1; }
