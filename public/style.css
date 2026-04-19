@@ -109,16 +109,18 @@ body.mode-execute {
   background-color: var(--washi-base);
   color: var(--obsidian);
   background-image:
-    /* Warm parchment bloom — top-left */
-    radial-gradient(ellipse at 10% 5%, rgba(210,185,145,0.6) 0, transparent 52%),
-    /* Dusty rust — top-right */
-    radial-gradient(ellipse at 95% 8%, rgba(var(--washi-fog-rust-rgb),0.28) 0, transparent 40%),
-    /* Amber warmth — bottom (uses amber-rgb not honey-rgb, avoids lapis in exec) */
-    radial-gradient(ellipse at 55% 100%, rgba(var(--amber-rgb),0.10) 0, transparent 50%),
-    /* Cool slate shadow — bottom-left depth */
-    radial-gradient(ellipse at 0% 90%, rgba(var(--washi-fog-cool-rgb),0.22) 0, transparent 45%),
-    /* Paper grain gradient — base */
-    linear-gradient(150deg, #ece4d6 0%, #e0d8c8 35%, #d6ccba 70%, #cec3ae 100%);
+    /* Gold-amber bloom — top-left, warm and visible */
+    radial-gradient(ellipse at 8% 0%,  rgba(200,155,60,0.30) 0, transparent 48%),
+    /* Rust-terracotta — top-right */
+    radial-gradient(ellipse at 98% 6%, rgba(var(--washi-fog-rust-rgb),0.40) 0, transparent 42%),
+    /* Amber glow — bottom centre */
+    radial-gradient(ellipse at 55% 105%,rgba(var(--amber-rgb),0.22) 0, transparent 50%),
+    /* Cool blue-slate shadow — bottom-left */
+    radial-gradient(ellipse at -5% 92%,rgba(var(--washi-fog-cool-rgb),0.35) 0, transparent 45%),
+    /* Warm honey dust — mid-right */
+    radial-gradient(ellipse at 100% 55%,rgba(180,140,80,0.18) 0, transparent 38%),
+    /* Paper base — visible tonal gradient */
+    linear-gradient(145deg, #f0e6d0 0%, #e4d9c0 30%, #d8ccb0 60%, #ccc09e 100%);
 }
 
 /* Execute-only overrides that tokens cannot handle */
@@ -662,7 +664,8 @@ body.mode-execute .dot-marble { background: rgba(var(--obsidian-rgb),0.12); }
   transition: background-image 1.2s cubic-bezier(0.23, 1, 0.32, 1);
 }
 body.mode-execute #bgLights {
-  mix-blend-mode: multiply; /* on washi light bg — darkens subtly */
+  mix-blend-mode: overlay; /* on washi — tints without washing out */
+  opacity: 0.6;            /* boost visibility on light bg */
 }
 /* Ensure .app sits above the light layer */
 .app { position: relative; z-index: 1; }
