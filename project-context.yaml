@@ -26,19 +26,20 @@ server:
 architecture:
   overview: >
     Split-file SPA frontend (Vanilla JS/CSS) + Express REST API + SQLite WAL. 
-    AI integration uses Gemini 3 Flash Preview across all layers: direct 
+    AI integration uses gemini-3-flash-preview across all layers: direct 
     invocation for UI chat and a dedicated MCP Server for complex planning, 
     terminal access, and autonomous agent workflows.
   ui_paradigm: >
     Atmospheric Sanctuary. Uses 2:1 split pane (Worktree vs Task List). 
     Features Donut Indicators for temporal frequency and a Sanctuary Indicator Line. 
     Custom reordering via Sortable.js. Domains utilize specific "Materials" 
-    (kingfisher, cyberspace-grid, amethyst-sky) for visual identity.
+    (kingfisher, cyberspace-grid, saffron-road, amethyst-sky, sun-baked-clay) 
+    for visual identity.
   ai_orchestration: >
     A dedicated MCP server provides a tool-augmented environment. It features:
-    1. Subagent framework: Specialized personas (Plan, Execute, Review).
-    2. Plan Sessions: Multi-step AI-driven workflows for task decomposition.
-    3. Knowledge Base: Integration with Mem0 for long-term project context.
+    1. Subagent framework: Specialized personas defined in subagents.js (Plan, Execute, Review).
+    2. Plan Sessions: Multi-step AI-driven workflows for task decomposition and state analysis.
+    3. Knowledge Base: Integration with Mem0 for long-term project context and insight storage.
     4. Auto-Commit: A commit-daemon (socat+bash) logs changes to a blockchain-style 
        cryptographic changelog (changelog.js) for auditability.
   ports:
@@ -46,12 +47,12 @@ architecture:
     3001: "commit-daemon (localhost-only) — proxied on /api/commit"
     3002: "MCP server (SSE transport, token auth) — proxied on /mcp"
   auth_flow: >
-    Modern passwordless-first authentication. Supports WebAuthn (Passkeys) for primary access.
-    Fallback authentication uses Argon2-hashed passwords. Sessions are HMAC-signed 
-    (slug.ts.hmac) using a persistent secret in /opt/organizer/data/.session_secret.
+    Modern passwordless-first authentication. Supports WebAuthn (Passkeys) for primary access
+    via @simplewebauthn/server. Fallback authentication uses Argon2-hashed passwords. 
+    Sessions are HMAC-signed using a persistent secret in /opt/organizer/data/.session_secret.
   security:
     - "Custom session verification with timing-safe HMAC checks"
-    - "WebAuthn (Passkeys) using @simplewebauthn/server"
+    - "WebAuthn (Passkeys) with hardware authenticator support"
     - "Argon2 for robust, salted password hashing"
     - "CSP header: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'nonce-<val>';"
     - "Audit logging: task_events table tracks all mutations"
@@ -66,12 +67,16 @@ files:
   JOURNEY.md: "Narrative chronicle of the Sanctuary UI evolution"
   DESIGN.md: "Foundational Design Laws for the Sanctuary"
   GEMINI.md: "AI integration and prompt engineering documentation"
+  KICKSTART.md: "Quickstart guide for environment setup"
+  TODO.md: "Project roadmap and pending features"
   mcp-server/server.js: "MCP Server — SSE transport, Tool definitions, Gemini Agent logic"
   mcp-server/subagents.js: "Specialized AI personas (Plan, Execute, Review)"
   mcp-server/changelog.js: "Cryptographic audit trail for AI actions"
   public/app.js: "Frontend JS — routing, Sanctuary rendering, AI chat interface"
-  server.js: "Express API — WebAuthn, task persistence, Gemini Direct Invoke (3 Flash)"
+  public/changelog.html: "Visual interface for the cryptographic audit trail"
+  server.js: "Express API — WebAuthn, task persistence, Gemini Direct Invoke"
   scripts/kb.py: "Knowledge base / Mem0 integration scripts"
+  scripts/post-session-kb.sh: "Post-session hook for KB synchronization"
   terrain/S36E149.DAT: "HGT Digital Elevation Model data for atmospheric rendering"
 
 database_schema:
@@ -79,18 +84,21 @@ database_schema:
     columns: [id, name, slug, password_hash, created_at]
   domains:
     columns: [id, user_id, name, slug, material, sort_order]
-    notes: "Slugs: CTI, ECM, CSD, GRA, PER. Materials define UI aesthetics."
+    notes: "Slugs: CTI, ECM, CSD, GRA, PER. Materials: cyberspace-grid, kingfisher, saffron-road, amethyst-sky, sun-baked-clay."
   tasks:
-    columns: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, archived, user_id]
+    columns: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, archived, archived_at, user_id, created_at, updated_at]
     notes: "Supports natural language date labels and visual priority metrics."
   subtasks:
-    columns: [id, task_id, label, done, sort_order]
+    columns: [id, task_id, label, done, sort_order, created_at]
   blockers:
     columns: [task_id, blocked_by]
     notes: "Self-referencing tasks table for dependency graphing."
   credentials:
     columns: [id, user_id, public_key, counter, transports, created_at]
     notes: "WebAuthn / Passkey storage."
+  auth_challenges:
+    columns: [user_id, challenge, expires_at]
+    notes: "Temporary storage for WebAuthn challenge-response cycles."
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
     notes: "Encapsulates AI planning sessions."
