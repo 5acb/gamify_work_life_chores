@@ -63,6 +63,11 @@ architecture:
     orm: none — raw SQL via better-sqlite3
     backup: "cron every 7min → scripts/backup.sh → /opt/organizer/data/backups/"
 
+services:
+  organizer.service: "Main Express app and task API"
+  organizer-mcp.service: "MCP Server (SSE) for AI tool execution"
+  organizer-commit.service: "Socat-based commit-daemon for changelog audit"
+
 files:
   JOURNEY.md: "Narrative chronicle of the Sanctuary UI evolution"
   DESIGN.md: "Foundational Design Laws for the Sanctuary"
@@ -113,13 +118,4 @@ database_schema:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
   task_events:
     columns: [id, task_id, user_id, action, detail, ts]
-    notes: "Audit log for mutations."
-  ui_state:
-    columns: [key, value]
-    notes: "Persistent client-side state (e.g., expanded folders)."
-
-orientation_commands:
-  - "cat project-context.yaml"
-  - "systemctl status organizer.service organizer-mcp.service organizer-commit.service"
-  - "ls -R mcp-server/"
-  - "tail -n 20 /opt/organizer/data/backups/latest.sql"
+    notes: "Audit log for all task mutations."
