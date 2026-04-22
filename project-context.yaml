@@ -42,6 +42,7 @@ architecture:
     3. Knowledge Base: Integration with Mem0 for long-term project context and insight storage.
     4. Auto-Commit: A commit-daemon (socat+bash) logs changes to a blockchain-style 
        cryptographic changelog (changelog.js) for auditability.
+    5. Agentic CLI: Integration with @google/gemini-cli for --yolo autonomous execution.
   ports:
     3000: "App server (Express + SQLite) — proxied by Nginx on /"
     3001: "commit-daemon (localhost-only) — proxied on /api/commit"
@@ -74,6 +75,7 @@ files:
   GEMINI.md: "AI integration and prompt engineering documentation"
   KICKSTART.md: "Quickstart guide for environment setup"
   TODO.md: "Project roadmap and pending features"
+  schema.sql: "Full database schema definitions"
   mcp-server/server.js: "MCP Server — SSE transport, Tool definitions, Gemini Agent logic"
   mcp-server/subagents.js: "Specialized AI personas (Plan, Execute, Review)"
   mcp-server/changelog.js: "Cryptographic audit trail for AI actions"
@@ -89,7 +91,7 @@ database_schema:
     columns: [id, name, slug, password_hash, created_at]
   domains:
     columns: [id, user_id, name, slug, material, sort_order]
-    notes: "Slugs: CTI, ECM, CSD, GRA, PER. Materials: cyberspace-grid, kingfisher, saffron-road, amethyst-sky, sun-baked-clay."
+    notes: "Slugs: CTI (Threat Intel), CSD (Drone Sec), ECM (Enterprise), GRA (Research), PER (Personal). Materials map to visual CSS shaders."
   tasks:
     columns: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, archived, archived_at, user_id, created_at, updated_at]
     notes: "Supports natural language date labels and visual priority metrics."
@@ -116,6 +118,12 @@ database_schema:
     notes: "AI-generated qualitative analysis of task progress."
   meta_insights:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
-  task_events:
-    columns: [id, task_id, user_id, action, detail, ts]
-    notes: "Audit log for all task mutations."
+    notes: "Long-term AI patterns extracted from multiple sessions."
+  ui_state:
+    columns: [key, value]
+    notes: "Persisted frontend state (e.g., active domain, view preferences)."
+
+subagents:
+  Plan: "Decomposes high-level goals into DAG-structured task trees."
+  Execute: "Handles terminal operations, code modifications, and tool usage."
+  Review: "Evaluates outcomes against initial intent and validates cryptographic logs."
