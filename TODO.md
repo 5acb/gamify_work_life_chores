@@ -52,16 +52,15 @@
 
 ## Open items (new findings from UI/UX audit)
 
-- [ ] **V1: FAB overlaps timeline cards** — + button covers bottom-left cards in timeline view
-- [ ] **V2: Cards clipped at right edge** — rightmost cards overflow with no visual cue
-- [ ] **V3: BLOCKED label low contrast** — gray on dark, hard to read
-- [ ] **V4: Leader-line arrows overlap cards** — dependency arrows cross card text
-- [ ] **S1: Rate limit /api/agent/gemini** — no throttle on Gemini endpoint
-- [x] **S2: Content-Security-Policy header** — set in Express middleware (SEC-17 block, line 20 of server.js)
-- [ ] **S3: /api/users unauthenticated** — returns all users without auth (user enumeration)
-- [ ] **U1: No keyboard navigation for cards** — no tabindex, no arrow key support
-- [ ] **U2: No focus trap in modals** — tab can escape to background elements
-- [ ] **CLEAN-10: CDN fallback** — dayjs + leader-line from CDN with no local fallback
+- [x] **V1: FAB overlaps timeline cards** — tree-container padding-bottom increased to 140px
+- [x] **V2: Cards clipped at right edge** — grid split adjusted + tree padding reduced
+- [x] **V3: BLOCKED label low contrast** — changed to Canyon Red border/text
+- [x] **V4: Leader-line arrows overlap cards** — N/A (leader-line lib not found in codebase)
+- [x] **S1: Rate limit /api/agent/gemini** — 10 req/min limit applied
+- [x] **S3: /api/users unauthenticated** — restricted to self-only response
+- [x] **U1: No keyboard navigation for cards** — tabindex=0 + Enter listener added
+- [x] **U2: No focus trap in modals** — Tab loop + Escape handler implemented
+- [x] **CLEAN-10: CDN fallback** — local fallback for Sortable and WebAuthn added (dayjs/leader-line N/A)
 
 ## Infrastructure (completed)
 
@@ -97,11 +96,11 @@
 
 ### Still open
 
-- [ ] **V1: FAB overlaps timeline cards**
-- [ ] **V2: Cards clipped at right edge**
-- [ ] **V3: BLOCKED label low contrast**
-- [ ] **V4: Leader-line arrows overlap cards**
-- [ ] **S3: /api/users unauthenticated** — returns all users (user enumeration)
-- [ ] **U1: No keyboard navigation for cards**
-- [ ] **U2: No focus trap in modals**
-- [ ] **CLEAN-10: CDN fallback** — dayjs + leader-line have no local fallback
+- [x] **V1: FAB overlaps timeline cards** — padding-bottom fixed
+- [x] **V2: Cards clipped at right edge** — grid split optimized
+- [x] **V3: BLOCKED label low contrast** — Canyon Red border applied
+- [x] **V4: Leader-line arrows overlap cards** — N/A
+- [x] **S3: /api/users unauthenticated** — restricted to self-only
+- [x] **U1: No keyboard navigation for cards** — tabindex=0 implemented
+- [x] **U2: No focus trap in modals** — Tab loop implemented
+- [x] **CLEAN-10: CDN fallback** — Local vendor scripts added

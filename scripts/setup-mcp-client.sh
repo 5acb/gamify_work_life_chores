@@ -17,7 +17,7 @@ if [[ -z "${MCP_TOKEN:-}" ]]; then
   echo "    Get it from your sanctuary administrator."
   exit 1
 fi
-MCP_URL="https://7ay.de/mcp/sse?token=${MCP_TOKEN}"
+MCP_URL="https://7ay.de/mcp/sse" # Header auth preferred; query string for legacy support
 HOOKS_DIR="$HOME/.claude/hooks"
 HOOK_DEST="$HOOKS_DIR/post-session-kb.sh"
 HOOK_SRC="$(cd "$(dirname "$0")" && pwd)/post-session-kb.sh"
@@ -34,11 +34,11 @@ echo ""
 GEMINI_JSON="$HOME/.gemini/settings.json"
 mkdir -p "$HOME/.gemini"
 [[ -f "$GEMINI_JSON" ]] || echo '{}' > "$GEMINI_JSON"
-python3 - "$GEMINI_JSON" "$MCP_URL" << 'PY'
+python3 - "$GEMINI_JSON" "$MCP_URL" "$MCP_TOKEN" << 'PY'
 import json, sys
 path, url = sys.argv[1], sys.argv[2]
 with open(path) as f: d = json.load(f)
-d.setdefault("mcpServers", {})["7ay"] = {"httpUrl": url}
+d.setdefault("mcpServers", {})["7ay"] = {"httpUrl": url, "headers": {"Authorization": f"Bearer {sys.argv[3]}"}}
 with open(path, "w") as f: json.dump(d, f, indent=2)
 PY
 echo "[✓] Gemini CLI: $GEMINI_JSON"

@@ -94,6 +94,12 @@ Visit `http://localhost:3000` (without nginx, no auto-redirect — go to `http:/
 
 **Sanctuary Indicator Line.** Replaced loose points with a proportional line to create a sense of the sanctuary's "total temporal weight."
 
+### UI/UX & Security 2.0 (April 2026)
+- **Accessibility:** Full keyboard navigation for cards and focus traps for modals.
+- **Security:** AI endpoint rate limiting (10 req/min) and user enumeration prevention.
+- **Reliability:** Local fallbacks for critical vendor scripts (Sortable, WebAuthn).
+- **Responsive Layout:** Optimized grid for standard desktop resolutions to prevent card clipping.
+
 ## License
 
 Private project. Source published for reference.

@@ -13,6 +13,12 @@ DATE=$(date +%Y-%m-%d)
 
 [[ -z "$TRANSCRIPT" || ! -f "$TRANSCRIPT" ]] && exit 0
 
+# SEC: Validate transcript path is within expected Gemini tmp space
+if [[ ! "$TRANSCRIPT" =~ ^/root/\.gemini/tmp/ && ! "$TRANSCRIPT" =~ ^/tmp/ ]]; then
+  echo "[!] Security: Blocked path injection attempt: $TRANSCRIPT" >&2
+  exit 1
+fi
+
 # Extract meaningful assistant messages (skip credential-looking content)
 CONTENT=$(python3 << PYEOF
 import json, re, sys

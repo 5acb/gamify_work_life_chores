@@ -373,6 +373,8 @@ function makeCardCompact(t){
   var el=document.createElement('div');
   el.className='card compact '+dm.m+' '+(hue?'hue-'+hue:'')+(archived?' archived':'')+(state.selectedId===t.id?' selected':'');
   el.dataset.id=t.id;
+  el.tabIndex=0;
+  el.onkeydown=function(e){if(e.key==='Enter')this.click()};
 
   var h='';
   // Action column (just the done/restore button)
@@ -431,6 +433,8 @@ function makeCardEl(t, isList){
   el.className='card '+dm.m+' '+stateCls+' '+hueCls+(archived?' archived':'')+(blocked?' blocked':'')+(state.selectedId===t.id?' selected':'');
   if(archived && archiveAge>0) el.dataset.age=archiveAge;
   el.dataset.id=t.id;
+  el.tabIndex=0;
+  el.onkeydown=function(e){if(e.key==='Enter')this.click()};
 
   var h='';
   // Dissolved Action Icons (absolute top left)
@@ -1461,8 +1465,24 @@ function extractAndClose(){
   });
 }
 
-function showModal(){document.getElementById('modalBg').classList.add('show')}
-function closeModal(){document.getElementById('modalBg').classList.remove('show')}
+function showModal(){
+  document.getElementById('modalBg').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){
+  document.getElementById('modalBg').classList.remove('show');
+  document.body.style.overflow='';
+}
 document.getElementById('modalBg').addEventListener('click',function(e){if(e.target===this)closeModal()});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()});
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape') closeModal();
+  if(e.key==='Tab' && document.getElementById('modalBg').classList.contains('show')){
+    var m = document.getElementById('modal');
+    var focusable = m.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if(!focusable.length) return;
+    var first = focusable[0], last = focusable[focusable.length - 1];
+    if(e.shiftKey) { if(document.activeElement === first) { last.focus(); e.preventDefault(); } }
+    else { if(document.activeElement === last) { first.focus(); e.preventDefault(); } }
+  }
+});
 route();

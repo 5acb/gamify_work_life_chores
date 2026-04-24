@@ -185,6 +185,7 @@ const LOGIN_HTML = (nonce, error = '') => `<!DOCTYPE html>
 <meta name="theme-color" content="#090a0f">
 <title>organizer | gateway</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/simplewebauthn-browser/9.0.0/index.umd.min.js"></script>
+<script>window.SimpleWebAuthnBrowser || document.write('<script src="/vendor/simplewebauthn-browser.min.js"><\/script>')</script>
 <style nonce="${nonce}">
   @import url('https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@100..900&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
@@ -628,7 +629,7 @@ app.get('/', ensureAuth, (req, res) => {
 
 // ---- API: Users ----
 app.get('/api/users', ensureAuth, (req, res) => {
-  res.json({ users: db.prepare('SELECT id, name, slug FROM users ORDER BY id').all() });
+  res.json({ users: [{ id: req.user.id, name: req.user.name, slug: req.user.slug }] });
 });
 
 // ---- UI State ----
@@ -849,6 +850,7 @@ function geminiCacheKey(uid, q) {
 }
 
 app.post('/api/agent/gemini', ensureAuth, async (req, res) => {
+  if (!checkAIRateLimit(req.user.id)) return res.status(429).json({ error: 'rate limit exceeded' });
   const { question } = req.body;
   if (!question) return res.status(400).json({ error: 'question required' });
   if (question.length > 2000) return res.status(400).json({ error: 'question too long' });

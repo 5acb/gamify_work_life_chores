@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2024-06-04
+# Last updated: 2025-05-15
 
 project:
   name: gamify_work_life_chores
@@ -40,7 +40,7 @@ architecture:
     A dedicated MCP server provides a tool-augmented environment. It features:
     1. Subagent framework: Specialized personas defined in subagents.js (Plan, Execute, Review).
     2. Plan Sessions: Multi-step AI-driven workflows for task decomposition and state analysis.
-    3. Knowledge Base: Integration with Mem0 for long-term project context and insight storage.
+    3. Knowledge Base: Integration with Mem0 (localhost:8000) for long-term project context.
     4. Auto-Commit: A commit-daemon (socat+bash) logs changes to a blockchain-style 
        cryptographic changelog (changelog.js) for auditability.
     5. Agentic CLI: Integration with @google/gemini-cli for --yolo autonomous execution.
@@ -56,7 +56,7 @@ architecture:
     - "Custom session verification with timing-safe HMAC checks"
     - "WebAuthn (Passkeys) with hardware authenticator support"
     - "Argon2 for robust, salted password hashing"
-    - "CSP header: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'nonce-<val>';"
+    - "CSP header: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline';"
     - "Audit logging: task_events table tracks all mutations"
     - "CSRF protection via X-Requested-With header requirement"
   database:
@@ -94,7 +94,7 @@ database_schema:
     columns: [id, name, slug, password_hash, created_at]
   domains:
     columns: [id, user_id, name, slug, material, sort_order]
-    notes: "Materials: kingfisher, cyberspace-grid, saffron-road, amethyst-sky, sun-baked-clay."
+    notes: "Slugs: CTI, CSD, ECM, GRA, PER. Materials: kingfisher, cyberspace-grid, etc."
   tasks:
     columns: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, archived, archived_at, user_id, created_at, updated_at]
   subtasks:
@@ -109,21 +109,15 @@ database_schema:
     columns: [user_id, challenge, expires_at]
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
-    notes: "Encapsulates AI planning sessions."
   session_events:
     columns: [id, session_id, ts, agent, event_type, task_id, content]
   session_decisions:
     columns: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
   task_observations:
     columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
-  meta_insights:
-    columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
-    notes: "High-level AI observations across sessions."
   task_events:
     columns: [id, task_id, user_id, action, detail, ts]
-    notes: "Audit log for manual and AI task mutations."
-
-subagents:
-  Plan: "Decomposes high-level goals into task trees; validates dependencies."
-  Execute: "Performs file system operations, code changes, and CLI tool usage."
-  Review: "Evaluates outcomes against initial plans; identifies regressions."
+  meta_insights:
+    columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
+  ui_state:
+    columns: [key, value]

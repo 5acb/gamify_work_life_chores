@@ -189,6 +189,9 @@ body {
 }
 
 .app { display: grid; grid-template-columns: 2fr 1fr; height: 100vh; width: 100vw; }
+@media (max-width: 1440px) and (min-width: 1025px) {
+  .app { grid-template-columns: 3fr 2fr; }
+}
 
 /* ── Panels ── */
 .panel-tree {
@@ -199,8 +202,8 @@ body {
 .panel-list { display: flex; flex-direction: column; height: 100vh; background: var(--glass); overflow: hidden; }
 
 /* ── Identity ── */
-.user-identity { position: absolute; bottom: 40px; left: 40px; z-index: 100; }
-.identity-tile { background: var(--glass-inner); border: 1px solid var(--glass-brd); padding: 12px 24px; font-size: 14px; font-weight: 900; letter-spacing: 4px; }
+.user-identity { position: absolute; bottom: 40px; left: 40px; z-index: 100; pointer-events: none; }
+.identity-tile { background: var(--glass-inner); border: 1px solid var(--glass-brd); padding: 12px 24px; font-size: 14px; font-weight: 900; letter-spacing: 4px; pointer-events: auto; }
 .error-notification { color: var(--clr-canyon); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; opacity: 0; transition: opacity 0.5s; pointer-events: none; }
 .error-notification.show { opacity: 1; }
 
@@ -403,11 +406,17 @@ body.mode-execute .card-hue-indicator.dot-marble { filter: none; border-color: r
   color: var(--ink) !important; z-index: 2; transition: all 0.3s; border: none !important;
 }
 .tile-domain:hover { filter: drop-shadow(0 0 10px var(--honey)) !important; }
-.tile-blocked { font-size: 10px; font-weight: 900; letter-spacing: 1px; padding: 4px 12px; border-radius: var(--r-sm); }
+.tile-blocked { 
+  font-size: 10px; font-weight: 900; letter-spacing: 1px; padding: 4px 12px; border-radius: var(--r-sm);
+  background: rgba(var(--obsidian-rgb), 0.4) !important;
+  border: 1px solid var(--canyon) !important;
+  color: var(--canyon) !important;
+  margin-bottom: 8px;
+}
 .sortable-ghost { opacity: 0.2; filter: grayscale(1); border: 2px dashed var(--honey); }
 
 /* ── Layout ── */
-.tree-container { flex: 1; overflow: auto; padding: 80px; display: flex; flex-direction: column; align-items: center; gap: 100px; }
+.tree-container { flex: 1; overflow: auto; padding: 60px 40px 140px; display: flex; flex-direction: column; align-items: center; gap: 100px; }
 .tree-section { display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; }
 .tree-label { font-size: 11px; font-weight: 900; text-transform: uppercase; color: var(--faded); letter-spacing: 5px; margin-bottom: 25px; text-align: center; }
 .cards { flex: 1; overflow-y: auto; padding: 20px 40px 240px; }
