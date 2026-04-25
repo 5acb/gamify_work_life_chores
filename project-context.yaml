@@ -82,6 +82,8 @@ files:
   mcp-server/changelog.js: "Cryptographic audit trail for AI actions"
   public/app.js: "Frontend JS — routing, Sanctuary rendering, AI chat interface"
   public/changelog.html: "Visual interface for the cryptographic audit trail"
+  public/index.html: "Main entry point for the Sanctuary UI"
+  public/style.css: "Atmospheric Sanctuary styles and material definitions"
   server.js: "Express API — WebAuthn, task persistence, Gemini Direct Invoke"
   scripts/kb.py: "Knowledge base / Mem0 integration scripts"
   scripts/post-session-kb.sh: "Post-session hook for KB synchronization"
