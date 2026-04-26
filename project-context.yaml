@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2025-05-15
+# Last updated: 2025-05-22
 
 project:
   name: gamify_work_life_chores
@@ -90,6 +90,7 @@ files:
   scripts/setup-mcp-client.sh: "Utility to configure local MCP clients"
   scripts/test-render.sh: "Canvas/UI rendering test utility"
   terrain/S36E149.DAT: "HGT Digital Elevation Model data for atmospheric rendering"
+  .gemini/settings.json: "Gemini CLI and agent configuration"
 
 database_schema:
   users:
@@ -109,6 +110,11 @@ database_schema:
     notes: "WebAuthn / Passkey storage."
   auth_challenges:
     columns: [user_id, challenge, expires_at]
+  task_events:
+    columns: [id, task_id, user_id, action, detail, ts]
+    notes: "Audit log for all task mutations."
+  ui_state:
+    columns: [key, value]
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
   session_events:
@@ -117,9 +123,5 @@ database_schema:
     columns: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
   task_observations:
     columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
-  task_events:
-    columns: [id, task_id, user_id, action, detail, ts]
   meta_insights:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
-  ui_state:
-    columns: [key, value]
