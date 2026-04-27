@@ -117,11 +117,14 @@ database_schema:
     columns: [key, value]
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
+    notes: "Tracks AI-driven planning session lifecycles."
   session_events:
     columns: [id, session_id, ts, agent, event_type, task_id, content]
+    notes: "Granular logs of agent actions within a session."
   session_decisions:
     columns: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
   task_observations:
     columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
   meta_insights:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
+    notes: "Long-term AI synthesis of productivity patterns."
