@@ -77,15 +77,18 @@ files:
   KICKSTART.md: "Quickstart guide for environment setup"
   TODO.md: "Project roadmap and pending features"
   schema.sql: "Full database schema definitions"
+  backup.sql: "Database dump for recovery/migration"
   mcp-server/server.js: "MCP Server — SSE transport, Tool definitions, Gemini Agent logic"
   mcp-server/subagents.js: "Specialized AI personas (Plan, Execute, Review)"
   mcp-server/changelog.js: "Cryptographic audit trail for AI actions"
+  mcp-server/icon.png: "MCP server branding"
   public/app.js: "Frontend JS — routing, Sanctuary rendering, AI chat interface"
   public/changelog.html: "Visual interface for the cryptographic audit trail"
   public/index.html: "Main entry point for the Sanctuary UI"
   public/style.css: "Atmospheric Sanctuary styles and material definitions"
   server.js: "Express API — WebAuthn, task persistence, Gemini Direct Invoke"
   scripts/kb.py: "Knowledge base / Mem0 integration scripts"
+  scripts/kb-pyproject.toml: "Python dependencies for KB scripts"
   scripts/post-session-kb.sh: "Post-session hook for KB synchronization"
   scripts/setup-mcp-client.sh: "Utility to configure local MCP clients"
   scripts/test-render.sh: "Canvas/UI rendering test utility"
@@ -117,14 +120,16 @@ database_schema:
     columns: [key, value]
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
-    notes: "Tracks AI-driven planning session lifecycles."
+    notes: "Records planning sessions and state at start."
   session_events:
     columns: [id, session_id, ts, agent, event_type, task_id, content]
-    notes: "Granular logs of agent actions within a session."
+    notes: "Fine-grained event log for multi-agent workflows."
   session_decisions:
     columns: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
+    notes: "Formalizes agentic decisions for accountability."
   task_observations:
     columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
+    notes: "Agent observations about specific task progress."
   meta_insights:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
-    notes: "Long-term AI synthesis of productivity patterns."
+    notes: "High-level patterns discovered by AI analysis."
