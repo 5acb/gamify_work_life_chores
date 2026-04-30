@@ -8,9 +8,9 @@ project:
   description: >
     Personal task organizer with dependency tracking, subtasks, progress bars,
     timeline view, multi-user boards, and advanced Gemini AI orchestration.
-    The interface is an **Atmospheric Sanctuary**—a 2:1 split-pane interface 
+    The interface is an Atmospheric Sanctuary—a 2:1 split-pane interface 
     fusing skeuomorphic glass aesthetics with an oceanic palette and 
-    domain-specific materials (e.g., Kingfisher, Cyberspace Grid).
+    domain-specific materials.
   repo: https://github.com/5acb/gamify_work_life_chores
   infra_repo: https://github.com/5acb/7ay_de_infra (private)
 
@@ -26,9 +26,9 @@ server:
 architecture:
   overview: >
     Split-file SPA frontend (Vanilla JS/CSS) + Express REST API + SQLite WAL. 
-    AI integration uses gemini-3-flash-preview across all layers: direct 
-    invocation for UI chat and a dedicated MCP Server for complex planning, 
-    terminal access, and autonomous agent workflows.
+    AI integration uses gemini-3-flash-preview for direct UI chat and a 
+    dedicated MCP Server for autonomous agent workflows, tool execution, 
+    and complex planning sessions.
   ui_paradigm: >
     Atmospheric Sanctuary. Uses 2:1 split pane (Worktree vs Task List). 
     Features Donut Indicators for temporal frequency and a Sanctuary Indicator Line. 
@@ -38,26 +38,27 @@ architecture:
     (terrain/S36E149.DAT) for terrain backgrounds.
   ai_orchestration: >
     A dedicated MCP server provides a tool-augmented environment. It features:
-    1. Subagent framework: Specialized personas defined in subagents.js (Plan, Execute, Review).
-    2. Plan Sessions: Multi-step AI-driven workflows for task decomposition and state analysis,
-       tracked via session_events and session_decisions tables.
-    3. Knowledge Base: Integration with Mem0 (localhost:8000) for long-term project context.
-    4. Auto-Commit: A commit-daemon (socat+bash) logs changes to a blockchain-style 
-       cryptographic changelog (changelog.js) for auditability.
-    5. Agentic CLI: Integration with @google/gemini-cli for --yolo autonomous execution.
+    1. Subagent framework: Specialized personas (Plan, Execute, Review) in subagents.js.
+    2. Plan Sessions: Multi-step workflows for decomposition and state analysis,
+       persisted in plan_sessions, session_events, and session_decisions.
+    3. Meta Insights: Automated generation of domain-specific insights and evidence.
+    4. Knowledge Base: Integration with Mem0 (localhost:8000) for long-term memory.
+    5. Auditability: A cryptographic changelog (changelog.js) logs all AI mutations.
+    6. Agentic CLI: npx @google/gemini-cli --yolo for autonomous terminal tasks.
   ports:
     3000: "App server (Express + SQLite) — proxied by Nginx on /"
     3001: "commit-daemon (localhost-only) — proxied on /api/commit"
     3002: "MCP server (SSE transport, token auth) — proxied on /mcp"
   auth_flow: >
-    Modern passwordless-first authentication. Supports WebAuthn (Passkeys) for primary access
-    via @simplewebauthn/server. Fallback authentication uses Argon2-hashed passwords. 
-    Sessions are HMAC-signed using a persistent secret in /opt/organizer/data/.session_secret.
+    WebAuthn (Passkeys) primary access via @simplewebauthn/server. 
+    Fallback: Argon2-hashed passwords. Sessions are HMAC-signed using a 
+    persistent secret in /opt/organizer/data/.session_secret.
+    RP ID: 7ay.de; RP Name: 7ay.de Sanctuary.
   security:
-    - "Custom session verification with timing-safe HMAC checks"
+    - "Timing-safe HMAC session verification"
     - "WebAuthn (Passkeys) with hardware authenticator support"
-    - "Argon2 for robust, salted password hashing"
-    - "CSP header: default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline';"
+    - "Argon2 for salted password hashing"
+    - "CSP header: default-src 'self'; script-src 'self' cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline';"
     - "Audit logging: task_events table tracks all mutations"
     - "CSRF protection via X-Requested-With header requirement"
   database:
@@ -83,18 +84,19 @@ files:
   mcp-server/subagents.js: "Specialized AI personas (Plan, Execute, Review)"
   mcp-server/changelog.js: "Cryptographic audit trail for AI actions"
   mcp-server/icon.png: "MCP server branding"
-  public/app.js: "Frontend JS — routing, Sanctuary rendering, AI chat interface"
+  public/app.js: "Frontend JS — Sanctuary rendering, task logic, AI chat"
   public/changelog.html: "Visual interface for the cryptographic audit trail"
   public/index.html: "Main entry point for the Sanctuary UI"
   public/style.css: "Atmospheric Sanctuary styles and material definitions"
   public/vendor/: "External libraries (Sortable.js, SimpleWebAuthn)"
   server.js: "Express API — WebAuthn, task persistence, Gemini Direct Invoke"
+  scripts/backup.sh: "Automated database backup script"
   scripts/kb.py: "Knowledge base / Mem0 integration scripts"
   scripts/kb-pyproject.toml: "Python dependencies for KB scripts"
   scripts/post-session-kb.sh: "Post-session hook for KB synchronization"
   scripts/setup-mcp-client.sh: "Utility to configure local MCP clients"
   scripts/test-render.sh: "Canvas/UI rendering test utility"
-  terrain/S36E149.DAT: "HGT Digital Elevation Model data for atmospheric rendering"
+  terrain/S36E149.DAT: "HGT Digital Elevation Model data for backgrounds"
   .gemini/settings.json: "Gemini CLI and agent configuration"
 
 database_schema:
@@ -112,11 +114,8 @@ database_schema:
     notes: "Self-referencing tasks table for dependency graphing."
   credentials:
     columns: [id, user_id, public_key, counter, transports, created_at]
-    notes: "WebAuthn / Passkey storage."
   auth_challenges:
     columns: [user_id, challenge, expires_at]
-  task_events:
-    columns: [id, task_id, user_id, action, detail, ts]
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
   session_events:
@@ -127,5 +126,7 @@ database_schema:
     columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
   meta_insights:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
+  task_events:
+    columns: [id, task_id, user_id, action, detail, ts]
   ui_state:
     columns: [key, value]
