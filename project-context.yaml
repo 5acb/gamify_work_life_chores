@@ -72,6 +72,11 @@ services:
   organizer-mcp.service: "MCP Server (SSE) for AI tool execution"
   organizer-commit.service: "Socat-based commit-daemon for changelog audit"
 
+subagents:
+  Plan: "Decomposes high-level objectives into task structures and identifies dependencies."
+  Execute: "Performs file system operations, database mutations, and code generation."
+  Review: "Validates outcomes against session goals and generates meta-insights."
+
 files:
   JOURNEY.md: "Narrative chronicle of the Sanctuary UI evolution"
   DESIGN.md: "Foundational Design Laws for the Sanctuary"
@@ -128,5 +133,7 @@ database_schema:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
   task_events:
     columns: [id, task_id, user_id, action, detail, ts]
+    notes: "Mutable audit trail for UI actions."
   ui_state:
     columns: [key, value]
+    notes: "Persistent client-side state (e.g., expanded domains)."
