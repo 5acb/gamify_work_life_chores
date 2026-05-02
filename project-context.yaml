@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2025-05-22
+# Last updated: 2025-05-23
 
 project:
   name: gamify_work_life_chores
@@ -116,11 +116,12 @@ database_schema:
     columns: [id, task_id, label, done, sort_order, created_at]
   blockers:
     columns: [task_id, blocked_by]
-    notes: "Self-referencing tasks table for dependency graphing."
+  ui_state:
+    columns: [key, value]
+  task_events:
+    columns: [id, task_id, user_id, action, detail, ts]
   credentials:
     columns: [id, user_id, public_key, counter, transports, created_at]
-  auth_challenges:
-    columns: [user_id, challenge, expires_at]
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
   session_events:
@@ -131,9 +132,3 @@ database_schema:
     columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
   meta_insights:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
-  task_events:
-    columns: [id, task_id, user_id, action, detail, ts]
-    notes: "Mutable audit trail for UI actions."
-  ui_state:
-    columns: [key, value]
-    notes: "Persistent client-side state (e.g., expanded domains)."
