@@ -116,19 +116,20 @@ database_schema:
     columns: [id, task_id, label, done, sort_order, created_at]
   blockers:
     columns: [task_id, blocked_by]
-  ui_state:
-    columns: [key, value]
+    notes: "Self-referencing tasks table for dependency graph."
   task_events:
     columns: [id, task_id, user_id, action, detail, ts]
+    notes: "Audit log for all task mutations."
   credentials:
     columns: [id, user_id, public_key, counter, transports, created_at]
+    notes: "WebAuthn passkey storage."
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
+    notes: "Aggregates multi-agent AI planning workflows."
   session_events:
     columns: [id, session_id, ts, agent, event_type, task_id, content]
   session_decisions:
     columns: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
-  task_observations:
-    columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
   meta_insights:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
+    notes: "Cross-session AI observations about user productivity and domain health."
