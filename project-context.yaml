@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2025-05-23
+# Last updated: 2025-05-24
 
 project:
   name: gamify_work_life_chores
@@ -37,7 +37,7 @@ architecture:
     for visual identity. Rendering utilizes HGT Digital Elevation Model data 
     (terrain/S36E149.DAT) for terrain backgrounds.
   ai_orchestration: >
-    A dedicated MCP server provides a tool-augmented environment. It features:
+    A dedicated MCP server (SSE transport) provides a tool-augmented environment.
     1. Subagent framework: Specialized personas (Plan, Execute, Review) in subagents.js.
     2. Plan Sessions: Multi-step workflows for decomposition and state analysis,
        persisted in plan_sessions, session_events, and session_decisions.
@@ -59,7 +59,7 @@ architecture:
     - "WebAuthn (Passkeys) with hardware authenticator support"
     - "Argon2 for salted password hashing"
     - "CSP header: default-src 'self'; script-src 'self' cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline';"
-    - "Audit logging: task_events table tracks all mutations"
+    - "Audit logging: task_events table and cryptographic changelog.js"
     - "CSRF protection via X-Requested-With header requirement"
   database:
     engine: SQLite (WAL mode, foreign_keys ON)
@@ -120,13 +120,15 @@ database_schema:
     columns: [id, task_id, user_id, action, detail, ts]
   credentials:
     columns: [id, user_id, public_key, counter, transports, created_at]
+  auth_challenges:
+    columns: [user_id, challenge, expires_at]
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
   session_events:
     columns: [id, session_id, ts, agent, event_type, task_id, content]
   session_decisions:
     columns: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
-  meta_insights:
-    columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
   task_observations:
     columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
+  meta_insights:
+    columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
