@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2025-05-24
+# Last updated: 2025-06-03
 
 project:
   name: gamify_work_life_chores
@@ -118,17 +118,13 @@ database_schema:
     columns: [task_id, blocked_by]
   task_events:
     columns: [id, task_id, user_id, action, detail, ts]
-  credentials:
-    columns: [id, user_id, public_key, counter, transports, created_at]
-  auth_challenges:
-    columns: [user_id, challenge, expires_at]
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
   session_events:
     columns: [id, session_id, ts, agent, event_type, task_id, content]
   session_decisions:
     columns: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
-  task_observations:
-    columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
   meta_insights:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
+  credentials:
+    columns: [id, user_id, public_key, counter, transports, created_at]
