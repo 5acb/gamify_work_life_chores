@@ -83,6 +83,7 @@ files:
   GEMINI.md: "AI integration and prompt engineering documentation"
   KICKSTART.md: "Quickstart guide for environment setup"
   TODO.md: "Project roadmap and pending features"
+  README.md: "Project overview and entry point"
   schema.sql: "Full database schema definitions"
   backup.sql: "Database dump for recovery/migration"
   mcp-server/server.js: "MCP Server — SSE transport, Tool definitions, Gemini Agent logic"
@@ -93,7 +94,8 @@ files:
   public/changelog.html: "Visual interface for the cryptographic audit trail"
   public/index.html: "Main entry point for the Sanctuary UI"
   public/style.css: "Atmospheric Sanctuary styles and material definitions"
-  public/vendor/: "External libraries (Sortable.js, SimpleWebAuthn)"
+  public/vendor/Sortable.min.js: "Drag-and-drop reordering library"
+  public/vendor/simplewebauthn-browser.min.js: "WebAuthn client-side library"
   server.js: "Express API — WebAuthn, task persistence, Gemini Direct Invoke"
   scripts/backup.sh: "Automated database backup script"
   scripts/kb.py: "Knowledge base / Mem0 integration scripts"
@@ -116,15 +118,21 @@ database_schema:
     columns: [id, task_id, label, done, sort_order, created_at]
   blockers:
     columns: [task_id, blocked_by]
+  ui_state:
+    columns: [key, value]
   task_events:
     columns: [id, task_id, user_id, action, detail, ts]
+  credentials:
+    columns: [id, user_id, public_key, counter, transports, created_at]
+  auth_challenges:
+    columns: [user_id, challenge, expires_at]
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
   session_events:
     columns: [id, session_id, ts, agent, event_type, task_id, content]
   session_decisions:
     columns: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
+  task_observations:
+    columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
   meta_insights:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
-  credentials:
-    columns: [id, user_id, public_key, counter, transports, created_at]
