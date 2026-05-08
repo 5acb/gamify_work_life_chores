@@ -111,21 +111,17 @@ database_schema:
     columns: [id, name, slug, password_hash, created_at]
   domains:
     columns: [id, user_id, name, slug, material, sort_order]
-    notes: "Slugs: CTI, CSD, ECM, GRA, PER. Materials: kingfisher, cyberspace-grid, saffron-road, amethyst-sky, sun-baked-clay."
+    notes: "Default Slugs: CTI (Threat Intelligence), CSD (Drone Security), ECM (Enterprise Security), GRA (Graduate Research), PER (Personal)."
   tasks:
-    columns: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, archived, archived_at, user_id, created_at, updated_at]
+    columns: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, created_at, updated_at, archived, archived_at, user_id]
   subtasks:
     columns: [id, task_id, label, done, sort_order, created_at]
   blockers:
     columns: [task_id, blocked_by]
-  ui_state:
-    columns: [key, value]
   task_events:
     columns: [id, task_id, user_id, action, detail, ts]
   credentials:
     columns: [id, user_id, public_key, counter, transports, created_at]
-  auth_challenges:
-    columns: [user_id, challenge, expires_at]
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
   session_events:
@@ -136,3 +132,5 @@ database_schema:
     columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
   meta_insights:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
+  ui_state:
+    columns: [key, value]
