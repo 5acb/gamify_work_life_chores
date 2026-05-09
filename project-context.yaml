@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2025-06-03
+# Last updated: 2025-06-11
 
 project:
   name: gamify_work_life_chores
@@ -111,7 +111,7 @@ database_schema:
     columns: [id, name, slug, password_hash, created_at]
   domains:
     columns: [id, user_id, name, slug, material, sort_order]
-    notes: "Default Slugs: CTI (Threat Intelligence), CSD (Drone Security), ECM (Enterprise Security), GRA (Graduate Research), PER (Personal)."
+    notes: "Slugs: CTI (Threat Intelligence), CSD (Drone Security), ECM (Enterprise Security), GRA (Graduate Research), PER (Personal)."
   tasks:
     columns: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, created_at, updated_at, archived, archived_at, user_id]
   subtasks:
@@ -122,6 +122,8 @@ database_schema:
     columns: [id, task_id, user_id, action, detail, ts]
   credentials:
     columns: [id, user_id, public_key, counter, transports, created_at]
+  auth_challenges:
+    columns: [user_id, challenge, expires_at]
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
   session_events:
