@@ -42,7 +42,7 @@ def gclient():
     return _gclient
 
 def get_qdrant():
-    return QdrantClient(url=QDRANT_URL, timeout=15)
+    return QdrantClient(url=QDRANT_URL, api_key=os.environ.get("KB_QDRANT_API_KEY"), timeout=15)
 
 def get_pg():
     return psycopg2.connect(PG_DSN)
