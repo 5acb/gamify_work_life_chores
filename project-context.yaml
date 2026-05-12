@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2025-06-11
+# Last updated: 2025-06-12
 
 project:
   name: gamify_work_life_chores
@@ -33,9 +33,13 @@ architecture:
     Atmospheric Sanctuary. Uses 2:1 split pane (Worktree vs Task List). 
     Features Donut Indicators for temporal frequency and a Sanctuary Indicator Line. 
     Custom reordering via Sortable.js. Domains utilize specific "Materials" 
-    (kingfisher, cyberspace-grid, saffron-road, amethyst-sky, sun-baked-clay) 
-    for visual identity. Rendering utilizes HGT Digital Elevation Model data 
-    (terrain/S36E149.DAT) for terrain backgrounds.
+    mapped via the domains table: 
+    - CTI (Threat Intelligence): cyberspace-grid
+    - CSD (Drone Security): kingfisher
+    - ECM (Enterprise Security): saffron-road
+    - GRA (Graduate Research): amethyst-sky
+    - PER (Personal): sun-baked-clay
+    Rendering utilizes HGT Digital Elevation Model data (terrain/S36E149.DAT).
   ai_orchestration: >
     A dedicated MCP server (SSE transport) provides a tool-augmented environment.
     1. Subagent framework: Specialized personas (Plan, Execute, Review) in subagents.js.
@@ -119,13 +123,6 @@ database_schema:
     columns: [task_id, blocked_by]
   domains:
     columns: [id, user_id, name, slug, material, sort_order]
-    notes: "Slugs: CTI (Threat Intelligence), CSD (Drone Security), ECM (Enterprise Security), GRA (Graduate Research), PER (Personal)"
-  task_events:
-    columns: [id, task_id, user_id, action, detail, ts]
-  credentials:
-    columns: [id, user_id, public_key, counter, transports, created_at]
-  auth_challenges:
-    columns: [user_id, challenge, expires_at]
   plan_sessions:
     columns: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
   session_events:
@@ -136,5 +133,9 @@ database_schema:
     columns: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
   meta_insights:
     columns: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
-  ui_state:
-    columns: [key, value]
+  task_events:
+    columns: [id, task_id, user_id, action, detail, ts]
+  credentials:
+    columns: [id, user_id, public_key, counter, transports, created_at]
+  auth_challenges:
+    columns: [user_id, challenge, expires_at]
