@@ -113,17 +113,17 @@ files:
   .gemini/settings.json: "Gemini CLI and agent configuration"
 
 database_schema:
-  users: [id, name, slug, password_hash, created_at]
-  tasks: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, archived, archived_at, user_id, created_at, updated_at]
+  tasks: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, created_at, updated_at, archived, archived_at, user_id]
   subtasks: [id, task_id, label, done, sort_order, created_at]
   blockers: [task_id, blocked_by]
-  domains: [id, user_id, name, slug, material, sort_order]
   ui_state: [key, value]
+  users: [id, name, slug, password_hash, created_at]
   task_events: [id, task_id, user_id, action, detail, ts]
   credentials: [id, user_id, public_key, counter, transports, created_at]
   auth_challenges: [user_id, challenge, expires_at]
-  plan_sessions: [id, triggered, domain, task_ids, task_snapshot, started_at, ended_at]
+  plan_sessions: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
   session_events: [id, session_id, ts, agent, event_type, task_id, content]
   session_decisions: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
   task_observations: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
-  meta_insights: [id, domain, insight_type, content, evidence, confidence, surfaced, generated_at]
+  meta_insights: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
+  domains: [id, user_id, name, slug, material, sort_order]
