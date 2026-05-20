@@ -33,13 +33,8 @@ architecture:
     Atmospheric Sanctuary. Uses 2:1 split pane (Worktree vs Task List). 
     Features Donut Indicators for temporal frequency and a Sanctuary Indicator Line. 
     Custom reordering via Sortable.js. Domains utilize specific "Materials" 
-    mapped via the domains table: 
-    - CTI (Threat Intelligence): cyberspace-grid
-    - CSD (Drone Security): kingfisher
-    - ECM (Enterprise Security): saffron-road
-    - GRA (Graduate Research): amethyst-sky
-    - PER (Personal): sun-baked-clay
-    Rendering utilizes HGT Digital Elevation Model data (terrain/S36E149.DAT).
+    mapped via the domains table (e.g., cyberspace-grid, kingfisher, saffron-road). 
+    Background rendering utilizes HGT Digital Elevation Model data (terrain/S36E149.DAT).
   ai_orchestration: >
     A dedicated MCP server (SSE transport) provides a tool-augmented environment.
     1. Subagent framework: Specialized personas (Plan, Execute, Review) in subagents.js.
@@ -51,7 +46,7 @@ architecture:
     6. Agentic CLI: npx @google/gemini-cli --yolo for autonomous terminal tasks.
   ports:
     3000: "App server (Express + SQLite) — proxied by Nginx on /"
-    3001: "commit-daemon (localhost-only) — proxied on /api/commit"
+    3001: "commit-daemon (socat localhost-only) — proxied on /api/commit"
     3002: "MCP server (SSE transport, token auth) — proxied on /mcp"
   auth_flow: >
     WebAuthn (Passkeys) primary access via @simplewebauthn/server. 
@@ -116,14 +111,13 @@ database_schema:
   tasks: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, created_at, updated_at, archived, archived_at, user_id]
   subtasks: [id, task_id, label, done, sort_order, created_at]
   blockers: [task_id, blocked_by]
-  users: [id, name, slug, created_at, password_hash]
   domains: [id, user_id, name, slug, material, sort_order]
-  task_events: [id, task_id, user_id, action, detail, ts]
+  users: [id, name, slug, created_at, password_hash]
   credentials: [id, user_id, public_key, counter, transports, created_at]
-  auth_challenges: [user_id, challenge, expires_at]
   plan_sessions: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
   session_events: [id, session_id, ts, agent, event_type, task_id, content]
   session_decisions: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
   task_observations: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
   meta_insights: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
+  task_events: [id, task_id, user_id, action, detail, ts]
   ui_state: [key, value]
