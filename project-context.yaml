@@ -22,6 +22,7 @@ server:
   domain: 7ay.de
   ssl: Let's Encrypt (auto-renew)
   deploy_user: deploy
+  repo_path: /opt/organizer/repo
 
 architecture:
   overview: >
@@ -33,9 +34,9 @@ architecture:
     Atmospheric Sanctuary. Uses 2:1 split pane (Worktree vs Task List). 
     Features Donut Indicators for temporal frequency and a Sanctuary Indicator Line. 
     Custom reordering via Sortable.js. Domains utilize specific "Materials" 
-    mapped via the domains table (e.g., cyberspace-grid, kingfisher, saffron-road, 
-    amethyst-sky, sun-baked-clay). Background rendering utilizes HGT Digital 
-    Elevation Model data (terrain/S36E149.DAT).
+    mapped via the domains table: CTI (cyberspace-grid), CSD (kingfisher), 
+    ECM (saffron-road), GRA (amethyst-sky), PER (sun-baked-clay). 
+    Background rendering utilizes HGT Digital Elevation Model data (terrain/S36E149.DAT).
   ai_orchestration: >
     A dedicated MCP server (SSE transport) provides a tool-augmented environment.
     1. Subagent framework: Specialized personas (Plan, Execute, Review) in subagents.js.
