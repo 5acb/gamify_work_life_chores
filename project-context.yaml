@@ -114,7 +114,7 @@ database_schema:
   subtasks: [id, task_id, label, done, sort_order, created_at]
   blockers: [task_id, blocked_by]
   ui_state: [key, value]
-  users: [id, name, slug, created_at, password_hash]
+  users: [id, name, slug, password_hash, created_at]
   task_events: [id, task_id, user_id, action, detail, ts]
   credentials: [id, user_id, public_key, counter, transports, created_at]
   auth_challenges: [user_id, challenge, expires_at]
