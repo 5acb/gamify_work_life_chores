@@ -10,7 +10,7 @@ project:
     timeline view, multi-user boards, and advanced Gemini AI orchestration.
     The interface is an Atmospheric Sanctuary—a 2:1 split-pane interface 
     fusing skeuomorphic glass aesthetics with an oceanic palette and 
-    domain-specific materials.
+    domain-specific materials managed via a dynamic domains system.
   repo: https://github.com/5acb/gamify_work_life_chores
   infra_repo: https://github.com/5acb/7ay_de_infra (private)
 
@@ -34,8 +34,9 @@ architecture:
     Atmospheric Sanctuary. Uses 2:1 split pane (Worktree vs Task List). 
     Features Donut Indicators for temporal frequency and a Sanctuary Indicator Line. 
     Custom reordering via Sortable.js. Domains utilize specific "Materials" 
-    mapped via the domains table: CTI (cyberspace-grid), CSD (kingfisher), 
-    ECM (saffron-road), GRA (amethyst-sky), PER (sun-baked-clay). 
+    mapped via the domains table: Threat Intelligence (cyberspace-grid), 
+    Drone Security (kingfisher), Enterprise Security (saffron-road), 
+    Graduate Research (amethyst-sky), Personal (sun-baked-clay). 
     Background rendering utilizes HGT Digital Elevation Model data (terrain/S36E149.DAT).
   ai_orchestration: >
     A dedicated MCP server (SSE transport) provides a tool-augmented environment.
@@ -98,7 +99,7 @@ files:
   public/style.css: "Atmospheric Sanctuary styles and material definitions"
   public/vendor/Sortable.min.js: "Drag-and-drop reordering library"
   public/vendor/simplewebauthn-browser.min.js: "WebAuthn client-side library"
-  server.js: "Express API — WebAuthn, task persistence, Gemini Direct Invoke"
+  server.js: "Express API — WebAuthn, task persistence, Gemini Direct Invoke, domain management"
   package.json: "Main app dependencies and scripts"
   scripts/backup.sh: "Automated database backup script"
   scripts/kb.py: "Knowledge base / Mem0 integration scripts"
@@ -113,14 +114,14 @@ database_schema:
   tasks: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, created_at, updated_at, archived, archived_at, user_id]
   subtasks: [id, task_id, label, done, sort_order, created_at]
   blockers: [task_id, blocked_by]
-  ui_state: [key, value]
-  users: [id, name, slug, created_at, password_hash]
-  task_events: [id, task_id, user_id, action, detail, ts]
-  credentials: [id, user_id, public_key, counter, transports, created_at]
-  auth_challenges: [user_id, challenge, expires_at]
+  users: [id, name, slug, password_hash, created_at]
+  domains: [id, user_id, name, slug, material, sort_order]
   plan_sessions: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
   session_events: [id, session_id, ts, agent, event_type, task_id, content]
   session_decisions: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
   task_observations: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
   meta_insights: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
-  domains: [id, user_id, name, slug, material, sort_order]
+  task_events: [id, task_id, user_id, action, detail, ts]
+  credentials: [id, user_id, public_key, counter, transports, created_at]
+  auth_challenges: [user_id, challenge, expires_at]
+  ui_state: [key, value]
