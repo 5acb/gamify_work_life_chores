@@ -34,9 +34,9 @@ architecture:
     Atmospheric Sanctuary. Uses 2:1 split pane (Worktree vs Task List). 
     Features Donut Indicators for temporal frequency and a Sanctuary Indicator Line. 
     Custom reordering via Sortable.js. Domains utilize specific "Materials" 
-    mapped via the domains table: Threat Intelligence (cyberspace-grid), 
-    Drone Security (kingfisher), Enterprise Security (saffron-road), 
-    Graduate Research (amethyst-sky), Personal (sun-baked-clay). 
+    mapped via the domains table: Threat Intelligence (CTI: cyberspace-grid), 
+    Drone Security (CSD: kingfisher), Enterprise Security (ECM: saffron-road), 
+    Graduate Research (GRA: amethyst-sky), Personal (PER: sun-baked-clay). 
     Background rendering utilizes HGT Digital Elevation Model data (terrain/S36E149.DAT).
   ai_orchestration: >
     A dedicated MCP server (SSE transport) provides a tool-augmented environment.
@@ -111,17 +111,18 @@ files:
   .gemini/settings.json: "Gemini CLI and agent configuration"
 
 database_schema:
-  tasks: [id, domain, name, plan_date, due_date, plan_label, due_label, speed, stakes, sort_order, done, created_at, updated_at, archived, archived_at, user_id]
-  subtasks: [id, task_id, label, done, sort_order, created_at]
-  blockers: [task_id, blocked_by]
-  users: [id, name, slug, created_at, password_hash]
-  credentials: [id, user_id, public_key, counter, transports, created_at]
-  domains: [id, user_id, name, slug, material, sort_order]
-  plan_sessions: [id, triggered, domain, task_ids, started_at, ended_at, task_snapshot]
-  session_events: [id, session_id, ts, agent, event_type, task_id, content]
-  session_decisions: [id, session_id, ts, decision_type, task_id, proposed_by, accepted, outcome_validated, rationale]
-  task_observations: [id, task_id, session_id, ts, observer, observation, content, task_state_snap]
-  meta_insights: [id, generated_at, insight_type, domain, content, evidence, confidence, surfaced]
-  task_events: [id, task_id, user_id, action, detail, ts]
-  ui_state: [key, value]
-  auth_challenges: [user_id, challenge, expires_at]
+  tables:
+    - tasks: "Main task storage (domain, name, labels, speed, stakes, status, user_id)"
+    - subtasks: "Hierarchical task components (task_id, label, status)"
+    - blockers: "Task dependency mapping (task_id, blocked_by)"
+    - users: "Identity storage (name, slug, password_hash)"
+    - domains: "Material and styling mapping (user_id, name, slug, material)"
+    - task_events: "Audit log for task mutations (task_id, action, ts)"
+    - credentials: "WebAuthn public keys and counters"
+    - plan_sessions: "AI workflow tracking (domain, snapshots, timing)"
+    - session_events: "Granular agent action logs within sessions"
+    - session_decisions: "AI-proposed changes and human/system outcomes"
+    - task_observations: "Agent-recorded state analysis for tasks"
+    - meta_insights: "Domain-level patterns and evidence identified by AI"
+    - ui_state: "Persistent client-side preferences"
+    - auth_challenges: "Active WebAuthn challenges"
