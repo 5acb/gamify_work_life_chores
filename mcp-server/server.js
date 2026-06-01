@@ -174,7 +174,7 @@ const app = express();
 const sessions = {};
 
 app.get("/mcp/sse", (req, res) => {
-  if (AUTH_TOKEN && req.query.token !== AUTH_TOKEN) return res.status(401).json({ error: "unauthorized" });
+  const reqToken = req.headers["authorization"]?.replace("Bearer ", "") || req.query.token; if (AUTH_TOKEN && reqToken !== AUTH_TOKEN) return res.status(401).json({ error: "unauthorized" });
   const transport = new SSEServerTransport("/mcp/messages", res);
   sessions[transport.sessionId] = transport;
   console.log(`Session created: ${transport.sessionId}`);
@@ -382,7 +382,7 @@ function createMcpServer() {
       const body = {
         query,
         user_id,
-        top_k,
+        limit: top_k,
         ...(namespace ? { filters: { agent_id: namespace } } : {}),
       };
       const result = await mem0("POST", "/search", body);
@@ -727,6 +727,105 @@ print(text[:50000].strip())
       const escaped = sql.replace(/'/g, "'\\''");
       const out = runCmd(`sqlite3 -column -header /opt/organizer/data/organizer.db '${escaped}' 2>&1 | head -100`, "/").trim();
       return { content: [{ type: "text", text: out || "(no rows)" }] };
+    });
+
+  // ── Organizer task mutation tools ─────────────────────────────────────
+  const ORG_DB = "/opt/organizer/data/organizer.db";
+  function orgSql(sql, ...params) {
+    // Use sqlite3 CLI for writes (MCP server shares the DB file)
+    const escaped = sql.replace(/'/g, "\'");
+    const out = runCmd(`sqlite3 ${ORG_DB} '${escaped}'`, "/").trim();
+    return out;
+  }
+
+  loggedTool("organizer_task_update",
+    "Update a task's fields in the organizer (name, due_date, plan_date, speed, stakes). Only pass fields that need changing.",
+    {
+      task_id:    z.number().describe("Task ID"),
+      name:       z.string().optional().describe("New task name"),
+      due_date:   z.string().optional().describe("YYYY-MM-DD"),
+      plan_date:  z.string().optional().describe("YYYY-MM-DD"),
+      speed:      z.number().optional().describe("0=snap (<1h), 1=sesh (1-4h), 2=grind (4h+)"),
+      stakes:     z.number().optional().describe("0=low, 1=high, 2=critical"),
+    },
+    async ({ task_id, ...fields }) => {
+      const allowed = ["name","due_date","plan_date","speed","stakes"];
+      const sets = allowed.filter(f => fields[f] !== undefined)
+        .map(f => {
+          const v = fields[f];
+          return typeof v === "string" ? `${f}=\'${v}\'` : `${f}=${v}`;
+        });
+      if (!sets.length) return { content:[{type:"text",text:"Nothing to update"}] };
+      const sql = `UPDATE tasks SET ${sets.join(",")},updated_at=datetime(\'now\') WHERE id=${task_id};`;
+      runCmd(`sqlite3 ${ORG_DB} "${sql}"`, "/");
+      return { content:[{type:"text",text:`Task ${task_id} updated: ${sets.join(", ")}`}] };
+    });
+
+  loggedTool("organizer_task_archive",
+    "Mark a task as done and archive it.",
+    { task_id: z.number().describe("Task ID") },
+    async ({ task_id }) => {
+      runCmd(`sqlite3 ${ORG_DB} "UPDATE tasks SET archived=1,done=1,archived_at=datetime(\'now\') WHERE id=${task_id};"`, "/");
+      return { content:[{type:"text",text:`Task ${task_id} archived`}] };
+    });
+
+  loggedTool("organizer_task_restore",
+    "Restore an archived task back to active.",
+    { task_id: z.number().describe("Task ID") },
+    async ({ task_id }) => {
+      runCmd(`sqlite3 ${ORG_DB} "UPDATE tasks SET archived=0,done=0,archived_at=NULL,updated_at=datetime(\'now\') WHERE id=${task_id};"`, "/");
+      return { content:[{type:"text",text:`Task ${task_id} restored`}] };
+    });
+
+  loggedTool("organizer_task_clear_blockers",
+    "Remove all prerequisite blockers from a task so it is no longer blocked.",
+    { task_id: z.number().describe("Task ID") },
+    async ({ task_id }) => {
+      runCmd(`sqlite3 ${ORG_DB} "DELETE FROM blockers WHERE task_id=${task_id};"`, "/");
+      return { content:[{type:"text",text:`Blockers cleared for task ${task_id}`}] };
+    });
+
+  loggedTool("organizer_task_create",
+    "Create a new task in the organizer.",
+    {
+      user_slug:  z.string().describe("User slug e.g. anas"),
+      name:       z.string().describe("Task name"),
+      domain:     z.string().describe("Domain slug e.g. CTI"),
+      due_date:   z.string().optional().describe("YYYY-MM-DD"),
+      speed:      z.number().optional().describe("0=snap,1=sesh,2=grind"),
+      stakes:     z.number().optional().describe("0=low,1=high,2=crit"),
+    },
+    async ({ user_slug, name, domain, due_date, speed, stakes }) => {
+      const uid = runCmd(`sqlite3 ${ORG_DB} "SELECT id FROM users WHERE slug=\'${user_slug}\' LIMIT 1;"`, "/").trim();
+      if (!uid) return { content:[{type:"text",text:"User not found"}] };
+      const dd = due_date ? `\'${due_date}\'` : "NULL";
+      const sp = speed ?? 1; const st = stakes ?? 1;
+      runCmd(`sqlite3 ${ORG_DB} "INSERT INTO tasks(user_id,name,domain,due_date,speed,stakes) VALUES(${uid},\'${name}\',\'${domain}\',${dd},${sp},${st});"`, "/");
+      const newId = runCmd(`sqlite3 ${ORG_DB} "SELECT MAX(id) FROM tasks WHERE user_id=${uid};"`, "/").trim();
+      return { content:[{type:"text",text:`Task created with id=${newId}`}] };
+    });
+
+  loggedTool("organizer_task_set_blocker",
+    "Add a prerequisite/blocker relationship: task_id is blocked by blocked_by_id (blocked_by must be done first).",
+    {
+      task_id:       z.number().describe("Task that is blocked"),
+      blocked_by_id: z.number().describe("Task that must be done first"),
+    },
+    async ({ task_id, blocked_by_id }) => {
+      runCmd(`sqlite3 ${ORG_DB} "INSERT OR IGNORE INTO blockers(task_id, blocked_by) VALUES(${task_id}, ${blocked_by_id});"`, "/");
+      return { content:[{type:"text",text:`Blocker set: task ${task_id} now requires task ${blocked_by_id} first`}] };
+    });
+
+  loggedTool("organizer_tasks_list",
+    "List active tasks for a user from the organizer DB with id, name, domain, due_date, speed, stakes.",
+    {
+      user_slug: z.string().describe("User slug e.g. anas"),
+    },
+    async ({ user_slug }) => {
+      const uid = runCmd(`sqlite3 ${ORG_DB} "SELECT id FROM users WHERE slug='${user_slug}' LIMIT 1;"`, "/").trim();
+      if (!uid) return { content:[{type:"text",text:"User not found"}] };
+      const out = runCmd(`sqlite3 -column -header ${ORG_DB} "SELECT id,name,domain,due_date,speed,stakes FROM tasks WHERE user_id=${uid} AND archived=0 ORDER BY sort_order,id;"`, "/").trim();
+      return { content:[{type:"text",text:out||"(no tasks)"}] };
     });
 
   loggedTool("fail2ban_status", "Show fail2ban jail stats and recently banned IPs.",
