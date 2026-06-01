@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const { spawnSync } = require('child_process');
 // ── Gemini Direct Invoke ─────────────────────────────────────
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const GEMINI_MODEL   = 'gemini-3-flash-preview';
+const GEMINI_MODEL   = 'gemini-3.5-flash';
 
 async function geminiInvoke(prompt, systemPrompt = '', history = [], timeout = 90000) {
   if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not set');

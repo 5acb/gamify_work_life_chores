@@ -13,7 +13,7 @@ const REPO = "/opt/organizer/repo";
 const DB   = "/opt/organizer/data/organizer.db";
 const AUTH_TOKEN          = process.env.MCP_AUTH_TOKEN || "";
 const GEMINI_API_KEY      = process.env.GEMINI_API_KEY || "";
-const GEMINI_DEFAULT_MODEL = "gemini-3-flash-preview";
+const GEMINI_DEFAULT_MODEL = "gemini-3.5-flash";
 const MEM0_URL            = process.env.MEM0_URL || "http://localhost:8000";
 const MEM0_API_KEY        = process.env.MEM0_API_KEY || "";
 const PORT = 3002;
@@ -114,11 +114,11 @@ async function mem0(method, path, body = null) {
 
 const NB_MODELS = {
   free:  "gemini-2.5-flash-image",
-  nb2:   "gemini-3.1-flash-image-preview",
-  nbpro: "gemini-3-pro-image-preview",
+  nb2:   "gemini-3.1-flash-image",
+  nbpro: "gemini-3-pro-image",
   "gemini-2.5-flash-image":         "gemini-2.5-flash-image",
-  "gemini-3.1-flash-image-preview": "gemini-3.1-flash-image-preview",
-  "gemini-3-pro-image-preview":     "gemini-3-pro-image-preview",
+  "gemini-3.1-flash-image": "gemini-3.1-flash-image",
+  "gemini-3-pro-image":     "gemini-3-pro-image",
 };
 
 async function generateImage(prompt, model = "gemini-2.5-flash-image") {

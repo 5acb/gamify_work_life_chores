@@ -91,7 +91,7 @@
 - [x] **FEAT-2: Gemini scheduling context** — last 30 days of task_events included in Gemini agent prompt
 - [x] **INFRA-1: Mem0 memory stack** — postgres + qdrant + mem0 via docker compose on localhost:8000
 - [x] **INFRA-2: MCP v2.2.0** — memory_add/search/list/delete tools backed by Mem0 REST API
-- [x] **INFRA-3: Gemini model update** — gemini-3-flash-preview (text), gemini-embedding-001 (768-dim)
+- [x] **INFRA-3: Gemini model update** — gemini-3.5-flash (text), gemini-embedding-001 (768-dim)
 - [x] **INFRA-4: SSH key injection** — cyan@yardang ed25519 key in /root/.ssh/authorized_keys
 
 ### Still open
