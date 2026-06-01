@@ -27,7 +27,7 @@ server:
 architecture:
   overview: >
     Split-file SPA frontend (Vanilla JS/CSS) + Express REST API + SQLite WAL. 
-    AI integration uses gemini-3-flash-preview for direct UI chat and a 
+    AI integration uses gemini-3.5-flash for direct UI chat and a 
     dedicated MCP Server for autonomous agent workflows, tool execution, 
     and complex planning sessions.
   ui_paradigm: >
@@ -111,18 +111,17 @@ files:
   .gemini/settings.json: "Gemini CLI and agent configuration"
 
 database_schema:
-  tables:
-    - tasks: "Main task storage (domain, name, labels, speed, stakes, status, user_id)"
-    - subtasks: "Hierarchical task components (task_id, label, status)"
-    - blockers: "Task dependency mapping (task_id, blocked_by)"
-    - users: "Identity storage (name, slug, password_hash)"
-    - domains: "Material and styling mapping (user_id, name, slug, material)"
-    - task_events: "Audit log for task mutations (task_id, action, ts)"
-    - credentials: "WebAuthn public keys and counters"
-    - plan_sessions: "AI workflow tracking (domain, snapshots, timing)"
-    - session_events: "Granular agent action logs within sessions"
-    - session_decisions: "AI-proposed changes and human/system outcomes"
-    - task_observations: "Agent-recorded state analysis for tasks"
-    - meta_insights: "Domain-level patterns and evidence identified by AI"
-    - ui_state: "Persistent client-side preferences"
-    - auth_challenges: "Active WebAuthn challenges"
+  users: "User accounts mapping to custom slugs and Argon2 password hashes"
+  credentials: "WebAuthn authenticator credential public keys, counters, and transport rules"
+  auth_challenges: "Active session login challenges mapped to users with absolute timeouts"
+  domains: "Custom materials and visual descriptors dynamically bound to user domains"
+  tasks: "Core tasks containing status, schedule parameters, priority metrics, and user bindings"
+  subtasks: "Atomic subtasks tracking completion progress and relative rendering order"
+  blockers: "Explicit task-to-task blocking relationships enabling visual graph warnings"
+  ui_state: "Persistent client preference keys for customizable Sanctuary layouts"
+  task_events: "Strict transaction audit logs of user mutations on individual tasks"
+  plan_sessions: "High-level metadata capturing active subagent session states and objectives"
+  session_events: "Historical narrative logs produced by specialized planning subagents"
+  session_decisions: "Auditable structure recording AI decision outcomes, validations, and rationales"
+  task_observations: "Structured observation records capturing state history for quality validation"
+  meta_insights: "Autonomous agent insights reflecting metrics and confidence on dynamic domains"
