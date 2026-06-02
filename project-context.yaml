@@ -111,17 +111,45 @@ files:
   .gemini/settings.json: "Gemini CLI and agent configuration"
 
 database_schema:
-  users: "User accounts mapping to custom slugs and Argon2 password hashes"
-  credentials: "WebAuthn authenticator credential public keys, counters, and transport rules"
-  auth_challenges: "Active session login challenges mapped to users with absolute timeouts"
-  domains: "Custom materials and visual descriptors dynamically bound to user domains"
-  tasks: "Core tasks containing status, schedule parameters, priority metrics, and user bindings"
-  subtasks: "Atomic subtasks tracking completion progress and relative rendering order"
-  blockers: "Explicit task-to-task blocking relationships enabling visual graph warnings"
-  ui_state: "Persistent client preference keys for customizable Sanctuary layouts"
-  task_events: "Strict transaction audit logs of user mutations on individual tasks"
-  plan_sessions: "High-level metadata capturing active subagent session states and objectives"
-  session_events: "Historical narrative logs produced by specialized planning subagents"
-  session_decisions: "Auditable structure recording AI decision outcomes, validations, and rationales"
-  task_observations: "Structured observation records capturing state history for quality validation"
-  meta_insights: "Autonomous agent insights reflecting metrics and confidence on dynamic domains"
+  users: >
+    id INTEGER PRIMARY KEY, name TEXT NOT NULL, slug TEXT UNIQUE NOT NULL,
+    password_hash TEXT, created_at TEXT DEFAULT (datetime('now'))
+  credentials: >
+    id TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), public_key BLOB NOT NULL,
+    counter INTEGER NOT NULL DEFAULT 0, transports TEXT, created_at TEXT DEFAULT (datetime('now'))
+  auth_challenges: >
+    user_id INTEGER NOT NULL REFERENCES users(id), challenge TEXT NOT NULL, expires_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id)
+  domains: >
+    id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id), name TEXT NOT NULL,
+    slug TEXT NOT NULL, material TEXT NOT NULL, sort_order INTEGER DEFAULT 0, UNIQUE(user_id, slug)
+  tasks: >
+    id INTEGER PRIMARY KEY, domain TEXT NOT NULL, name TEXT NOT NULL, plan_date TEXT, due_date TEXT,
+    plan_label TEXT, due_label TEXT, speed INTEGER DEFAULT 0, stakes INTEGER DEFAULT 0, sort_order INTEGER DEFAULT 0,
+    done INTEGER DEFAULT 0, archived INTEGER DEFAULT 0, archived_at TEXT, user_id INTEGER REFERENCES users(id) DEFAULT 1,
+    created_at TEXT DEFAULT (datetime('now')), updated_at TEXT DEFAULT (datetime('now'))
+  subtasks: >
+    id INTEGER PRIMARY KEY, task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE, label TEXT NOT NULL,
+    done INTEGER DEFAULT 0, sort_order INTEGER DEFAULT 0, created_at TEXT DEFAULT (datetime('now'))
+  blockers: >
+    task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE, blocked_by INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    PRIMARY KEY (task_id, blocked_by)
+  task_events: >
+    id INTEGER PRIMARY KEY, task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id),
+    action TEXT NOT NULL, detail TEXT, ts TEXT DEFAULT (datetime('now'))
+  plan_sessions: >
+    id TEXT PRIMARY KEY, triggered TEXT, domain TEXT, task_ids TEXT, started_at TEXT, ended_at TEXT, task_snapshot TEXT
+  session_events: >
+    id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT REFERENCES plan_sessions(id), ts TEXT, agent TEXT,
+    event_type TEXT, task_id INTEGER, content TEXT
+  session_decisions: >
+    id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT REFERENCES plan_sessions(id), ts TEXT, decision_type TEXT,
+    task_id INTEGER, proposed_by TEXT, accepted INTEGER, outcome_validated INTEGER, rationale TEXT
+  task_observations: >
+    id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER, session_id TEXT REFERENCES plan_sessions(id), ts TEXT,
+    observer TEXT, observation TEXT, content TEXT, task_state_snap TEXT
+  meta_insights: >
+    id INTEGER PRIMARY KEY AUTOINCREMENT, generated_at TEXT, insight_type TEXT, domain TEXT, content TEXT,
+    evidence TEXT, confidence REAL, surfaced INTEGER DEFAULT 0
+  ui_state: >
+    key TEXT PRIMARY KEY, value TEXT
