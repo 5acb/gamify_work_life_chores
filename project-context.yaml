@@ -111,126 +111,150 @@ files:
   .gemini/settings.json: "Gemini CLI and agent configuration"
 
 database_schema:
-  users:
-    columns:
-      id: "INTEGER PRIMARY KEY"
-      name: "TEXT NOT NULL"
-      slug: "TEXT UNIQUE NOT NULL"
-      password_hash: "TEXT"
-      created_at: "TEXT DEFAULT (datetime('now'))"
-  tasks:
-    columns:
-      id: "INTEGER PRIMARY KEY"
-      domain: "TEXT NOT NULL"
-      name: "TEXT NOT NULL"
-      plan_date: "TEXT"
-      due_date: "TEXT"
-      plan_label: "TEXT"
-      due_label: "TEXT"
-      speed: "INTEGER DEFAULT 0"
-      stakes: "INTEGER DEFAULT 0"
-      sort_order: "INTEGER DEFAULT 0"
-      done: "INTEGER DEFAULT 0"
-      archived: "INTEGER DEFAULT 0"
-      archived_at: "TEXT"
-      user_id: "INTEGER REFERENCES users(id) DEFAULT 1"
-      created_at: "TEXT DEFAULT (datetime('now'))"
-      updated_at: "TEXT DEFAULT (datetime('now'))"
-  subtasks:
-    columns:
-      id: "INTEGER PRIMARY KEY"
-      task_id: "INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE"
-      label: "TEXT NOT NULL"
-      done: "INTEGER DEFAULT 0"
-      sort_order: "INTEGER DEFAULT 0"
-      created_at: "TEXT DEFAULT (datetime('now'))"
-  blockers:
-    columns:
-      task_id: "INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE"
-      blocked_by: "INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE"
-    primary_key: "(task_id, blocked_by)"
-  domains:
-    columns:
-      id: "INTEGER PRIMARY KEY AUTOINCREMENT"
-      user_id: "INTEGER NOT NULL REFERENCES users(id)"
-      name: "TEXT NOT NULL"
-      slug: "TEXT NOT NULL"
-      material: "TEXT NOT NULL"
-      sort_order: "INTEGER DEFAULT 0"
-    constraints:
-      - "UNIQUE(user_id, slug)"
-  credentials:
-    columns:
-      id: "TEXT PRIMARY KEY"
-      user_id: "INTEGER NOT NULL REFERENCES users(id)"
-      public_key: "BLOB NOT NULL"
-      counter: "INTEGER NOT NULL DEFAULT 0"
-      transports: "TEXT"
-      created_at: "TEXT DEFAULT (datetime('now'))"
-  auth_challenges:
-    columns:
-      user_id: "INTEGER NOT NULL REFERENCES users(id)"
-      challenge: "TEXT NOT NULL"
-      expires_at: "INTEGER NOT NULL"
-    primary_key: "(user_id)"
-  task_events:
-    columns:
-      id: "INTEGER PRIMARY KEY"
-      task_id: "INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE"
-      user_id: "INTEGER NOT NULL REFERENCES users(id)"
-      action: "TEXT NOT NULL"
-      detail: "TEXT"
-      ts: "TEXT DEFAULT (datetime('now'))"
-  ui_state:
-    columns:
-      key: "TEXT PRIMARY KEY"
-      value: "TEXT"
-  plan_sessions:
-    columns:
-      id: "TEXT PRIMARY KEY"
-      triggered: "TEXT"
-      domain: "TEXT"
-      task_ids: "TEXT"
-      started_at: "TEXT"
-      ended_at: "TEXT"
-      task_snapshot: "TEXT"
-  session_events:
-    columns:
-      id: "INTEGER PRIMARY KEY AUTOINCREMENT"
-      session_id: "TEXT REFERENCES plan_sessions(id)"
-      ts: "TEXT"
-      agent: "TEXT"
-      event_type: "TEXT"
-      task_id: "INTEGER"
-      content: "TEXT"
-  session_decisions:
-    columns:
-      id: "INTEGER PRIMARY KEY AUTOINCREMENT"
-      session_id: "TEXT REFERENCES plan_sessions(id)"
-      ts: "TEXT"
-      decision_type: "TEXT"
-      task_id: "INTEGER"
-      proposed_by: "TEXT"
-      accepted: "INTEGER"
-      outcome_validated: "INTEGER"
-      rationale: "TEXT"
-  task_observations:
-    columns:
-      id: "INTEGER PRIMARY KEY AUTOINCREMENT"
-      task_id: "INTEGER"
-      session_id: "TEXT REFERENCES plan_sessions(id)"
-      ts: "TEXT"
-      observer: "TEXT"
-      observation: "TEXT"
-      content: "TEXT"
-      task_state_snap: "TEXT"
-  meta_insights:
-    columns:
-      id: "INTEGER PRIMARY KEY AUTOINCREMENT"
-      generated_at: "TEXT"
-      insight_type: "TEXT"
-      domain: "TEXT"
-      content: "TEXT"
-      evidence: "TEXT"
-      confidence: "REAL"
-      surfaced: "INTEGER DEFAULT 0"
+  tasks: >
+    CREATE TABLE tasks (
+      id INTEGER PRIMARY KEY,
+      domain TEXT NOT NULL,
+      name TEXT NOT NULL,
+      plan_date TEXT,
+      due_date TEXT,
+      plan_label TEXT,
+      due_label TEXT,
+      speed INTEGER DEFAULT 0,
+      stakes INTEGER DEFAULT 0,
+      sort_order INTEGER DEFAULT 0,
+      done INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now')),
+      archived INTEGER DEFAULT 0,
+      archived_at TEXT,
+      user_id INTEGER REFERENCES users(id) DEFAULT 1
+    );
+  subtasks: >
+    CREATE TABLE subtasks (
+      id INTEGER PRIMARY KEY,
+      task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      label TEXT NOT NULL,
+      done INTEGER DEFAULT 0,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+  blockers: >
+    CREATE TABLE blockers (
+      task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      blocked_by INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      PRIMARY KEY (task_id, blocked_by)
+    );
+  ui_state: >
+    CREATE TABLE ui_state (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    );
+  users: >
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      slug TEXT UNIQUE NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      password_hash TEXT
+    );
+  task_events: >
+    CREATE TABLE task_events (
+      id      INTEGER PRIMARY KEY,
+      task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      action  TEXT NOT NULL,
+      detail  TEXT,
+      ts      TEXT DEFAULT (datetime('now'))
+    );
+  credentials: >
+    CREATE TABLE credentials (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      public_key BLOB NOT NULL,
+      counter INTEGER NOT NULL DEFAULT 0,
+      transports TEXT,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+  auth_challenges: >
+    CREATE TABLE auth_challenges (
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      challenge TEXT NOT NULL,
+      expires_at INTEGER NOT NULL,
+      PRIMARY KEY (user_id)
+    );
+  plan_sessions: >
+    CREATE TABLE plan_sessions (
+      id           TEXT PRIMARY KEY,
+      triggered    TEXT,
+      domain       TEXT,
+      task_ids     TEXT,
+      started_at   TEXT,
+      ended_at     TEXT,
+      task_snapshot TEXT
+    );
+  session_events: >
+    CREATE TABLE session_events (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id   TEXT REFERENCES plan_sessions(id),
+      ts           TEXT,
+      agent        TEXT,
+      event_type   TEXT,
+      task_id      INTEGER,
+      content      TEXT
+    );
+  session_decisions: >
+    CREATE TABLE session_decisions (
+      id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id           TEXT REFERENCES plan_sessions(id),
+      ts                   TEXT,
+      decision_type        TEXT,
+      task_id              INTEGER,
+      proposed_by          TEXT,
+      accepted             INTEGER,
+      outcome_validated    INTEGER,
+      rationale            TEXT
+    );
+  task_observations: >
+    CREATE TABLE task_observations (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id          INTEGER,
+      session_id       TEXT REFERENCES plan_sessions(id),
+      ts               TEXT,
+      observer         TEXT,
+      observation      TEXT,
+      content          TEXT,
+      task_state_snap  TEXT
+    );
+  meta_insights: >
+    CREATE TABLE meta_insights (
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      generated_at   TEXT,
+      insight_type   TEXT,
+      domain         TEXT,
+      content        TEXT,
+      evidence       TEXT,
+      confidence     REAL,
+      surfaced       INTEGER DEFAULT 0
+    );
+  domains: >
+    CREATE TABLE domains (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id    INTEGER NOT NULL REFERENCES users(id),
+      name       TEXT NOT NULL,
+      slug       TEXT NOT NULL,
+      material   TEXT NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      UNIQUE(user_id, slug)
+    );
+  indexes:
+    - "CREATE INDEX idx_tasks_archived ON tasks(archived);"
+    - "CREATE INDEX idx_tasks_domain ON tasks(domain);"
+    - "CREATE INDEX idx_task_events_task ON task_events(task_id);"
+    - "CREATE INDEX idx_task_events_user ON task_events(user_id, ts);"
+    - "CREATE INDEX idx_session_events_session ON session_events(session_id);"
+    - "CREATE INDEX idx_session_events_task ON session_events(task_id);"
+    - "CREATE INDEX idx_session_decisions_session ON session_decisions(session_id);"
+    - "CREATE INDEX idx_task_observations_task ON task_observations(task_id);"
+    - "CREATE INDEX idx_meta_insights_domain ON meta_insights(domain);"
+    - "CREATE INDEX idx_meta_insights_surfaced ON meta_insights(surfaced);"
