@@ -1,6 +1,6 @@
 # Project Context — gamify_work_life_chores
 # Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2025-07-26
+# Last updated: 2025-11-20
 
 project:
   name: gamify_work_life_chores
@@ -70,9 +70,9 @@ architecture:
     backup: "cron every 7min → scripts/backup.sh → /opt/organizer/data/backups/"
 
 services:
-  organizer.service: "Main Express app and task API"
-  organizer-mcp.service: "MCP Server (SSE) for AI tool execution"
-  organizer-commit.service: "Socat-based commit-daemon for changelog audit"
+  organizer.service: "Main Express app and task API (Organizer App)"
+  organizer-mcp.service: "MCP Server (SSE) for AI tool execution (Organizer MCP Server)"
+  organizer-commit.service: "Socat-based commit-daemon for changelog audit (Organizer Auto-Commit Endpoint)"
 
 subagents:
   Plan: "Decomposes high-level objectives into task structures and identifies dependencies."
@@ -111,7 +111,15 @@ files:
   .gemini/settings.json: "Gemini CLI and agent configuration"
 
 database_schema:
-  tasks: >
+  users: |
+    CREATE TABLE users (
+      id INTEGER PRIMARY KEY,
+      name TEXT NOT NULL,
+      slug TEXT UNIQUE NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      password_hash TEXT
+    );
+  tasks: |
     CREATE TABLE tasks (
       id INTEGER PRIMARY KEY,
       domain TEXT NOT NULL,
@@ -130,7 +138,7 @@ database_schema:
       archived_at TEXT,
       user_id INTEGER REFERENCES users(id) DEFAULT 1
     );
-  subtasks: >
+  subtasks: |
     CREATE TABLE subtasks (
       id INTEGER PRIMARY KEY,
       task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
@@ -139,26 +147,18 @@ database_schema:
       sort_order INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now'))
     );
-  blockers: >
+  blockers: |
     CREATE TABLE blockers (
       task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
       blocked_by INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
       PRIMARY KEY (task_id, blocked_by)
     );
-  ui_state: >
+  ui_state: |
     CREATE TABLE ui_state (
       key TEXT PRIMARY KEY,
       value TEXT
     );
-  users: >
-    CREATE TABLE users (
-      id INTEGER PRIMARY KEY,
-      name TEXT NOT NULL,
-      slug TEXT UNIQUE NOT NULL,
-      created_at TEXT DEFAULT (datetime('now')),
-      password_hash TEXT
-    );
-  task_events: >
+  task_events: |
     CREATE TABLE task_events (
       id      INTEGER PRIMARY KEY,
       task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
@@ -167,7 +167,7 @@ database_schema:
       detail  TEXT,
       ts      TEXT DEFAULT (datetime('now'))
     );
-  credentials: >
+  credentials: |
     CREATE TABLE credentials (
       id TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id),
@@ -176,14 +176,14 @@ database_schema:
       transports TEXT,
       created_at TEXT DEFAULT (datetime('now'))
     );
-  auth_challenges: >
+  auth_challenges: |
     CREATE TABLE auth_challenges (
       user_id INTEGER NOT NULL REFERENCES users(id),
       challenge TEXT NOT NULL,
       expires_at INTEGER NOT NULL,
       PRIMARY KEY (user_id)
     );
-  plan_sessions: >
+  plan_sessions: |
     CREATE TABLE plan_sessions (
       id           TEXT PRIMARY KEY,
       triggered    TEXT,
@@ -193,7 +193,7 @@ database_schema:
       ended_at     TEXT,
       task_snapshot TEXT
     );
-  session_events: >
+  session_events: |
     CREATE TABLE session_events (
       id           INTEGER PRIMARY KEY AUTOINCREMENT,
       session_id   TEXT REFERENCES plan_sessions(id),
@@ -203,7 +203,7 @@ database_schema:
       task_id      INTEGER,
       content      TEXT
     );
-  session_decisions: >
+  session_decisions: |
     CREATE TABLE session_decisions (
       id                   INTEGER PRIMARY KEY AUTOINCREMENT,
       session_id           TEXT REFERENCES plan_sessions(id),
@@ -215,7 +215,7 @@ database_schema:
       outcome_validated    INTEGER,
       rationale            TEXT
     );
-  task_observations: >
+  task_observations: |
     CREATE TABLE task_observations (
       id               INTEGER PRIMARY KEY AUTOINCREMENT,
       task_id          INTEGER,
@@ -226,7 +226,7 @@ database_schema:
       content          TEXT,
       task_state_snap  TEXT
     );
-  meta_insights: >
+  meta_insights: |
     CREATE TABLE meta_insights (
       id             INTEGER PRIMARY KEY AUTOINCREMENT,
       generated_at   TEXT,
@@ -237,7 +237,7 @@ database_schema:
       confidence     REAL,
       surfaced       INTEGER DEFAULT 0
     );
-  domains: >
+  domains: |
     CREATE TABLE domains (
       id         INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id    INTEGER NOT NULL REFERENCES users(id),
