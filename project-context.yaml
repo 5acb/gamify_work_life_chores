@@ -1,7 +1,3 @@
-# Project Context — gamify_work_life_chores
-# Read this file FIRST in any new chat session, then run orientation_commands.
-# Last updated: 2025-11-20
-
 project:
   name: gamify_work_life_chores
   domain: 7ay.de
@@ -34,16 +30,16 @@ architecture:
     Atmospheric Sanctuary. Uses 2:1 split pane (Worktree vs Task List). 
     Features Donut Indicators for temporal frequency and a Sanctuary Indicator Line. 
     Custom reordering via Sortable.js. Domains utilize specific "Materials" 
-    mapped via the domains table: Threat Intelligence (CTI: cyberspace-grid), 
+    mapped dynamically via the domains database table: Threat Intelligence (CTI: cyberspace-grid), 
     Drone Security (CSD: kingfisher), Enterprise Security (ECM: saffron-road), 
     Graduate Research (GRA: amethyst-sky), Personal (PER: sun-baked-clay). 
     Background rendering utilizes HGT Digital Elevation Model data (terrain/S36E149.DAT).
   ai_orchestration: >
     A dedicated MCP server (SSE transport) provides a tool-augmented environment.
     1. Subagent framework: Specialized personas (Plan, Execute, Review) in subagents.js.
-    2. Plan Sessions: Multi-step workflows for decomposition and state analysis,
-       persisted in plan_sessions, session_events, and session_decisions.
-    3. Meta Insights: Automated generation of domain-specific insights and evidence.
+    2. Plan Sessions: Multi-step workflows for decomposition, state analysis, and task observations,
+       persisted in plan_sessions, session_events, session_decisions, and task_observations.
+    3. Meta Insights: Automated generation of domain-specific insights and evidence stored in meta_insights.
     4. Knowledge Base: Integration with Mem0 (localhost:8000) for long-term memory.
     5. Auditability: A cryptographic changelog (changelog.js) logs all AI mutations.
     6. Agentic CLI: npx @google/gemini-cli --yolo for autonomous terminal tasks.
@@ -90,6 +86,7 @@ files:
   README.md: "Project overview and entry point"
   schema.sql: "Full database schema definitions"
   backup.sql: "Database dump for recovery/migration"
+  project-context.yaml: "Active project context and configuration schema metadata"
   mcp-server/changelog.js: "Cryptographic audit trail for AI actions"
   mcp-server/icon.png: "MCP server branding"
   mcp-server/package.json: "MCP server dependencies"
@@ -108,5 +105,5 @@ files:
   scripts/kb-pyproject.toml: "Python dependencies for KB scripts"
   scripts/post-session-kb.sh: "Post-session hook for KB synchronization"
   scripts/setup-mcp-client.sh: "Utility to configure local MCP clients"
-  scripts/test-render.sh: "Canvas/UI rendering test utility"
-  terrain/S36E149.DAT: "HGT Digital Elevation Model data for backgrounds"
+  scripts/test-render.sh: "Terrain visualization testing tool for elevation maps"
+  terrain/S36E149.DAT: "HGT Digital Elevation Model data for atmospheric 3D terrain backgrounds"
