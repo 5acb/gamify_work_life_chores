@@ -32,7 +32,7 @@ architecture:
     Custom reordering via Sortable.js. Domains utilize specific "Materials" 
     mapped dynamically via the domains database table: Threat Intelligence (CTI: cyberspace-grid), 
     Drone Security (CSD: kingfisher), Enterprise Security (ECM: saffron-road), 
-    Graduate Research (GRA: amethyst-sky), Personal (PER/Personal: sun-baked-clay). 
+    Graduate Research (GRA: amethyst-sky), Personal (PER: sun-baked-clay). 
     Background rendering utilizes HGT Digital Elevation Model data (terrain/S36E149.DAT).
   ai_orchestration: >
     A dedicated MCP server (SSE transport) provides a tool-augmented environment.
@@ -105,7 +105,7 @@ files:
   scripts/kb-pyproject.toml: "Python dependencies for KB scripts"
   scripts/kb.py: "Knowledge base / Mem0 integration scripts"
   scripts/post-session-kb.sh: "Post-session hook for KB synchronization"
-  scripts/setup-mcp-client.sh: "Utility to configure local MCP clients"
-  scripts/test-render.sh: "Terrain HGT file rendering verification script"
-  server.js: "Express API — WebAuthn, task persistence, Gemini Direct Invoke, domain management"
-  terrain/S36E149.DAT: "HGT Digital Elevation Model data for terrain rendering"
+  scripts/setup-mcp-client.sh: "Utility script to configure local MCP clients"
+  scripts/test-render.sh: "Utility script to verify terrain background rendering"
+  server.js: "Main Express application server handling WebAuthn and task API operations"
+  terrain/S36E149.DAT: "HGT Digital Elevation Model data for atmospheric terrain rendering"
