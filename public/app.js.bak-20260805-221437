@@ -635,11 +635,7 @@ function taskForm(t){
       +'<div class="field-tile'+(t&&t.due_date&&!t.plan_date?' plan-nudge':'')+'" style="flex:1"><label>Start</label><input id="f-pd" type="date" value="'+esc(t&&t.plan_date?t.plan_date:'')+'"></div>'
       +'<div class="field-tile" style="flex:1"><label>Due</label><input id="f-dd" type="date" value="'+esc(t&&t.due_date?t.due_date:'')+'"></div>'
     +'</div>'
-    +'<div class="field-tile"><label>Status</label><select id="f-done"><option value="0">Pending</option><option value="1" '+(t&&t.done?'selected':'')+'>Done</option></select></div>'
-    +'<div style="display:flex;gap:12px">'
-      +'<div class="field-tile" style="flex:1"><label>Effort</label><select id="f-speed">'+SPEED_L.map(function(l,i){return '<option value="'+i+'"'+(t&&+t.speed===i?' selected':'')+'>'+l+'</option>'}).join('')+'</select></div>'
-      +'<div class="field-tile" style="flex:1"><label>Stakes</label><select id="f-stakes">'+STAKES_L.map(function(l,i){return '<option value="'+i+'"'+(t&&+t.stakes===i?' selected':'')+'>'+l+'</option>'}).join('')+'</select></div>'
-    +'</div>';
+    +'<div class="field-tile"><label>Status</label><select id="f-done"><option value="0">Pending</option><option value="1" '+(t&&t.done?'selected':'')+'>Done</option></select></div>';
 }
 
 function reloadDomains(cb){
@@ -823,9 +819,7 @@ function openEdit(id){
       domain:document.getElementById('f-domain').value,
       plan_date:document.getElementById('f-pd').value||null,
       due_date:document.getElementById('f-dd').value||null,
-      done:+document.getElementById('f-done').value,
-      speed:+document.getElementById('f-speed').value,
-      stakes:+document.getElementById('f-stakes').value
+      done:+document.getElementById('f-done').value
     };
     api('PATCH','/api/tasks/'+id,d).then(function(){closeModal();loadBoard()});
   };
@@ -846,9 +840,7 @@ function openAddTask(){
       domain:document.getElementById('f-domain').value,
       plan_date:document.getElementById('f-pd').value||null,
       due_date:document.getElementById('f-dd').value||null,
-      done:+document.getElementById('f-done').value,
-      speed:+document.getElementById('f-speed').value,
-      stakes:+document.getElementById('f-stakes').value
+      done:+document.getElementById('f-done').value
     };
     if(!d.name)return;
     api('POST','/api/users/'+state.slug+'/tasks',d).then(function(){loadBoard();closeModal()});
